@@ -119,6 +119,9 @@ export const IntakeSchema = z.object({
   // -- Consent / info --
   investigationsExplained: z.enum(YN),
   infoGiven: z.enum(YN),
+
+  // -- Workflow --
+  lacksCapacity: z.enum(YN).default('no'),
 })
 
 export type Intake = z.infer<typeof IntakeSchema>
@@ -176,4 +179,5 @@ export const DEFAULT_INTAKE: Intake = {
   fitForSedation: 'yes',
   investigationsExplained: 'no',
   infoGiven: 'no',
+  lacksCapacity: 'no',
 }

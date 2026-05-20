@@ -57,6 +57,8 @@ const hasMass = (i: Intake): boolean =>
 const hasCIBHorBleeding = (i: Intake): boolean =>
   i.cibh === 'yes' ||
   i.prBleed !== 'none' ||
+  i.tenesmus === 'yes' || // NICE NG12 red flag; PDF treats tenesmus with mass pathway
+  i.mucusPR === 'yes' || // colorectal red flag
   i.referralReasons.includes('change_in_bowel_habit') ||
   i.referralReasons.includes('rectal_bleeding')
 
@@ -100,6 +102,21 @@ export function decide(intake: Intake): DecisionResult {
   ]
 
   // ----- Routing exceptions first (PDF page 2 bottom rows) -----
+
+  if (intake.lacksCapacity === 'yes' && intake.clinicType === 'telephone') {
+    path.push({
+      nodeId: 'ROUTE.LACKS_CAPACITY',
+      label: 'Unable to comply with tel clinic / lacks capacity',
+      evidence: 'Patient cannot complete telephone assessment',
+    })
+    return make(
+      'book_f2f_clinic',
+      'Patient lacks capacity for telephone consultation or unable to comply. Book F2F clinic appointment per Trust pathway.',
+      'ROUTE.LACKS_CAPACITY',
+      path,
+      [{ investigation: 'mdt_discussion', when: 'If capacity issues persist after F2F review' }],
+    )
+  }
 
   if (intake.priorColonoscopyWithin2y === 'yes') {
     path.push({
@@ -234,12 +251,12 @@ function decideIDA(intake: Intake, path: PathStep[]): DecisionResult {
     )
   }
 
-  // CTVC + OGD — older or unfit for prep but tolerates limited prep
-  if (age80 || notFit) {
+  // CTVC + OGD — older / unfit for full prep / poor mobility (still tolerates limited prep)
+  if (age80 || notFit || poorMob) {
     path.push({
       nodeId: 'IDA.ctc_ogd',
-      label: 'Previous failed/challenging colonoscopy, >=80 yrs, or comorbid',
-      evidence: `age ${intake.ageBand}, fit for prep: ${intake.fitForBowelPrep}`,
+      label: 'Previous failed/challenging colonoscopy, >=80 yrs, comorbid, or poor mobility',
+      evidence: `age ${intake.ageBand}, fit for prep: ${intake.fitForBowelPrep}, mobility aids: ${intake.mobilityAids}`,
     })
     return make(
       'ctc_plus_ogd',
@@ -471,14 +488,14 @@ function decideCIBHFitPosFitness(intake: Intake, path: PathStep[]): DecisionResu
     )
   }
 
-  if (age80 || notFit) {
+  if (age80 || notFit || poorMob) {
     const ctcNote =
       intake.tenesmus === 'yes' || intake.palpableRectalMass === 'yes'
         ? ' (+/- FOS if tenesmus or PR mass)'
         : ''
     path.push({
       nodeId: 'CIBH.fit_pos.ctc',
-      label: 'Previous failed/challenging col, >=80, comorbid → CTVC' + ctcNote,
+      label: 'Previous failed/challenging col, >=80, comorbid, or poor mobility → CTVC' + ctcNote,
     })
     return make(
       'ctc',
@@ -614,12 +631,12 @@ function decideWeightLoss(intake: Intake, path: PathStep[]): DecisionResult {
   if (elderly || notFit) {
     path.push({
       nodeId: 'WTLOSS.elderly_or_unfit',
-      label: 'Elderly or unfit for full prep — CTAP base',
+      label: 'Elderly or unfit for full prep — CT AP base',
       evidence: `age ${intake.ageBand}, fit for prep: ${intake.fitForBowelPrep}`,
     })
     return make(
-      heavyLoss ? 'ctc_plus_ogd' : 'ct_ap',
-      `Weight loss in elderly/unfit patient. ${heavyLoss ? 'Heavy weight loss (>3kg) — CTVC + OGD' : 'CT AP per Trust pathway'}.`,
+      heavyLoss ? 'ct_ap_plus_ogd' : 'ct_ap',
+      `Weight loss in elderly/unfit patient. ${heavyLoss ? 'Heavy weight loss (>3kg) — CT AP + OGD per Trust footnote' : 'CT AP per Trust pathway'}.`,
       heavyLoss ? 'WTLOSS.elderly_ogd' : 'WTLOSS.elderly',
       path,
       [

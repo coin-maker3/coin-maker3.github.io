@@ -7,11 +7,13 @@ export const INVESTIGATIONS = [
   'ctc_plus_ogd',
   'ct_tap',
   'ct_ap',
+  'ct_ap_plus_ogd',
   'flexible_sigmoidoscopy',
   'colon_capsule',
   'mdt_discussion',
   'discharge_to_gp',
   'discuss_with_cow',
+  'book_f2f_clinic',
 ] as const
 
 export type Investigation = (typeof INVESTIGATIONS)[number]
@@ -23,11 +25,13 @@ export const INVESTIGATION_LABELS: Record<Investigation, string> = {
   ctc_plus_ogd: 'CTC + OGD',
   ct_tap: 'CT TAP',
   ct_ap: 'CT abdomen + pelvis',
+  ct_ap_plus_ogd: 'CT abdomen + pelvis + OGD',
   flexible_sigmoidoscopy: 'Flexible sigmoidoscopy',
   colon_capsule: 'Colon capsule endoscopy',
   mdt_discussion: 'Discuss at colorectal MDT',
   discharge_to_gp: 'Discharge to GP with advice',
   discuss_with_cow: 'Discuss with Consultant of the Week',
+  book_f2f_clinic: 'Book F2F clinic appointment',
 }
 
 export interface PathStep {

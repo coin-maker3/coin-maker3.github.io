@@ -407,6 +407,9 @@ export function IntakeForm({ value, onChange }: Props) {
           <Row label="Patient information leaflet given">
             <YesNoToggle value={value.infoGiven} onChange={(v) => set('infoGiven', v)} />
           </Row>
+          <Row label="Patient lacks capacity / unable to comply with tel clinic">
+            <YesNoToggle value={value.lacksCapacity} onChange={(v) => set('lacksCapacity', v)} />
+          </Row>
         </div>
       </section>
     </div>

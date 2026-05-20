@@ -452,11 +452,119 @@ describe('Routing exceptions', () => {
   })
 })
 
+describe('Audit fixes (v0.2.0 → v0.2.1)', () => {
+  it('IDA + age 70 + mobility aids → CTVC + OGD (poor mobility added to CTVC arm)', () => {
+    const result = decide(
+      base({
+        referralReasons: ['iron_deficiency_anaemia'],
+        sex: 'F',
+        ageBand: '70-79',
+        hb: 100,
+        ferritin: 10,
+        mobilityAids: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('ctc_plus_ogd')
+    expect(result.algorithmNodeId).toBe('IDA.ctc_ogd')
+  })
+
+  it('IDA + age 60 + dependent ADLs → CTVC + OGD (poor mobility)', () => {
+    const result = decide(
+      base({
+        referralReasons: ['iron_deficiency_anaemia'],
+        sex: 'F',
+        ageBand: '60-69',
+        hb: 100,
+        ferritin: 10,
+        independentADLs: 'no',
+      }),
+    )
+    expect(result.investigation).toBe('ctc_plus_ogd')
+  })
+
+  it('CIBH FIT+ + age 65 + mobility aids → CTVC (was Colonoscopy)', () => {
+    const result = decide(
+      base({
+        referralReasons: ['change_in_bowel_habit'],
+        cibh: 'yes',
+        ageBand: '60-69',
+        fit: 50,
+        mobilityAids: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('ctc')
+    expect(result.algorithmNodeId).toBe('CIBH.fit_pos.ctc')
+  })
+
+  it('Isolated tenesmus + FIT+ → Colonoscopy (tenesmus now triggers CIBH branch)', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        tenesmus: 'yes',
+        fit: 30,
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+    expect(result.algorithmNodeId).toBe('CIBH.fit_pos.colonoscopy')
+  })
+
+  it('Isolated mucus PR + FIT+ → Colonoscopy (mucus PR now triggers CIBH branch)', () => {
+    const result = decide(
+      base({
+        ageBand: '50-59',
+        mucusPR: 'yes',
+        fit: 25,
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+  })
+
+  it('Weight loss + elderly + heavy (>3kg) → CT AP + OGD (was CTVC + OGD)', () => {
+    const result = decide(
+      base({
+        referralReasons: ['weight_loss'],
+        weightLoss: 'yes',
+        weightLossKg: 5,
+        ageBand: '80-89',
+        fit: 30,
+      }),
+    )
+    expect(result.investigation).toBe('ct_ap_plus_ogd')
+  })
+
+  it('Lacks capacity + telephone clinic → Book F2F clinic', () => {
+    const result = decide(
+      base({
+        clinicType: 'telephone',
+        lacksCapacity: 'yes',
+        referralReasons: ['change_in_bowel_habit'],
+        cibh: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('book_f2f_clinic')
+    expect(result.algorithmNodeId).toBe('ROUTE.LACKS_CAPACITY')
+  })
+
+  it('Lacks capacity but already F2F → continues normal triage', () => {
+    const result = decide(
+      base({
+        clinicType: 'face_to_face',
+        lacksCapacity: 'yes',
+        referralReasons: ['change_in_bowel_habit'],
+        cibh: 'yes',
+        fit: 30,
+        ageBand: '60-69',
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+  })
+})
+
 describe('Output contract', () => {
   it('Every decision stamps algorithm version + timestamp + path', () => {
     const result = decide(base({ fit: 50, cibh: 'yes' }))
     expect(result.algorithm.id).toBe('GEH-2WW-COLORECTAL')
-    expect(result.algorithm.version).toBe('0.2.0')
+    expect(result.algorithm.version).toBe('0.2.1')
     expect(result.path.length).toBeGreaterThan(0)
     expect(() => new Date(result.computedAt).toISOString()).not.toThrow()
   })
