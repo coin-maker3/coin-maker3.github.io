@@ -61,30 +61,49 @@ record('Decision card renders on load', noFitText)
 const versionBadge = await page.getByText(/GEH-2WW-COLORECTAL/).first().isVisible()
 record('Algorithm version visible', versionBadge)
 
-// --- 7) Simulated case: FIT positive should route to colonoscopy
+// --- 7) Simulated case: CIBH referral + FIT+ + young + fit → Colonoscopy
+await page.check('text=Change in bowel habit')
+// flip CIBH symptom to Yes
+const cibhRow = page.locator('text=Change in bowel habit').nth(1).locator('..')
+await cibhRow.getByRole('button', { name: 'Yes' }).click()
 await fitInput.fill('45')
 await page.waitForTimeout(300)
-const decisionTitle = await page
-  .locator('h3:has-text("Colonoscopy"), h3:has-text("CT")')
+const cibhFitPos = await page
+  .locator('h3:has-text("Colonoscopy"), h3:has-text("CT"), h3:has-text("Discharge"), h3:has-text("Colon capsule")')
   .first()
   .textContent()
 record(
-  'FIT=45 routes to Colonoscopy (placeholder rule)',
-  /colonoscopy/i.test(decisionTitle ?? ''),
-  decisionTitle ?? '',
+  'CIBH + FIT 45 + fit patient → Colonoscopy',
+  /^\s*Colonoscopy\s*$/i.test(cibhFitPos?.trim() ?? '') || /Colonoscopy$/i.test(cibhFitPos ?? ''),
+  cibhFitPos ?? '',
 )
 
-// --- 8) Simulated case: FIT below threshold should route to discharge
-await fitInput.fill('5')
+// --- 8) THE KEY CASE: GP referred CIBH + IDA on bloods → Colonoscopy + OGD
+await page.fill('#hb', '95')
+await page.fill('#mcv', '70')
+await page.fill('#ferritin', '8')
+await fitInput.fill('180')
 await page.waitForTimeout(300)
-const dischargeTitle = await page
-  .locator('h3:has-text("Discharge")')
+const idaPriorityTitle = await page
+  .locator('h3')
   .first()
   .textContent()
 record(
-  'FIT=5 routes to Discharge (placeholder rule)',
-  /discharge/i.test(dischargeTitle ?? ''),
-  dischargeTitle ?? '',
+  'GP CIBH referral + IDA bloods → Colonoscopy + OGD (IDA priority rule)',
+  /Colonoscopy \+ OGD/i.test(idaPriorityTitle ?? ''),
+  idaPriorityTitle ?? '',
+)
+
+// --- 8b) Verify path shows IDA priority override
+await page.getByText(/Show algorithm path/i).click()
+await page.waitForTimeout(200)
+const idaOverrideVisible = await page
+  .getByText(/IDA criteria override original referral reason/i)
+  .first()
+  .isVisible()
+record(
+  'Algorithm path shows IDA-overrides-CIBH branch',
+  idaOverrideVisible,
 )
 
 // --- 9) Letter generator produces text
@@ -96,11 +115,9 @@ record(
   `${letter.length} chars`,
 )
 
-// --- 10) Algorithm path expandable
-await page.getByText(/Show algorithm path/i).click()
-await page.waitForTimeout(200)
-const pathStep = await page.getByText(/PLACEHOLDER\.FIT_NEG|PLACEHOLDER\.FIT_POS/).first().isVisible()
-record('Algorithm path viewer expands', pathStep)
+// --- 10) Algorithm path shows IDA nodes (real algorithm, not placeholder)
+const idaPath = await page.getByText(/IDA\.col_ogd|IDA\.entry/).first().isVisible()
+record('Algorithm path uses real IDA node IDs', idaPath)
 
 // --- 11) Console clean
 record(

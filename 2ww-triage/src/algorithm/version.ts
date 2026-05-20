@@ -7,9 +7,11 @@
  */
 export const ALGORITHM_VERSION = {
   id: 'GEH-2WW-COLORECTAL',
-  version: '0.1.0-placeholder',
+  version: '0.2.0',
   description:
-    'Placeholder rules pending encoding of Trust algorithm PDF. Single rule: FIT >= 10 -> colonoscopy.',
+    'Trust 2WW algorithm encoded: IDA / mass / CIBH-bleeding (FIT-driven) / ' +
+    'asymptomatic FIT+ / weight loss / no-criteria branches. IDA takes ' +
+    'priority over referral reason when bloods meet IDA criteria.',
   source: 'LATEST_2WW_INVESTIGATIONS__ALGORITHM_4.pdf',
   effectiveFrom: '2026-05-20',
   encodedAt: new Date().toISOString(),
