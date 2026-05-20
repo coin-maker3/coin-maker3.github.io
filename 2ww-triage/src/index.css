@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family:
+      'Frutiger W01', Arial, system-ui, -apple-system, 'Segoe UI', Roboto,
+      sans-serif;
+  }
+
+  body {
+    @apply bg-nhs-pale-grey text-nhs-black antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-gray-200 bg-white p-6 shadow-sm;
+  }
+
+  .label {
+    @apply mb-1 block text-sm font-medium text-nhs-dark-grey;
+  }
+
+  .input {
+    @apply block w-full rounded-md border border-gray-300 bg-white px-3 py-2
+      text-sm shadow-sm focus:border-nhs-bright-blue focus:outline-none
+      focus:ring-2 focus:ring-nhs-bright-blue/30 disabled:cursor-not-allowed
+      disabled:opacity-60;
+  }
+
+  .select {
+    @apply input pr-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2
+      text-sm font-semibold transition focus:outline-none focus:ring-2
+      focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary {
+    @apply btn bg-nhs-blue text-white hover:bg-nhs-dark-blue
+      focus:ring-nhs-bright-blue;
+  }
+
+  .btn-secondary {
+    @apply btn border border-nhs-blue bg-white text-nhs-blue
+      hover:bg-nhs-pale-grey focus:ring-nhs-bright-blue;
+  }
+
+  .toggle-yn {
+    @apply inline-flex overflow-hidden rounded-md border border-gray-300;
+  }
+
+  .toggle-yn button {
+    @apply px-3 py-1.5 text-sm font-medium transition;
+  }
+
+  .toggle-yn button[aria-pressed='true'] {
+    @apply bg-nhs-blue text-white;
+  }
+
+  .toggle-yn button[aria-pressed='false'] {
+    @apply bg-white text-nhs-dark-grey hover:bg-nhs-pale-grey;
+  }
+}
