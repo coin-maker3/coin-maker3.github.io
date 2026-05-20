@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "smoke": "SMOKE_URL=https://coin-maker3.github.io/triage/ node smoke.mjs",
+    "smoke:local": "npm run build && (npx vite preview --base=/triage/ --port 4173 & sleep 3 && SMOKE_URL=http://localhost:4173/triage/ node smoke.mjs; kill %1)"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
