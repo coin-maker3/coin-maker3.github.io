@@ -65,6 +65,9 @@ export function ClinicianPage() {
                 {ALGORITHM_VERSION.id} v{ALGORITHM_VERSION.version}
               </code>
             </span>
+            <a className="btn-secondary" href={linkTo.audit()}>
+              Audit
+            </a>
             <button type="button" className="btn-secondary" onClick={reset}>
               Reset
             </button>

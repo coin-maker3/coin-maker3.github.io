@@ -10,6 +10,7 @@
 import type { ViteDevServer } from 'vite'
 
 const store = new Map<string, { payload: unknown; expiresAt: number; createdAt: number }>()
+const auditStore = new Map<string, any>() // audit cases — no TTL
 const TTL_MS = 48 * 60 * 60 * 1000
 
 const json = (res: any, status: number, body: unknown) => {
@@ -82,6 +83,36 @@ export function apiMiddleware() {
           count: store.size,
           refs: Array.from(store.keys()),
         })
+      })
+
+      // ===== Audit endpoints =====
+      // Audit cases are kept indefinitely (no TTL) — they're an audit dataset.
+
+      server.middlewares.use('/api/audit/save', async (req: any, res: any, next: any) => {
+        if (req.method !== 'POST') return next()
+        try {
+          const raw = await readBody(req)
+          const data = JSON.parse(raw)
+          if (!data.id || typeof data.id !== 'string') {
+            return json(res, 400, { error: 'Missing id' })
+          }
+          auditStore.set(data.id, data)
+          json(res, 200, { ok: true, id: data.id })
+        } catch (e: any) {
+          json(res, 400, { error: e.message ?? 'bad request' })
+        }
+      })
+
+      server.middlewares.use('/api/audit/list', (_req: any, res: any) => {
+        json(res, 200, { cases: Array.from(auditStore.values()) })
+      })
+
+      server.middlewares.use('/api/audit/delete', (req: any, res: any) => {
+        const url = new URL(req.url, 'http://x')
+        const id = url.searchParams.get('id')
+        if (!id) return json(res, 400, { error: 'Missing id' })
+        const existed = auditStore.delete(id)
+        json(res, existed ? 200 : 404, { ok: existed })
       })
     },
   }
