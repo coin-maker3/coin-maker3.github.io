@@ -1,105 +1,91 @@
-# Deployment guide (testing)
+# Deploying the 2WW Triage Aid
 
-Two deployments are useful during the pilot phase.
+Two ways to host this. Pick **B** — it's simpler and needs no CLI or token sharing.
 
-## A. GitHub Pages (current — clinician-only, no patient form)
+## A. GitHub Pages (current — read-only clinician demo)
 
-What's already live at `https://coin-maker3.github.io/triage/`.
+Live at `https://coin-maker3.github.io/triage/`. Static build, no backend, so:
+- Patient form submission doesn't work
+- "Import patient submission" doesn't work
+- Audit module doesn't work (no storage)
 
-- Static build pushed to `main:/triage/`
-- No backend; the "Import patient submission" panel is non-functional here
-- Useful for surgeons to play with the algorithm before the patient form
-  is involved
+Only useful as a clinician-side demo of the algorithm.
 
-Rebuild and redeploy:
-```
-cd 2ww-triage
-npx vite build --base=/triage/
-rm -rf ../triage && cp -r dist ../triage   # if you're at repo root
-git add ../triage && git commit && git push
-```
+## B. Vercel via GitHub UI (recommended — full app + audit)
 
-## B. Vercel (testing — full patient + clinician workflow)
+**No CLI. No tokens. Three minutes of clicking.**
 
-This is what enables the patient form to actually receive submissions and
-the clinician to import them by reference.
+### One-time setup
 
-### One-time setup (5 minutes)
+1. Open **https://vercel.com/new** in a browser, signed in to your Vercel account
+2. Click **Import Git Repository** → connect GitHub if not already → pick `coin-maker3/coin-maker3.github.io`
+3. **Configure Project**:
+   - Project Name: `2ww-triage` (or whatever)
+   - Framework Preset: Vite (auto-detected)
+   - **Root Directory: `2ww-triage`** ← important; click Edit to set this
+   - Click **Deploy**
+4. Wait ~1 minute for the first build. You'll get a URL like `https://2ww-triage-xxx.vercel.app/`
+5. In the project → **Storage** tab → **Create Database** → **KV** → name `twoww-kv`, region `lhr1` (London) → **Connect to Project**. The `KV_*` env vars are added automatically.
+6. In the project → **Settings** → **Environment Variables**:
+   - Add `PILOT_REQUIRE_TEST_PREFIX` = `1` for **Production**, **Preview** and **Development**
+7. In the project → **Deployments** tab → most recent → ⋯ → **Redeploy** (so the build picks up the new env vars)
 
-From the `2ww-triage/` folder on your laptop:
+### Set the production branch (one-time)
 
-```
-# 1. Install Vercel CLI globally (one-time)
-npm i -g vercel
+If the Vercel project defaulted to deploying `main` instead of the feature branch:
 
-# 2. Log in (browser pops open)
-vercel login
+- Settings → **Git** → **Production Branch** → set to `claude/general-session-iea8E` (or merge the branch to `main` first)
 
-# 3. Link this folder to a new Vercel project
-vercel link
-# When asked: scope=your-vercel-account, project=2ww-triage (or whatever name)
+### From then on
 
-# 4. Create the KV store for storing patient submissions
-vercel kv create twoww-submissions --region lhr1
-# (lhr1 = London. Use fra1 if lhr1 unavailable — both are EEA.)
+Every `git push` to the production branch auto-deploys. You never need to touch the CLI.
 
-# 5. Link the KV store to the project
-vercel kv connect twoww-submissions
-# Choose: All Environments
+### URLs the team will use
 
-# 6. Set the testing-only safety env var
-vercel env add PILOT_REQUIRE_TEST_PREFIX
-# When prompted, enter: 1
-# Environments: Production, Preview, Development
-```
-
-### Deploy
-
-```
-vercel deploy --prod
-```
-
-You'll get a URL like `https://2ww-triage-xxx.vercel.app/`.
-
-### How to use it
-
-1. Open the URL — that's the clinician view
-2. Click "Generate reference" — gives you e.g. `TEST-AB12-CD34` and a link
-3. Open that link on your phone (or send to a colleague) — the patient view
-4. Fill the form, submit
-5. On the clinician side, click "Import…" and paste the reference
-
-Data lives in Vercel KV (London region) and auto-expires after 48 hours.
+| Audience | URL |
+|---|---|
+| Clinician (you) | `https://2ww-triage-xxx.vercel.app/` |
+| Patient pre-clinic form | `https://2ww-triage-xxx.vercel.app/#/patient?ref=TEST-ABC` |
+| FY1 audit dashboard | `https://2ww-triage-xxx.vercel.app/#/audit` |
+| FY1 enter new audit case | `https://2ww-triage-xxx.vercel.app/#/audit/new` |
 
 ### Cost
 
-- Hobby tier: free
-- KV: 30k requests/month free — this pilot won't come close
-- Estimated monthly: **£0** during testing
+- **Vercel Hobby:** free
+- **KV (Upstash):** 30k commands/month free — audit pilot will use far less
+- **Estimated monthly:** £0
 
-### Privacy reminder
+### Privacy safeguards on Vercel
 
-- The `PILOT_REQUIRE_TEST_PREFIX=1` env var enforces that all references
-  start with `TEST-`. Real NHS numbers will be rejected. This is the
-  testing-only guardrail.
-- Once production governance is cleared (DPIA, DCB0129/0160, CSO sign-off,
-  NHS Login wired up), remove this env var and switch to the production
-  identity model described in `DESIGN.md`.
-- The repo is currently **public**. Before any clinical use beyond
-  testing, move it to a private repo (see earlier conversation).
+- All data sits on **Vercel KV** in `lhr1` (London) — UK soil
+- Encrypted at rest (KMS) and in transit (TLS 1.3)
+- `PILOT_REQUIRE_TEST_PREFIX=1` env var enforces all references start with `TEST-` so real NHS numbers can't be used during testing
+- Patient submissions auto-expire after 48 hours
+- Audit cases retained until you remove them (planned for the duration of the audit + Trust 7-year retention)
+- No PID flows into the system by design — the form has no name / DOB / NHS-number fields
 
-## C. Other hosting options (equivalents)
+### When you go to production (post-IG sign-off)
 
-| Host         | KV equivalent          | Notes                          |
-|--------------|------------------------|--------------------------------|
-| Cloudflare Pages | Workers KV         | UK edge; same `api/` works with minor edits |
-| Railway      | Postgres / Redis       | You already have a sub         |
-| Fly.io       | Upstash Redis          | LHR region available           |
-| AWS UK       | DynamoDB / ElastiCache | For the production Phase 3+    |
+- Remove `PILOT_REQUIRE_TEST_PREFIX` env var
+- Wire in NHS Login for the patient form
+- Wire in CIS2 / NHSmail for clinician auth
+- Migrate KV → AWS UK (per `DESIGN.md`) when scale requires it
 
-Vercel + Vercel KV is the most direct match because:
+## C. Cloudflare Pages / Railway / Render — alternatives
 
-- You already have a Vercel subscription
-- KV is automatically EEA-resident in `lhr1` or `fra1`
-- Zero infrastructure to manage during testing
-- Easy to swap to AWS UK later when production governance demands it
+Same code works on any of these. Vercel + Vercel KV is recommended only because:
+- You already have a Vercel account
+- KV is auto-provisioned in London with a click
+- GitHub integration deploys on every push without CLI faff
+
+## Local development
+
+```bash
+cd 2ww-triage
+npm install
+npm run dev          # http://localhost:5173/
+npm run test:run     # unit tests
+npm run smoke:local  # E2E smoke against local build
+```
+
+Local dev uses an in-memory KV (data dies when the dev server restarts) so you don't need to set up anything to develop.
