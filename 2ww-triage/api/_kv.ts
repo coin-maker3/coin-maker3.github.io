@@ -74,7 +74,7 @@ export async function kvScanPrefix<T>(prefix: string): Promise<T[]> {
     } while (cursor !== 0)
     if (keys.length === 0) return []
     const values = await Promise.all(keys.map((k) => kv.get<T>(k)))
-    return values.filter((v): v is T => v != null)
+    return values.filter((v): v is Awaited<T> => v != null) as T[]
   }
   const out: T[] = []
   for (const [k, v] of mem.entries()) {

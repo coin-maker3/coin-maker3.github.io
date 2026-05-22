@@ -31,6 +31,68 @@ export interface AuditCase {
   timeTakenSeconds: number | null
 }
 
+/**
+ * Possible-duplicate detection.
+ *
+ * Because the audit collects no PID by design, the tool cannot recognise
+ * that two FY1s have extracted the same clinic letter. But two records
+ * that share clinic month, demographics, referral reasons, banded bloods
+ * and core symptoms are highly suspicious — surface them so the audit
+ * lead can resolve before analysis.
+ *
+ * Buckets are deliberately wide (Hb ±5, ferritin ±5, FIT ±10) so that
+ * trivial transcription differences (e.g. one FY1 wrote 95 g/L, another
+ * wrote 96 g/L) still cluster.
+ */
+const bucket = (v: number | null | undefined, step: number): string =>
+  v == null ? 'n' : String(Math.round(v / step) * step)
+
+function dupSignature(c: AuditCase): string {
+  const i = c.intake
+  return [
+    c.clinicMonth,
+    i.ageBand,
+    i.sex,
+    [...i.referralReasons].sort().join('+'),
+    bucket(i.hb, 5),
+    bucket(i.mcv, 5),
+    bucket(i.ferritin, 5),
+    bucket(i.fit, 10),
+    i.cibh,
+    i.prBleed,
+    i.weightLoss,
+    i.palpableAbdoMass,
+    i.palpableRectalMass,
+  ].join('|')
+}
+
+export interface DuplicateGroup {
+  signature: string
+  cases: AuditCase[]
+  crossFy1: boolean
+}
+
+export function findPossibleDuplicates(cases: AuditCase[]): DuplicateGroup[] {
+  const groups = new Map<string, AuditCase[]>()
+  for (const c of cases) {
+    const sig = dupSignature(c)
+    groups.set(sig, [...(groups.get(sig) ?? []), c])
+  }
+  return Array.from(groups.entries())
+    .filter(([, list]) => list.length >= 2)
+    .map(([signature, list]) => ({
+      signature,
+      cases: list.sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+      crossFy1: new Set(list.map((c) => c.enteredBy)).size > 1,
+    }))
+}
+
+export function duplicateIdSet(groups: DuplicateGroup[]): Set<string> {
+  const s = new Set<string>()
+  for (const g of groups) for (const c of g.cases) s.add(c.id)
+  return s
+}
+
 export interface AuditSummary {
   total: number
   concordant: number

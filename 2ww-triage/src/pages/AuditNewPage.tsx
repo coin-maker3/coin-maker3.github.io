@@ -8,8 +8,10 @@ import { decide } from '../algorithm/engine'
 import { ALGORITHM_VERSION } from '../algorithm/version'
 import { DEFAULT_INTAKE, type Intake } from '../schema/intake'
 import type { Investigation } from '../algorithm/types'
-import { generateAuditId, listAuditCases, saveAuditCase } from '../lib/audit-api'
+import { generateAuditId, listAuditCases, saveAuditCaseSafe } from '../lib/audit-api'
 import { linkTo } from '../lib/router'
+
+const MAX_TIME_TAKEN_SECONDS = 30 * 60 // cap so an abandoned tab doesn't poison the time-per-case stat
 
 const yyyyMm = () => {
   const d = new Date()
@@ -45,30 +47,34 @@ export function AuditNewPage() {
     actualDecision !== ''
 
   const save = async () => {
-    if (!canSave) return
+    if (!canSave || saving) return
     setError(null)
     setSaving(true)
     try {
-      const timeTakenSeconds = Math.round((Date.now() - startTimeRef.current) / 1000)
-      await saveAuditCase({
-        id: auditId,
-        enteredBy: enteredBy.toUpperCase().slice(0, 4),
-        clinicMonth,
-        intake,
-        toolDecision: {
-          investigation: decision.investigation,
-          nodeId: decision.algorithmNodeId,
-          algorithmVersion: ALGORITHM_VERSION.version,
-          rationale: decision.rationale,
+      const rawSeconds = Math.round((Date.now() - startTimeRef.current) / 1000)
+      const timeTakenSeconds = Math.min(rawSeconds, MAX_TIME_TAKEN_SECONDS)
+      const { id: finalId } = await saveAuditCaseSafe(
+        {
+          id: auditId,
+          enteredBy: enteredBy.toUpperCase().slice(0, 4),
+          clinicMonth,
+          intake,
+          toolDecision: {
+            investigation: decision.investigation,
+            nodeId: decision.algorithmNodeId,
+            algorithmVersion: ALGORITHM_VERSION.version,
+            rationale: decision.rationale,
+          },
+          actualDecision: actualDecision as Investigation,
+          actualDecisionNotes: actualNotes,
+          reviewerNotes,
+          concordant: decision.investigation === actualDecision,
+          createdAt: new Date().toISOString(),
+          timeTakenSeconds,
         },
-        actualDecision: actualDecision as Investigation,
-        actualDecisionNotes: actualNotes,
-        reviewerNotes,
-        concordant: decision.investigation === actualDecision,
-        createdAt: new Date().toISOString(),
-        timeTakenSeconds,
-      })
-      setSaved(auditId)
+        generateAuditId,
+      )
+      setSaved(finalId)
     } catch (e: any) {
       setError(e.message ?? 'Save failed')
     } finally {
@@ -77,11 +83,17 @@ export function AuditNewPage() {
   }
 
   if (saved) {
+    const savedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     return (
       <div className="mx-auto max-w-2xl p-6 text-center">
-        <div className="card">
-          <h2 className="text-2xl font-semibold text-nhs-green">Saved</h2>
-          <p className="mt-2">Audit case <code>{saved}</code> recorded.</p>
+        <div className="card border-l-4 border-l-nhs-green">
+          <h2 className="text-2xl font-semibold text-nhs-green">✓ Saved</h2>
+          <p className="mt-2">
+            Audit case <code className="font-mono">{saved}</code> recorded at {savedAt}.
+          </p>
+          <p className="mt-1 text-xs text-nhs-mid-grey">
+            Safe to close this tab. Data persists in Vercel KV (London).
+          </p>
           <div className="mt-4 flex justify-center gap-3">
             <a className="btn-primary" href={linkTo.auditNew()} onClick={() => window.location.reload()}>
               Enter next case

@@ -1,9 +1,33 @@
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import {
   INVESTIGATIONS,
   INVESTIGATION_LABELS,
   type Investigation,
 } from '../algorithm/types'
+import { PID_LABELS, scanForPid } from '../lib/pid-scan'
+
+function PidWarning({ text }: { text: string }) {
+  const hits = scanForPid(text)
+  if (hits.length === 0) return null
+  return (
+    <div
+      className="mt-1 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900"
+      role="alert"
+    >
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+      <div>
+        <strong>Possible patient identifier:</strong>{' '}
+        {hits.map((h, i) => (
+          <span key={i}>
+            {i > 0 && '; '}
+            {PID_LABELS[h.pattern]} ("{h.match}")
+          </span>
+        ))}
+        . Please remove before saving — the audit must not contain PID.
+      </div>
+    </div>
+  )
+}
 
 interface Props {
   toolDecision: Investigation
@@ -86,6 +110,7 @@ export function ActualOutcomePanel({
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
         />
+        <PidWarning text={notes} />
       </div>
 
       {actualDecision && !concordant && (
@@ -101,6 +126,7 @@ export function ActualOutcomePanel({
             value={reviewerNotes}
             onChange={(e) => onReviewerNotesChange(e.target.value)}
           />
+          <PidWarning text={reviewerNotes} />
         </div>
       )}
     </div>

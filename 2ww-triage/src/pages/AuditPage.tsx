@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Download, Plus, Trash2 } from 'lucide-react'
 import { deleteAuditCase, listAuditCases } from '../lib/audit-api'
-import { buildSummary, exportCSV, type AuditCase, type AuditSummary } from '../audit/types'
+import {
+  buildSummary,
+  duplicateIdSet,
+  exportCSV,
+  findPossibleDuplicates,
+  type AuditCase,
+  type AuditSummary,
+  type DuplicateGroup,
+} from '../audit/types'
 import { INVESTIGATION_LABELS } from '../algorithm/types'
 import { linkTo } from '../lib/router'
 
 export function AuditPage() {
   const [cases, setCases] = useState<AuditCase[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'match' | 'mismatch'>('all')
+  const [filter, setFilter] = useState<'all' | 'match' | 'mismatch' | 'duplicates'>('all')
 
   const load = () => {
     setError(null)
@@ -38,9 +46,12 @@ export function AuditPage() {
   }
 
   const summary: AuditSummary | null = cases ? buildSummary(cases) : null
+  const duplicates: DuplicateGroup[] = cases ? findPossibleDuplicates(cases) : []
+  const dupIds = duplicateIdSet(duplicates)
   const filtered = cases?.filter((c) => {
     if (filter === 'match') return c.concordant
     if (filter === 'mismatch') return !c.concordant
+    if (filter === 'duplicates') return dupIds.has(c.id)
     return true
   })
 
@@ -73,7 +84,7 @@ export function AuditPage() {
         )}
 
         {summary && (
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="card">
               <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Cases</div>
               <div className="mt-1 text-3xl font-bold text-nhs-dark-blue">{summary.total}</div>
@@ -91,6 +102,46 @@ export function AuditPage() {
                 {summary.total - summary.concordant}
               </div>
             </div>
+            <div className="card">
+              <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Possible duplicates</div>
+              <div className={`mt-1 text-3xl font-bold ${dupIds.size ? 'text-amber-600' : 'text-nhs-mid-grey'}`}>
+                {dupIds.size}
+              </div>
+              <div className="text-xs text-nhs-mid-grey">
+                {duplicates.length} group{duplicates.length === 1 ? '' : 's'}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {duplicates.length > 0 && (
+          <section className="card border-l-4 border-l-amber-500 bg-amber-50">
+            <h2 className="text-sm font-semibold text-amber-900">
+              ⚠ {dupIds.size} cases in {duplicates.length} possible-duplicate group{duplicates.length === 1 ? '' : 's'}
+            </h2>
+            <p className="mt-1 text-xs text-amber-900">
+              Same clinic month + demographics + referral reasons + banded bloods + symptoms.
+              Could be two FY1s on the same letter, or one letter entered twice. Resolve before analysis.
+            </p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {duplicates.slice(0, 10).map((g, idx) => (
+                <li key={idx} className="rounded border border-amber-200 bg-white p-2">
+                  <div className="text-xs font-medium text-amber-900">
+                    {g.crossFy1 ? 'Cross-FY1 duplicate' : 'Same-FY1 duplicate'}:
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-2">
+                    {g.cases.map((c) => (
+                      <span key={c.id} className="rounded bg-amber-100 px-2 py-0.5 font-mono text-xs">
+                        {c.id} ({c.enteredBy})
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              ))}
+              {duplicates.length > 10 && (
+                <li className="text-xs text-amber-900">…and {duplicates.length - 10} more</li>
+              )}
+            </ul>
           </section>
         )}
 
@@ -137,6 +188,7 @@ export function AuditPage() {
                 <option value="all">All</option>
                 <option value="match">Concordant only</option>
                 <option value="mismatch">Mismatches only</option>
+                <option value="duplicates">Possible duplicates</option>
               </select>
               <button
                 type="button"
@@ -170,7 +222,17 @@ export function AuditPage() {
                 <tbody>
                   {filtered?.map((c) => (
                     <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                      <td className="py-2 pr-3 font-mono text-xs">{c.id}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        {c.id}
+                        {dupIds.has(c.id) && (
+                          <span
+                            className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                            title="Possible duplicate"
+                          >
+                            DUP?
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 pr-3">{c.enteredBy}</td>
                       <td className="py-2 pr-3">{c.clinicMonth}</td>
                       <td className="py-2 pr-3">{INVESTIGATION_LABELS[c.toolDecision.investigation]}</td>
