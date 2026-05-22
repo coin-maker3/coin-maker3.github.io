@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { kvDel } from '../_kv'
+import { kvDel } from '../_kv.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'DELETE') return res.status(405).json({ error: 'DELETE only' })

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { kvScanPrefix } from '../_kv'
+import { kvScanPrefix } from '../_kv.js'
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {

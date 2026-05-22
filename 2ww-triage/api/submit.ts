@@ -9,7 +9,7 @@
  * No PID is accepted: reference must start with `TEST-` during pilot.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { kvSet } from './_kv'
+import { kvSet } from './_kv.js'
 
 const TTL_SECONDS = 48 * 60 * 60
 

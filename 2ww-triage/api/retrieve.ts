@@ -2,7 +2,7 @@
  * GET /api/retrieve?ref=XXX — read back a patient submission for clinician import.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { kvGet } from './_kv'
+import { kvGet } from './_kv.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
