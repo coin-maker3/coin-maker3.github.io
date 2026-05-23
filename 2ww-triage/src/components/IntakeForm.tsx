@@ -1,3 +1,28 @@
+/**
+ * IntakeForm — laid out top-to-bottom to mirror the GEH 2WW colorectal
+ * clinic letter / proforma. Section headings and question wording are kept
+ * verbatim where possible so an FY1 doing the audit can read the letter
+ * line by line and fill the form line by line, no hunting.
+ *
+ * Letter field order (anchor):
+ *   1. Reason for referral (header + clinic/encounter type + additional info)
+ *   2. FIT, age/gender, WHO, date of bloods, Hb/Ferritin/MCV/GFR
+ *   3. Past medical, surgical, drug history + allergies
+ *   4. Symptoms (CIBH, PR bleed, mucus, tenesmus, weight loss, abdo pain)
+ *   5. Family history & previous abdominal problems/operations
+ *   6. Recent investigations
+ *   7. Social (smoking, alcohol)
+ *   8. Female-specific (LMP, pregnancy)
+ *   9. Procedure fitness (ADLs, mobility, escort) + clinical fit-for-prep/sedation
+ *   10. Examination findings (incl DRE for F2F) + palpable-mass flags for the engine
+ *   11. Consent & information given
+ *
+ * Algorithm-required flags that the letter does not surface as discrete
+ * fields (palpable abdo/rectal mass yes/no, fit for bowel prep, fit for
+ * sedation, lacks capacity) are kept in the audit form because the engine
+ * uses them — they are labelled "(read from examination findings)" or
+ * "(clinical judgement)" so the FY1 knows where to derive the answer.
+ */
 import {
   AGE_BANDS,
   CLINIC_TYPE,
@@ -33,14 +58,18 @@ export function IntakeForm({ value, onChange }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Clinic & patient meta */}
+      {/* 1. Reason for referral (letter header) */}
       <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">
-          Clinic & patient
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">
+          Reason for referral
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <p className="mb-4 text-xs text-nhs-mid-grey">
+          Top of letter: "This patient has been referred as a 2-week-wait for
+          suspected colorectal cancer…"
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="clinicType">Clinic type</label>
+            <label className="label" htmlFor="clinicType">Clinic type / encounter</label>
             <select
               id="clinicType"
               className="select"
@@ -54,52 +83,9 @@ export function IntakeForm({ value, onChange }: Props) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="label" htmlFor="ageBand">Age band</label>
-            <select
-              id="ageBand"
-              className="select"
-              value={value.ageBand}
-              onChange={(e) => set('ageBand', e.target.value as Intake['ageBand'])}
-            >
-              {AGE_BANDS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="sex">Sex</label>
-            <select
-              id="sex"
-              className="select"
-              value={value.sex}
-              onChange={(e) => set('sex', e.target.value as Intake['sex'])}
-            >
-              {SEX.map((s) => (
-                <option key={s} value={s}>{s === 'F' ? 'Female' : 'Male'}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="who">WHO performance status (0–4)</label>
-            <input
-              id="who"
-              type="number"
-              min={0}
-              max={4}
-              className="input"
-              value={value.whoScore}
-              onChange={(e) => set('whoScore', Number(e.target.value))}
-            />
-          </div>
         </div>
-      </section>
-
-      {/* Referral */}
-      <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">Referral reason</h2>
-        <fieldset>
-          <legend className="label">Select all that apply</legend>
+        <fieldset className="mt-4">
+          <legend className="label">Reason for referral (tick all that apply)</legend>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {REFERRAL_REASONS.map((r) => (
               <label key={r} className="inline-flex items-center gap-2 text-sm">
@@ -115,30 +101,72 @@ export function IntakeForm({ value, onChange }: Props) {
           </div>
         </fieldset>
         <div className="mt-4">
-          <label className="label" htmlFor="referralNotes">Referral notes (anonymised)</label>
+          <label className="label" htmlFor="referralNotes">Additional information</label>
           <textarea
             id="referralNotes"
             rows={3}
             className="input"
-            placeholder="Strip name/DOB/NHS no. before pasting. Symptoms, PMH, drugs only."
+            placeholder="Anonymised — no name / DOB / NHS number."
             value={value.referralNotes}
             onChange={(e) => set('referralNotes', e.target.value)}
           />
         </div>
       </section>
 
-      {/* Bloods */}
+      {/* 2. FIT + demographics + bloods (letter table rows 1-5) */}
       <section className="card">
-        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">Bloods</h2>
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">
+          Patient details &amp; most recent blood tests
+        </h2>
         <p className="mb-4 text-xs text-nhs-mid-grey">
-          Bloods within last 3 months (per Trust IDA criteria).
+          Letter rows: FIT · Age / Gender · WHO · Hb / Ferritin / MCV / GFR (within last 3 months per Trust IDA criteria).
         </p>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <NumberField id="fit" label="FIT (µg Hb / g)" v={value.fit} onChange={(n) => set('fit', n)} step="0.1" />
+          <div>
+            <label className="label" htmlFor="ageBand">Age</label>
+            <select
+              id="ageBand"
+              className="select"
+              value={value.ageBand}
+              onChange={(e) => set('ageBand', e.target.value as Intake['ageBand'])}
+            >
+              {AGE_BANDS.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor="sex">Gender</label>
+            <select
+              id="sex"
+              className="select"
+              value={value.sex}
+              onChange={(e) => set('sex', e.target.value as Intake['sex'])}
+            >
+              {SEX.map((s) => (
+                <option key={s} value={s}>{s === 'F' ? 'Female' : 'Male'}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor="who">WHO score (0–4)</label>
+            <input
+              id="who"
+              type="number"
+              min={0}
+              max={4}
+              className="input"
+              value={value.whoScore}
+              onChange={(e) => set('whoScore', Number(e.target.value))}
+            />
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <NumberField id="hb" label="Hb (g/L)" v={value.hb} onChange={(n) => set('hb', n)} />
-          <NumberField id="mcv" label="MCV (fL)" v={value.mcv} onChange={(n) => set('mcv', n)} />
           <NumberField id="ferritin" label="Ferritin (µg/L)" v={value.ferritin} onChange={(n) => set('ferritin', n)} />
+          <NumberField id="mcv" label="MCV (fL)" v={value.mcv} onChange={(n) => set('mcv', n)} />
           <NumberField id="gfr" label="GFR (ml/min)" v={value.gfr} onChange={(n) => set('gfr', n)} />
-          <NumberField id="fit" label="FIT (µg Hb/g)" v={value.fit} onChange={(n) => set('fit', n)} step="0.1" />
         </div>
         <details className="mt-4">
           <summary className="cursor-pointer text-sm font-medium text-nhs-blue">
@@ -151,159 +179,24 @@ export function IntakeForm({ value, onChange }: Props) {
         </details>
       </section>
 
-      {/* Symptoms */}
+      {/* 3. Past medical, surgical and drug history + allergies (letter rows 7-11) */}
       <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">Symptoms</h2>
-        <div className="space-y-3">
-          <Row label="Change in bowel habit">
-            <YesNoToggle value={value.cibh} onChange={(v) => set('cibh', v)} />
-            {value.cibh === 'yes' && (
-              <NumberField
-                id="cibhDuration"
-                label="Duration (weeks)"
-                v={value.cibhDurationWeeks}
-                onChange={(n) => set('cibhDurationWeeks', n)}
-                inline
-              />
-            )}
-          </Row>
-
-          <Row label="Rectal bleeding">
-            <select
-              className="select w-40"
-              value={value.prBleed}
-              onChange={(e) => set('prBleed', e.target.value as Intake['prBleed'])}
-            >
-              {PR_BLEED.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-          </Row>
-
-          <Row label="Mucus PR">
-            <YesNoToggle value={value.mucusPR} onChange={(v) => set('mucusPR', v)} />
-          </Row>
-
-          <Row label="Tenesmus / incomplete evacuation">
-            <YesNoToggle value={value.tenesmus} onChange={(v) => set('tenesmus', v)} />
-          </Row>
-
-          <Row label="Unintentional weight loss">
-            <YesNoToggle value={value.weightLoss} onChange={(v) => set('weightLoss', v)} />
-            {value.weightLoss === 'yes' && (
-              <NumberField
-                id="wtLoss"
-                label="kg"
-                v={value.weightLossKg}
-                onChange={(n) => set('weightLossKg', n)}
-                inline
-                step="0.1"
-              />
-            )}
-          </Row>
-
-          <Row label="Abdominal pain">
-            <YesNoToggle value={value.abdominalPain} onChange={(v) => set('abdominalPain', v)} />
-          </Row>
-        </div>
-      </section>
-
-      {/* Examination */}
-      <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">
-          Examination (F2F clinics)
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">
+          Past medical, surgical and drug history
         </h2>
+        <p className="mb-4 text-xs text-nhs-mid-grey">
+          Letter: "Do you have any relevant past medical, surgical or drug history?"
+        </p>
         <div className="space-y-3">
-          <Row label="Palpable abdominal mass">
-            <YesNoToggle value={value.palpableAbdoMass} onChange={(v) => set('palpableAbdoMass', v)} />
-          </Row>
-          <Row label="Palpable rectal mass on PR">
-            <YesNoToggle value={value.palpableRectalMass} onChange={(v) => set('palpableRectalMass', v)} />
-          </Row>
-          {value.palpableRectalMass === 'yes' && (
-            <Row label="Mass low and tender">
-              <YesNoToggle
-                value={value.rectalMassLowAndTender}
-                onChange={(v) => set('rectalMassLowAndTender', v)}
-              />
-            </Row>
-          )}
           <div>
-            <label className="label" htmlFor="examFindings">
-              Examination findings (free text)
-            </label>
-            <textarea
-              id="examFindings"
-              rows={2}
-              className="input"
-              value={value.examinationFindings}
-              onChange={(e) => set('examinationFindings', e.target.value)}
-            />
+            <label className="label" htmlFor="pmh">Past medical or surgical history</label>
+            <textarea id="pmh" rows={2} className="input" value={value.pmh} onChange={(e) => set('pmh', e.target.value)} />
           </div>
-        </div>
-      </section>
-
-      {/* History & risk factors */}
-      <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">
-          History & risk factors
-        </h2>
-        <div className="space-y-3">
-          <Row label="Family history of CRC or IBD">
-            <YesNoToggle value={value.fhxCrcOrIbd} onChange={(v) => set('fhxCrcOrIbd', v)} />
-          </Row>
-          <Row label="Previous colorectal cancer">
-            <YesNoToggle value={value.previousCRC} onChange={(v) => set('previousCRC', v)} />
-          </Row>
-          <Row label="Known IBD">
-            <YesNoToggle value={value.ibd} onChange={(v) => set('ibd', v)} />
-          </Row>
-          <Row label="Colonoscopy in last 2 years">
-            <YesNoToggle
-              value={value.priorColonoscopyWithin2y}
-              onChange={(v) => set('priorColonoscopyWithin2y', v)}
-            />
-          </Row>
-          {value.priorColonoscopyWithin2y === 'yes' && (
-            <div>
-              <label className="label" htmlFor="priorCol">Prior colonoscopy findings</label>
-              <textarea
-                id="priorCol"
-                rows={2}
-                className="input"
-                value={value.priorColonoscopyFindings}
-                onChange={(e) => set('priorColonoscopyFindings', e.target.value)}
-              />
-            </div>
-          )}
           <div>
-            <label className="label" htmlFor="recentInv">Other recent investigations</label>
-            <textarea
-              id="recentInv"
-              rows={2}
-              className="input"
-              value={value.recentInvestigations}
-              onChange={(e) => set('recentInvestigations', e.target.value)}
-            />
+            <label className="label" htmlFor="sh">Previous operations</label>
+            <textarea id="sh" rows={2} className="input" value={value.surgicalHistory} onChange={(e) => set('surgicalHistory', e.target.value)} />
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="pmh">PMH</label>
-              <textarea id="pmh" rows={2} className="input" value={value.pmh} onChange={(e) => set('pmh', e.target.value)} />
-            </div>
-            <div>
-              <label className="label" htmlFor="sh">Surgical history</label>
-              <textarea id="sh" rows={2} className="input" value={value.surgicalHistory} onChange={(e) => set('surgicalHistory', e.target.value)} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Meds */}
-      <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">Medications & allergies</h2>
-        <div className="space-y-3">
-          <Row label="Anticoagulant">
+          <Row label="Anticoagulants">
             <YesNoToggle value={value.onAnticoag} onChange={(v) => set('onAnticoag', v)} />
             {value.onAnticoag === 'yes' && (
               <input
@@ -315,7 +208,7 @@ export function IntakeForm({ value, onChange }: Props) {
               />
             )}
           </Row>
-          <Row label="Antiplatelet">
+          <Row label="Antiplatelets">
             <YesNoToggle value={value.onAntiplatelet} onChange={(v) => set('onAntiplatelet', v)} />
             {value.onAntiplatelet === 'yes' && (
               <input
@@ -338,42 +231,167 @@ export function IntakeForm({ value, onChange }: Props) {
         </div>
       </section>
 
-      {/* Social / female-specific */}
+      {/* 4. Symptoms (letter rows 13-24) */}
       <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">Social & other</h2>
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">Symptoms</h2>
+        <p className="mb-4 text-xs text-nhs-mid-grey">
+          Letter order: bowel habit · rectal bleeding · mucus PR · tenesmus · weight loss · abdominal pain.
+        </p>
         <div className="space-y-3">
-          <Row label="Smoker">
-            <YesNoToggle value={value.smoker} onChange={(v) => set('smoker', v)} />
+          <Row label="Have you had any change in bowel habit?">
+            <YesNoToggle value={value.cibh} onChange={(v) => set('cibh', v)} />
+            {value.cibh === 'yes' && (
+              <NumberField
+                id="cibhDuration"
+                label="Duration (weeks)"
+                v={value.cibhDurationWeeks}
+                onChange={(n) => set('cibhDurationWeeks', n)}
+                inline
+              />
+            )}
           </Row>
-          <Row label="Alcohol">
-            <YesNoToggle value={value.alcohol} onChange={(v) => set('alcohol', v)} />
+
+          <Row label="Have you had any rectal bleeding?">
+            <select
+              className="select w-40"
+              value={value.prBleed}
+              onChange={(e) => set('prBleed', e.target.value as Intake['prBleed'])}
+            >
+              {PR_BLEED.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
           </Row>
-          {isFemale && childbearingAge && (
-            <>
-              <div>
-                <label className="label" htmlFor="lmp">LMP</label>
-                <input id="lmp" className="input max-w-xs" value={value.lmp} onChange={(e) => set('lmp', e.target.value)} />
-              </div>
-              <Row label="Pregnant">
-                <YesNoToggle
-                  value={value.pregnant ?? 'unknown'}
-                  onChange={(v) => set('pregnant', v)}
-                  includeUnknown
-                />
-              </Row>
-            </>
+
+          <Row label="Have you experienced any mucus per rectum?">
+            <YesNoToggle value={value.mucusPR} onChange={(v) => set('mucusPR', v)} />
+          </Row>
+
+          <Row label="Has there been any tenesmus or incomplete evacuation?">
+            <YesNoToggle value={value.tenesmus} onChange={(v) => set('tenesmus', v)} />
+          </Row>
+
+          <Row label="Have you experienced any weight loss?">
+            <YesNoToggle value={value.weightLoss} onChange={(v) => set('weightLoss', v)} />
+            {value.weightLoss === 'yes' && (
+              <NumberField
+                id="wtLoss"
+                label="kg"
+                v={value.weightLossKg}
+                onChange={(n) => set('weightLossKg', n)}
+                inline
+                step="0.1"
+              />
+            )}
+          </Row>
+
+          <Row label="Have you experienced any abdominal pain?">
+            <YesNoToggle value={value.abdominalPain} onChange={(v) => set('abdominalPain', v)} />
+          </Row>
+        </div>
+      </section>
+
+      {/* 5. Family history & previous abdominal/colorectal disease (letter rows 26-29) */}
+      <section className="card">
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">
+          Family history &amp; previous abdominal disease
+        </h2>
+        <p className="mb-4 text-xs text-nhs-mid-grey">
+          Letter: bowel cancer or IBD in family · previous abdominal problems or operations.
+        </p>
+        <div className="space-y-3">
+          <Row label="Family history of bowel cancer or IBD?">
+            <YesNoToggle value={value.fhxCrcOrIbd} onChange={(v) => set('fhxCrcOrIbd', v)} />
+          </Row>
+          <Row label="Previous colorectal cancer?">
+            <YesNoToggle value={value.previousCRC} onChange={(v) => set('previousCRC', v)} />
+          </Row>
+          <Row label="Known inflammatory bowel disease?">
+            <YesNoToggle value={value.ibd} onChange={(v) => set('ibd', v)} />
+          </Row>
+          <Row label="Colonoscopy in last 2 years?">
+            <YesNoToggle
+              value={value.priorColonoscopyWithin2y}
+              onChange={(v) => set('priorColonoscopyWithin2y', v)}
+            />
+          </Row>
+          {value.priorColonoscopyWithin2y === 'yes' && (
+            <div>
+              <label className="label" htmlFor="priorCol">Prior colonoscopy findings</label>
+              <textarea
+                id="priorCol"
+                rows={2}
+                className="input"
+                value={value.priorColonoscopyFindings}
+                onChange={(e) => set('priorColonoscopyFindings', e.target.value)}
+              />
+            </div>
           )}
         </div>
       </section>
 
-      {/* Procedure fitness */}
+      {/* 6. Recent investigations (letter rows 31-32) */}
       <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">Procedure fitness</h2>
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">Recent investigations</h2>
+        <p className="mb-4 text-xs text-nhs-mid-grey">
+          Letter: "Have you had any recent investigations?"
+        </p>
+        <textarea
+          id="recentInv"
+          rows={2}
+          className="input"
+          placeholder="e.g. CT abdomen 2 months ago, USS abdomen, OGD"
+          value={value.recentInvestigations}
+          onChange={(e) => set('recentInvestigations', e.target.value)}
+        />
+      </section>
+
+      {/* 7. Social (letter rows 34-35) */}
+      <section className="card">
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">Social</h2>
         <div className="space-y-3">
-          <Row label="Independent in ADLs">
+          <Row label="Do you smoke?">
+            <YesNoToggle value={value.smoker} onChange={(v) => set('smoker', v)} />
+          </Row>
+          <Row label="Do you consume any alcohol?">
+            <YesNoToggle value={value.alcohol} onChange={(v) => set('alcohol', v)} />
+          </Row>
+        </div>
+      </section>
+
+      {/* 8. Female-specific (letter rows 37-38, conditional) */}
+      {isFemale && childbearingAge && (
+        <section className="card">
+          <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">
+            Female-specific
+          </h2>
+          <div className="space-y-3">
+            <div>
+              <label className="label" htmlFor="lmp">What date was your last period?</label>
+              <input id="lmp" className="input max-w-xs" value={value.lmp} onChange={(e) => set('lmp', e.target.value)} />
+            </div>
+            <Row label="Are you pregnant?">
+              <YesNoToggle
+                value={value.pregnant ?? 'unknown'}
+                onChange={(v) => set('pregnant', v)}
+                includeUnknown
+              />
+            </Row>
+          </div>
+        </section>
+      )}
+
+      {/* 9. Procedure fitness (letter rows 40-44) */}
+      <section className="card">
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">Procedure fitness</h2>
+        <p className="mb-4 text-xs text-nhs-mid-grey">
+          Letter: ADLs · mobility aids · overnight accompaniment. Fit-for-prep and fit-for-sedation are clinical judgement (not in letter).
+        </p>
+        <div className="space-y-3">
+          <Row label="Are you independent in your activities of daily living?">
             <YesNoToggle value={value.independentADLs} onChange={(v) => set('independentADLs', v)} />
           </Row>
-          <Row label="Uses mobility aids">
+          <Row label="Do you use any mobility aids?">
             <YesNoToggle value={value.mobilityAids} onChange={(v) => set('mobilityAids', v)} />
             {value.mobilityAids === 'yes' && (
               <input
@@ -385,30 +403,74 @@ export function IntakeForm({ value, onChange }: Props) {
               />
             )}
           </Row>
-          <Row label="Overnight escort available">
+          <Row label="Can someone stay overnight and accompany you home after the procedure?">
             <YesNoToggle value={value.overnightEscort} onChange={(v) => set('overnightEscort', v)} />
           </Row>
-          <Row label="Fit for bowel prep">
+          <Row label="Fit for bowel prep (clinical judgement)">
             <YesNoToggle value={value.fitForBowelPrep} onChange={(v) => set('fitForBowelPrep', v)} />
           </Row>
-          <Row label="Fit for sedation">
+          <Row label="Fit for sedation (clinical judgement)">
             <YesNoToggle value={value.fitForSedation} onChange={(v) => set('fitForSedation', v)} />
+          </Row>
+          <Row label="Patient lacks capacity / unable to comply with tel clinic">
+            <YesNoToggle value={value.lacksCapacity} onChange={(v) => set('lacksCapacity', v)} />
           </Row>
         </div>
       </section>
 
-      {/* Consent */}
+      {/* 10. Examination findings (letter rows 46-47) */}
       <section className="card">
-        <h2 className="mb-4 text-lg font-semibold text-nhs-dark-blue">Consent & info</h2>
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">
+          Examination findings
+        </h2>
+        <p className="mb-4 text-xs text-nhs-mid-grey">
+          Letter: "What are the examination findings (including digital rectal
+          examination findings for face to face clinics)?"
+        </p>
         <div className="space-y-3">
-          <Row label="Investigations explained">
+          <div>
+            <label className="label" htmlFor="examFindings">
+              Examination findings (free text)
+            </label>
+            <textarea
+              id="examFindings"
+              rows={3}
+              className="input"
+              value={value.examinationFindings}
+              onChange={(e) => set('examinationFindings', e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-nhs-mid-grey">
+            Read from the free text above and tick yes/no below — the algorithm uses these flags:
+          </p>
+          <Row label="Palpable abdominal mass?">
+            <YesNoToggle value={value.palpableAbdoMass} onChange={(v) => set('palpableAbdoMass', v)} />
+          </Row>
+          <Row label="Palpable rectal mass on PR?">
+            <YesNoToggle value={value.palpableRectalMass} onChange={(v) => set('palpableRectalMass', v)} />
+          </Row>
+          {value.palpableRectalMass === 'yes' && (
+            <Row label="Mass low and tender?">
+              <YesNoToggle
+                value={value.rectalMassLowAndTender}
+                onChange={(v) => set('rectalMassLowAndTender', v)}
+              />
+            </Row>
+          )}
+        </div>
+      </section>
+
+      {/* 11. Consent & information (letter rows 49-50) */}
+      <section className="card">
+        <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">
+          Consent &amp; information
+        </h2>
+        <div className="space-y-3">
+          <Row label="Have the investigations required been explained to the patient?">
             <YesNoToggle value={value.investigationsExplained} onChange={(v) => set('investigationsExplained', v)} />
           </Row>
-          <Row label="Patient information leaflet given">
+          <Row label="Has the patient received all the necessary information?">
             <YesNoToggle value={value.infoGiven} onChange={(v) => set('infoGiven', v)} />
-          </Row>
-          <Row label="Patient lacks capacity / unable to comply with tel clinic">
-            <YesNoToggle value={value.lacksCapacity} onChange={(v) => set('lacksCapacity', v)} />
           </Row>
         </div>
       </section>
