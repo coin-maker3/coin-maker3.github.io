@@ -96,6 +96,11 @@ export function apiMiddleware() {
           if (!data.id || typeof data.id !== 'string') {
             return json(res, 400, { error: 'Missing id' })
           }
+          if (auditStore.has(data.id)) {
+            // Mirror production behaviour — 409 on duplicate so the client
+            // retry logic (saveAuditCaseSafe) is exercised in dev.
+            return json(res, 409, { error: 'id_exists', id: data.id })
+          }
           auditStore.set(data.id, data)
           json(res, 200, { ok: true, id: data.id })
         } catch (e: any) {

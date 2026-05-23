@@ -13,10 +13,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!entry) {
       return res.status(404).json({ error: 'No submission found for that reference' })
     }
+    if (entry.payload == null || entry.submittedAt == null) {
+      return res.status(500).json({ error: 'stored submission is malformed', ref })
+    }
     res.status(200).json({
       ref,
-      payload: entry.payload ?? entry,
-      submittedAt: entry.submittedAt ?? new Date().toISOString(),
+      payload: entry.payload,
+      submittedAt: entry.submittedAt,
     })
   } catch (e: any) {
     res.status(500).json({ error: e?.message ?? 'internal error' })

@@ -12,6 +12,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { kvSet } from './_kv.js'
 
 const TTL_SECONDS = 48 * 60 * 60
+const MAX_PAYLOAD_BYTES = 50_000 // 50 KB is ~10x a fully-populated form; anything bigger is abuse
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
@@ -25,6 +26,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (typeof payload !== 'object' || payload === null) {
       return res.status(400).json({ error: 'payload must be an object' })
+    }
+    const size = JSON.stringify(payload).length
+    if (size > MAX_PAYLOAD_BYTES) {
+      return res.status(413).json({ error: `payload too large (${size} bytes; max ${MAX_PAYLOAD_BYTES})` })
     }
     await kvSet(`submission:${ref}`, payload, TTL_SECONDS)
     res.status(200).json({ ok: true, ref, expiresInHours: TTL_SECONDS / 3600 })
