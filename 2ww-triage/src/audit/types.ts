@@ -1,5 +1,5 @@
 import type { Intake } from '../schema/intake'
-import type { Investigation } from '../algorithm/types'
+import type { Investigation, PathStep } from '../algorithm/types'
 
 export interface AuditCase {
   /** Anonymous audit ID generated at case creation (e.g. AUDIT-2026-0001). */
@@ -16,6 +16,14 @@ export interface AuditCase {
     nodeId: string
     algorithmVersion: string
     rationale: string
+    /**
+     * Full algorithm traversal from root to leaf. Stamped server-side so
+     * the audit can show *exactly* how each recommendation was reached
+     * weeks later, with every branch + the data that drove it.
+     */
+    path: PathStep[]
+    /** Warnings the engine surfaced (e.g. "no ferritin recorded — chase"). */
+    warnings: string[]
   }
   /** What was actually documented in the clinic letter outcome. */
   actualDecision: Investigation
@@ -187,6 +195,8 @@ export function exportCSV(cases: AuditCase[]): string {
     'toolDecision',
     'toolNodeId',
     'algorithmVersion',
+    'toolPath',
+    'toolWarnings',
     'actualDecision',
     'concordant',
     'actualDecisionNotes',
@@ -224,6 +234,8 @@ export function exportCSV(cases: AuditCase[]): string {
       c.toolDecision.investigation,
       c.toolDecision.nodeId,
       c.toolDecision.algorithmVersion,
+      (c.toolDecision.path ?? []).map((p) => `${p.nodeId}:${p.label}`).join(' > '),
+      (c.toolDecision.warnings ?? []).join(' | '),
       c.actualDecision,
       c.concordant,
       c.actualDecisionNotes,

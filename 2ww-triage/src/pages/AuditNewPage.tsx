@@ -64,6 +64,8 @@ export function AuditNewPage() {
             nodeId: decision.algorithmNodeId,
             algorithmVersion: ALGORITHM_VERSION.version,
             rationale: decision.rationale,
+            path: decision.path,
+            warnings: decision.warnings,
           },
           actualDecision: actualDecision as Investigation,
           actualDecisionNotes: actualNotes,

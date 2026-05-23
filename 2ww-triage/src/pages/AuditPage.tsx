@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Download, Plus, Trash2 } from 'lucide-react'
 import { deleteAuditCase, listAuditCases } from '../lib/audit-api'
 import {
@@ -17,6 +17,7 @@ export function AuditPage() {
   const [cases, setCases] = useState<AuditCase[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'match' | 'mismatch' | 'duplicates'>('all')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = () => {
     setError(null)
@@ -220,45 +221,120 @@ export function AuditPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered?.map((c) => (
-                    <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                      <td className="py-2 pr-3 font-mono text-xs">
-                        {c.id}
-                        {dupIds.has(c.id) && (
-                          <span
-                            className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
-                            title="Possible duplicate"
-                          >
-                            DUP?
-                          </span>
+                  {filtered?.map((c) => {
+                    const isExpanded = expandedId === c.id
+                    return (
+                      <Fragment key={c.id}>
+                        <tr className="border-b border-gray-100 last:border-0">
+                          <td className="py-2 pr-3 font-mono text-xs">
+                            <button
+                              type="button"
+                              className="mr-1 text-nhs-blue hover:underline"
+                              onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                              aria-label={isExpanded ? 'Hide reasoning' : 'Show reasoning'}
+                            >
+                              {isExpanded ? '▼' : '▶'}
+                            </button>
+                            {c.id}
+                            {dupIds.has(c.id) && (
+                              <span
+                                className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                                title="Possible duplicate"
+                              >
+                                DUP?
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3">{c.enteredBy}</td>
+                          <td className="py-2 pr-3">{c.clinicMonth}</td>
+                          <td className="py-2 pr-3">{INVESTIGATION_LABELS[c.toolDecision.investigation]}</td>
+                          <td className="py-2 pr-3">{INVESTIGATION_LABELS[c.actualDecision]}</td>
+                          <td className="py-2 pr-3">
+                            {c.concordant ? (
+                              <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">✓</span>
+                            ) : (
+                              <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">✗</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 text-xs text-nhs-mid-grey">
+                            {c.timeTakenSeconds ? `${c.timeTakenSeconds}s` : '—'}
+                          </td>
+                          <td className="py-2 pr-3 text-right">
+                            <button
+                              type="button"
+                              className="text-xs text-nhs-warm-red hover:underline"
+                              onClick={() => onDelete(c.id)}
+                              aria-label={`Delete ${c.id}`}
+                            >
+                              <Trash2 className="inline h-3 w-3" aria-hidden /> Delete
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <td colSpan={8} className="px-3 py-3">
+                              <div className="grid grid-cols-1 gap-3 text-xs lg:grid-cols-2">
+                                <div>
+                                  <div className="mb-1 font-semibold text-nhs-dark-blue">
+                                    How the tool reached this recommendation
+                                  </div>
+                                  <ol className="space-y-1 list-decimal pl-4">
+                                    {(c.toolDecision.path ?? []).map((step, i) => (
+                                      <li key={i}>
+                                        <span className="font-mono text-[10px] text-nhs-mid-grey">{step.nodeId}</span>{' '}
+                                        — {step.label}
+                                        {step.evidence && (
+                                          <div className="ml-1 text-[11px] italic text-nhs-mid-grey">
+                                            evidence: {step.evidence}
+                                          </div>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ol>
+                                  <div className="mt-2">
+                                    <span className="font-semibold">Rationale: </span>
+                                    {c.toolDecision.rationale}
+                                  </div>
+                                  {c.toolDecision.warnings && c.toolDecision.warnings.length > 0 && (
+                                    <div className="mt-2 rounded bg-amber-50 p-2">
+                                      <span className="font-semibold text-amber-900">Engine warnings: </span>
+                                      <ul className="list-disc pl-4 text-amber-900">
+                                        {c.toolDecision.warnings.map((w, i) => (
+                                          <li key={i}>{w}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  <div className="mt-2 text-[11px] text-nhs-mid-grey">
+                                    Algorithm version: {c.toolDecision.algorithmVersion}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="mb-1 font-semibold text-nhs-dark-blue">Outcome &amp; notes</div>
+                                  <div>
+                                    <span className="font-semibold">Actual decision: </span>
+                                    {INVESTIGATION_LABELS[c.actualDecision]}
+                                  </div>
+                                  {c.actualDecisionNotes && (
+                                    <div className="mt-1">
+                                      <span className="font-semibold">Outcome notes: </span>
+                                      {c.actualDecisionNotes}
+                                    </div>
+                                  )}
+                                  {c.reviewerNotes && (
+                                    <div className="mt-1">
+                                      <span className="font-semibold">Reviewer notes: </span>
+                                      {c.reviewerNotes}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                      <td className="py-2 pr-3">{c.enteredBy}</td>
-                      <td className="py-2 pr-3">{c.clinicMonth}</td>
-                      <td className="py-2 pr-3">{INVESTIGATION_LABELS[c.toolDecision.investigation]}</td>
-                      <td className="py-2 pr-3">{INVESTIGATION_LABELS[c.actualDecision]}</td>
-                      <td className="py-2 pr-3">
-                        {c.concordant ? (
-                          <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">✓</span>
-                        ) : (
-                          <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">✗</span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-xs text-nhs-mid-grey">
-                        {c.timeTakenSeconds ? `${c.timeTakenSeconds}s` : '—'}
-                      </td>
-                      <td className="py-2 pr-3 text-right">
-                        <button
-                          type="button"
-                          className="text-xs text-nhs-warm-red hover:underline"
-                          onClick={() => onDelete(c.id)}
-                          aria-label={`Delete ${c.id}`}
-                        >
-                          <Trash2 className="inline h-3 w-3" aria-hidden /> Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                      </Fragment>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

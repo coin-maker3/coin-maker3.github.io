@@ -1,6 +1,6 @@
 import type { AgeBand, Intake } from '../schema/intake'
 import type { DecisionResult, Investigation, PathStep } from './types'
-import { ALGORITHM_VERSION } from './version'
+import { ALGORITHM_VERSION } from './version.js'
 
 // ---------- threshold constants ----------
 //

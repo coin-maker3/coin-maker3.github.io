@@ -39,7 +39,7 @@ export const YN = ['yes', 'no', 'unknown'] as const
 export type YesNo = (typeof YN)[number]
 
 const optionalNumber = z
-  .union([z.string(), z.number()])
+  .union([z.string(), z.number(), z.null()])
   .transform((v) => (v === '' || v === null || v === undefined ? null : Number(v)))
   .pipe(z.number().nullable())
 
