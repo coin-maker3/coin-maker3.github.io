@@ -82,10 +82,29 @@ const PALLIATIVE = [
   /\bDNACPR\b/i,
 ]
 
+/**
+ * Negation detection. Looks back up to 40 chars / 4 words before the match
+ * for clinical negation markers. This stops "no haemorrhoids" / "denies
+ * weight loss" / "absent stoma" from firing false-positive warnings.
+ */
+const NEGATION_LOOKBEHIND = /\b(?:no|without|nil|not|denies|absent|negative\s+for|free\s+of|excluded|absent\s+of)\b(?:\s+\w+){0,4}\s*$/i
+
+function isNegated(text: string, matchStart: number): boolean {
+  const before = text.slice(Math.max(0, matchStart - 50), matchStart)
+  return NEGATION_LOOKBEHIND.test(before)
+}
+
 function tryMatch(text: string, patterns: RegExp[]): string | null {
   for (const p of patterns) {
-    const m = text.match(p)
-    if (m) return m[0]
+    // Ensure the pattern is global so matchAll yields every occurrence — we
+    // want to skip past negated ones and find a clean (non-negated) match.
+    const flags = p.flags.includes('g') ? p.flags : p.flags + 'g'
+    const globalP = new RegExp(p.source, flags)
+    for (const m of text.matchAll(globalP)) {
+      if (m.index === undefined) continue
+      if (isNegated(text, m.index)) continue
+      return m[0]
+    }
   }
   return null
 }

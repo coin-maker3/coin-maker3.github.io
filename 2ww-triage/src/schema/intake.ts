@@ -173,6 +173,10 @@ export const IntakeSchema = z.object({
   ibd: z.enum(YN),
   priorColonoscopyWithin2y: z.enum(YN),
   priorColonoscopyFindings: z.string().optional().default(''),
+  /** Prior CTVC within last 2 years — routing exception per PDF page 2
+   *  ("Recent (last 2 years) GI investigations (Col/CTVC) → Discuss with COW"). */
+  priorCtvcWithin2y: z.enum(YN).optional().default('no'),
+  priorCtvcFindings: z.string().optional().default(''),
   recentInvestigations: z.string().optional().default(''),
   /** Prior abnormal CT findings — separate pathway per Trust PDF page 1
    *  right side. Default 'no' (most patients haven't had a CT yet). */
@@ -251,6 +255,8 @@ export const DEFAULT_INTAKE: Intake = {
   ibd: 'no',
   priorColonoscopyWithin2y: 'no',
   priorColonoscopyFindings: '',
+  priorCtvcWithin2y: 'no',
+  priorCtvcFindings: '',
   recentInvestigations: '',
   abnormalCt: 'no',
   priorBowelSurgery: 'none',

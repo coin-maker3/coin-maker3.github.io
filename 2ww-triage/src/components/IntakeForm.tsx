@@ -418,6 +418,24 @@ export function IntakeForm({ value, onChange }: Props) {
               />
             </div>
           )}
+          <Row label="CTVC (CT colonography) in last 2 years?">
+            <YesNoToggle
+              value={value.priorCtvcWithin2y ?? 'no'}
+              onChange={(v) => set('priorCtvcWithin2y', v)}
+            />
+          </Row>
+          {value.priorCtvcWithin2y === 'yes' && (
+            <div>
+              <label className="label" htmlFor="priorCtvc">Prior CTVC findings</label>
+              <textarea
+                id="priorCtvc"
+                rows={2}
+                className="input"
+                value={value.priorCtvcFindings ?? ''}
+                onChange={(e) => set('priorCtvcFindings', e.target.value)}
+              />
+            </div>
+          )}
         </div>
       </section>
 

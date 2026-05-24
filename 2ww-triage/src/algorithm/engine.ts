@@ -123,15 +123,25 @@ function decideCore(intake: Intake): DecisionResult {
     )
   }
 
-  if (intake.priorColonoscopyWithin2y === 'yes') {
+  if (intake.priorColonoscopyWithin2y === 'yes' || intake.priorCtvcWithin2y === 'yes') {
+    const which =
+      intake.priorColonoscopyWithin2y === 'yes' && intake.priorCtvcWithin2y === 'yes'
+        ? 'colonoscopy and CTVC'
+        : intake.priorColonoscopyWithin2y === 'yes'
+          ? 'colonoscopy'
+          : 'CTVC'
+    const findings =
+      [intake.priorColonoscopyFindings, intake.priorCtvcFindings]
+        .filter((s) => s && s.trim().length > 0)
+        .join('; ') || `Patient reports ${which} <2y`
     path.push({
       nodeId: 'ROUTE.RECENT_INV',
-      label: 'Recent (last 2 years) GI investigation',
-      evidence: intake.priorColonoscopyFindings || 'Patient reports colonoscopy <2y',
+      label: `Recent (last 2 years) GI investigation: ${which}`,
+      evidence: findings,
     })
     return make(
       'discuss_with_cow',
-      'Recent colonoscopy/CTVC within 2 years. Discuss with clinic consultant or COW before requesting repeat investigation.',
+      `Recent ${which} within 2 years. Per Trust PDF page 2 routing column: discuss with clinic consultant or COW before requesting repeat investigation.`,
       'ROUTE.RECENT_INV',
       path,
       [

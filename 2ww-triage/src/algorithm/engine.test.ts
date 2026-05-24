@@ -885,6 +885,107 @@ describe('v0.4.0: Visible bleeding source (NICE NG12 downgrade prompt)', () => {
   })
 })
 
+describe('v0.4.0: Prior CTVC <2y routing exception', () => {
+  it('priorCtvcWithin2y=yes → ROUTE.RECENT_INV → discuss_with_cow', () => {
+    const result = decide(
+      base({
+        priorColonoscopyWithin2y: 'no',
+        priorCtvcWithin2y: 'yes',
+        priorCtvcFindings: 'CTVC 18 months ago — diverticulosis, no neoplasm',
+        cibh: 'yes',
+        fit: 50,
+      }),
+    )
+    expect(result.investigation).toBe('discuss_with_cow')
+    expect(result.algorithmNodeId).toBe('ROUTE.RECENT_INV')
+    expect(result.path.some((p) => /CTVC/.test(p.label ?? ''))).toBe(true)
+  })
+
+  it('Both prior colonoscopy AND CTVC <2y → routing exception with both flagged', () => {
+    const result = decide(
+      base({
+        priorColonoscopyWithin2y: 'yes',
+        priorCtvcWithin2y: 'yes',
+        cibh: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('discuss_with_cow')
+    expect(result.path.some((p) => /colonoscopy and CTVC/.test(p.label ?? ''))).toBe(true)
+  })
+})
+
+describe('v0.4.0 hardening: free-text scanner negation handling', () => {
+  it('"No haemorrhoids on DRE" does NOT fire the haemorrhoid warning', () => {
+    const result = decide(
+      base({
+        prBleed: 'bright',
+        examinationFindings: 'DRE: no haemorrhoids, no mass, no fissure',
+        ageBand: '60-69',
+        sex: 'F',
+        fit: 50,
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*haemorrhoid/i.test(w))).toBe(false)
+    expect(result.warnings.some((w) => /Free-text scan.*fissure/i.test(w))).toBe(false)
+  })
+
+  it('"Haemorrhoids on DRE" (no negation) still fires the warning', () => {
+    const result = decide(
+      base({
+        prBleed: 'bright',
+        examinationFindings: 'DRE: external haemorrhoids visible',
+        ageBand: '60-69',
+        sex: 'F',
+        fit: 50,
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*haemorrhoid/i.test(w))).toBe(true)
+  })
+
+  it('"Denies weight loss" does NOT fire (no weight-loss free-text scan today; sanity check on negation phrasing)', () => {
+    // This test guards the negation pattern itself — we don't currently scan
+    // for weight loss in free text, but if we did, denial phrasing should
+    // suppress. Use a category we DO scan (palliative) negated to verify.
+    const result = decide(
+      base({
+        pmh: 'Discussed; not palliative; for full investigation',
+        cibh: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*palliative/i.test(w))).toBe(false)
+  })
+
+  it('"Without stoma" suppresses stoma warning; "End colostomy" still fires', () => {
+    const r1 = decide(
+      base({
+        pmh: 'No previous bowel surgery, without stoma',
+        cibh: 'yes',
+      }),
+    )
+    expect(r1.warnings.some((w) => /Free-text scan.*stoma|colostomy/i.test(w))).toBe(false)
+    const r2 = decide(
+      base({
+        pmh: 'End colostomy 2019 following Hartmann',
+        cibh: 'yes',
+      }),
+    )
+    expect(r2.warnings.some((w) => /Free-text scan.*colostomy|stoma/i.test(w))).toBe(true)
+  })
+
+  it('Negated then non-negated in same field → non-negated match still fires', () => {
+    const result = decide(
+      base({
+        examinationFindings: 'No abdominal mass, but haemorrhoids visible on DRE',
+        prBleed: 'bright',
+        ageBand: '60-69',
+        sex: 'F',
+        fit: 50,
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*haemorrhoid/i.test(w))).toBe(true)
+  })
+})
+
 describe('v0.4.0: Free-text scanner', () => {
   it('PMH mentions "subtotal colectomy" but structured field is "none" → free-text warning fires', () => {
     const result = decide(
