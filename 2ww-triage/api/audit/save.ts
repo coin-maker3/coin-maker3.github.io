@@ -6,7 +6,14 @@ import { IntakeSchema, ageToBand } from '../../src/schema/intake.js'
 import { INVESTIGATIONS } from '../../src/algorithm/types.js'
 
 const MAX_CASE_BYTES = 100_000 // 100 KB — generous for a fully-populated audit case
-const AUDIT_ID_PATTERN = /^AUDIT-\d{4}-\d{4,6}$/
+// Audit IDs accept both the auto-generated AUDIT-YYYY-NNNN pattern and
+// user-supplied custom IDs (e.g. GEH-2WW-001) from the audit lead's
+// pre-assigned cohort list. Constraints:
+//   - 3..40 chars
+//   - starts with a letter or digit
+//   - uppercase letters / digits / dashes / underscores only (no spaces,
+//     no PID-shape characters)
+const AUDIT_ID_PATTERN = /^[A-Z0-9][A-Z0-9_-]{2,39}$/
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
@@ -16,7 +23,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing id' })
     }
     if (!AUDIT_ID_PATTERN.test(data.id)) {
-      return res.status(400).json({ error: 'id must match AUDIT-YYYY-NNNN' })
+      return res.status(400).json({
+        error: 'id must be 3–40 chars, start with letter/digit, uppercase + digits + dash/underscore only',
+      })
     }
     if (process.env.PILOT_REQUIRE_TEST_PREFIX === '1') {
       const initials = typeof data.enteredBy === 'string' ? data.enteredBy : ''
@@ -39,9 +48,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // Validate actualDecision is a known investigation.
-    if (!INVESTIGATIONS.includes(data.actualDecision)) {
-      return res.status(400).json({ error: 'invalid actualDecision' })
+    // Excluded cases skip the algorithm comparison entirely. They are still
+    // saved (denominator transparency) but actualDecision can be empty.
+    const isExcluded = data.excluded === true
+    const VALID_EXCLUSION_REASONS = [
+      'dna',
+      'discharged_before_assessment',
+      'direct_to_mdt',
+      'withdrew_consent',
+      'duplicate_referral',
+      'other',
+    ]
+    if (isExcluded) {
+      if (!data.exclusionReason || !VALID_EXCLUSION_REASONS.includes(data.exclusionReason)) {
+        return res.status(400).json({ error: 'excluded=true requires a valid exclusionReason' })
+      }
+    } else {
+      // Non-excluded cases must have a valid actualDecision.
+      if (!INVESTIGATIONS.includes(data.actualDecision)) {
+        return res.status(400).json({ error: 'invalid actualDecision' })
+      }
     }
 
     // Age is the source of truth — re-derive ageBand server-side so a
@@ -71,10 +97,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         path: serverDecision.path,
         warnings: serverDecision.warnings,
       },
-      actualDecision: data.actualDecision,
+      actualDecision: isExcluded ? null : data.actualDecision,
       actualDecisionNotes: typeof data.actualDecisionNotes === 'string' ? data.actualDecisionNotes : '',
       reviewerNotes: typeof data.reviewerNotes === 'string' ? data.reviewerNotes : '',
-      concordant: serverDecision.investigation === data.actualDecision,
+      excluded: isExcluded || undefined,
+      exclusionReason: isExcluded ? data.exclusionReason : undefined,
+      exclusionNotes:
+        isExcluded && typeof data.exclusionNotes === 'string'
+          ? data.exclusionNotes.slice(0, 500)
+          : undefined,
+      concordant: isExcluded ? false : serverDecision.investigation === data.actualDecision,
       createdAt: new Date().toISOString(),
       timeTakenSeconds: typeof data.timeTakenSeconds === 'number' ? data.timeTakenSeconds : null,
     }

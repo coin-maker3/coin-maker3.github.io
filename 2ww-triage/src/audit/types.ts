@@ -1,13 +1,44 @@
 import type { Intake } from '../schema/intake'
 import type { Investigation, PathStep } from '../algorithm/types'
 
+/** Pre-specified exclusion reasons per AUDIT-PROTOCOL.md §6. */
+export const EXCLUSION_REASONS = [
+  'dna', // Did not attend
+  'discharged_before_assessment',
+  'direct_to_mdt', // obvious cancer routed straight to MDT, no investigation pathway choice
+  'withdrew_consent',
+  'duplicate_referral',
+  'other',
+] as const
+export type ExclusionReason = (typeof EXCLUSION_REASONS)[number]
+
+export const EXCLUSION_REASON_LABELS: Record<ExclusionReason, string> = {
+  dna: 'Did not attend',
+  discharged_before_assessment: 'Discharged before assessment',
+  direct_to_mdt: 'Obvious cancer — direct to MDT (no pathway choice applied)',
+  withdrew_consent: 'Withdrew consent / refused investigation',
+  duplicate_referral: 'Duplicate referral',
+  other: 'Other (specify in notes)',
+}
+
 export interface AuditCase {
-  /** Anonymous audit ID generated at case creation (e.g. AUDIT-2026-0001). */
+  /** Anonymous audit ID (auto AUDIT-YYYY-NNNN or user-supplied e.g. GEH-2WW-001). */
   id: string
   /** Initials of the FY1 entering this case (audit-only, not PID). */
   enteredBy: string
   /** Approximate date of the original clinic visit (no specific date — month/year only). */
   clinicMonth: string // "YYYY-MM"
+  /**
+   * Excluded from concordance denominator per protocol §6 (DNA, direct-to-MDT,
+   * withdrew, etc). Excluded cases are still SAVED so the denominator is
+   * transparent in the audit report, but they don't contribute to the
+   * primary outcome.
+   */
+  excluded?: boolean
+  /** Required when excluded=true. */
+  exclusionReason?: ExclusionReason
+  /** Free-text detail on the exclusion (e.g. "duplicate of GEH-2WW-014"). */
+  exclusionNotes?: string
   /** All clinician-extracted findings — same schema as the production tool. */
   intake: Intake
   /** What the algorithm recommended for this case. */
@@ -189,7 +220,14 @@ function quantile(sorted: number[], q: number): number {
 }
 
 export interface AuditSummary {
+  /** Total cases in store (including excluded). */
   total: number
+  /** Cases excluded from concordance analysis. */
+  excluded: number
+  /** Cases counted in the primary outcome (total − excluded). */
+  analysed: number
+  /** Breakdown of exclusion reasons (denominator transparency for audit report). */
+  exclusionBreakdown: Array<{ reason: ExclusionReason; label: string; count: number }>
   concordant: number
   concordancePct: number
   /** Wilson 95% CI on overall concordance proportion, 0..1. */
@@ -248,8 +286,23 @@ function subgroupStat(label: string, list: AuditCase[]) {
   }
 }
 
-export function buildSummary(cases: AuditCase[]): AuditSummary {
+export function buildSummary(allCases: AuditCase[]): AuditSummary {
+  // Split excluded from analysed. All downstream stats (concordance, arms,
+  // kappa, confusion, subgroups, stop criteria) compute over `cases`
+  // (= analysed only) so excluded cases don't poison the denominator.
+  const excludedCases = allCases.filter((c) => c.excluded === true)
+  const cases = allCases.filter((c) => c.excluded !== true)
   const total = cases.length
+  const excluded = excludedCases.length
+  const analysed = total
+  const exclusionCounts = new Map<ExclusionReason, number>()
+  for (const c of excludedCases) {
+    const r = c.exclusionReason ?? 'other'
+    exclusionCounts.set(r, (exclusionCounts.get(r) ?? 0) + 1)
+  }
+  const exclusionBreakdown = Array.from(exclusionCounts.entries()).map(
+    ([reason, count]) => ({ reason, label: EXCLUSION_REASON_LABELS[reason] ?? reason, count }),
+  )
   const concordant = cases.filter((c) => c.concordant).length
 
   // Group by algorithm arm (first segment of nodeId)
@@ -407,7 +460,10 @@ export function buildSummary(cases: AuditCase[]): AuditSummary {
   }
 
   return {
-    total,
+    total: allCases.length,
+    excluded,
+    analysed,
+    exclusionBreakdown,
     concordant,
     concordancePct: total ? Math.round((concordant / total) * 100) : 0,
     ci95: wilson95(concordant, total),
@@ -454,6 +510,9 @@ export function exportCSV(cases: AuditCase[]): string {
     'concordant',
     'actualDecisionNotes',
     'reviewerNotes',
+    'excluded',
+    'exclusionReason',
+    'exclusionNotes',
     'timeTakenSeconds',
     'createdAt',
   ]
@@ -494,6 +553,9 @@ export function exportCSV(cases: AuditCase[]): string {
       c.concordant,
       c.actualDecisionNotes,
       c.reviewerNotes,
+      c.excluded ? 'yes' : 'no',
+      c.exclusionReason ?? '',
+      c.exclusionNotes ?? '',
       c.timeTakenSeconds,
       c.createdAt,
     ]

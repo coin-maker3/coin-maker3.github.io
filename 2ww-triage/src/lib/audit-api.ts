@@ -66,6 +66,39 @@ export async function deleteAuditCase(id: string): Promise<void> {
   if (!res.ok) throw new Error(`Delete failed (HTTP ${res.status})`)
 }
 
+// ===== Cohort tracking =====
+
+export interface CohortRecord {
+  ids: string[]
+  updatedAt: string
+  updatedBy: string
+  notes?: string
+}
+
+export async function getCohort(): Promise<CohortRecord> {
+  const res = await fetch(`${API}/api/audit/cohort`)
+  if (!res.ok) throw new Error(`Cohort GET failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function setCohort(input: { ids: string[]; updatedBy: string; notes?: string }): Promise<{ ok: true; count: number; updatedAt: string }> {
+  const res = await fetch(`${API}/api/audit/cohort`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `Cohort POST failed (HTTP ${res.status})`)
+  }
+  return res.json()
+}
+
+export async function clearCohort(): Promise<void> {
+  const res = await fetch(`${API}/api/audit/cohort`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`Cohort DELETE failed (HTTP ${res.status})`)
+}
+
 let counter = 0
 export function generateAuditId(existingIds: string[]): string {
   const year = new Date().getFullYear()

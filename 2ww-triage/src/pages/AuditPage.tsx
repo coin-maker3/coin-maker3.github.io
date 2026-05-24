@@ -1,6 +1,13 @@
 import { Fragment, useEffect, useState } from 'react'
 import { Download, Plus, Trash2 } from 'lucide-react'
-import { deleteAuditCase, listAuditCases } from '../lib/audit-api'
+import {
+  clearCohort,
+  deleteAuditCase,
+  getCohort,
+  listAuditCases,
+  setCohort,
+  type CohortRecord,
+} from '../lib/audit-api'
 import {
   buildSummary,
   duplicateIdSet,
@@ -15,18 +22,51 @@ import { linkTo } from '../lib/router'
 
 export function AuditPage() {
   const [cases, setCases] = useState<AuditCase[] | null>(null)
+  const [cohort, setCohortState] = useState<CohortRecord | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'match' | 'mismatch' | 'duplicates'>('all')
+  const [filter, setFilter] = useState<'all' | 'match' | 'mismatch' | 'duplicates' | 'excluded'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [showCohortEditor, setShowCohortEditor] = useState(false)
+  const [cohortDraft, setCohortDraft] = useState('')
+  const [cohortInitials, setCohortInitials] = useState('')
 
   const load = () => {
     setError(null)
-    listAuditCases()
-      .then((list) => setCases(list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))))
+    Promise.all([
+      listAuditCases().catch((e) => {
+        throw e
+      }),
+      getCohort().catch(() => ({ ids: [] as string[], updatedAt: '', updatedBy: '' })),
+    ])
+      .then(([list, coh]) => {
+        setCases(list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+        setCohortState(coh)
+      })
       .catch((e) => setError(e.message ?? 'Failed to load'))
   }
 
   useEffect(load, [])
+
+  const saveCohort = async () => {
+    try {
+      const ids = cohortDraft
+        .split(/[\s,]+/)
+        .map((s) => s.trim().toUpperCase())
+        .filter((s) => s.length > 0)
+      await setCohort({ ids, updatedBy: cohortInitials, notes: '' })
+      setShowCohortEditor(false)
+      setCohortDraft('')
+      load()
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to set cohort')
+    }
+  }
+
+  const onClearCohort = async () => {
+    if (!confirm('Clear the cohort list? Existing entered cases are unaffected.')) return
+    await clearCohort()
+    load()
+  }
 
   const onDelete = async (id: string) => {
     if (!confirm(`Delete ${id}? This cannot be undone.`)) return
@@ -47,12 +87,20 @@ export function AuditPage() {
   }
 
   const summary: AuditSummary | null = cases ? buildSummary(cases) : null
-  const duplicates: DuplicateGroup[] = cases ? findPossibleDuplicates(cases) : []
+  const duplicates: DuplicateGroup[] = cases
+    ? findPossibleDuplicates(cases.filter((c) => c.excluded !== true))
+    : []
   const dupIds = duplicateIdSet(duplicates)
+  const enteredIdSet = new Set(cases?.map((c) => c.id) ?? [])
+  const cohortIds = cohort?.ids ?? []
+  const pendingCohortIds = cohortIds.filter((id) => !enteredIdSet.has(id))
+  const unexpectedIds =
+    cohortIds.length > 0 ? [...enteredIdSet].filter((id) => !cohortIds.includes(id)) : []
   const filtered = cases?.filter((c) => {
-    if (filter === 'match') return c.concordant
-    if (filter === 'mismatch') return !c.concordant
+    if (filter === 'match') return c.excluded !== true && c.concordant
+    if (filter === 'mismatch') return c.excluded !== true && !c.concordant
     if (filter === 'duplicates') return dupIds.has(c.id)
+    if (filter === 'excluded') return c.excluded === true
     return true
   })
 
@@ -84,6 +132,132 @@ export function AuditPage() {
           </div>
         )}
 
+        {/* Cohort progress (when audit lead has set an expected ID list) */}
+        {cohort && (cohortIds.length > 0 || showCohortEditor) && (
+          <section className="card border-l-4 border-l-nhs-blue">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-nhs-dark-blue">Cohort progress</h2>
+                {cohortIds.length > 0 && (
+                  <p className="text-xs text-nhs-mid-grey">
+                    {cohortIds.length} expected · {cohortIds.length - pendingCohortIds.length} entered ·{' '}
+                    {pendingCohortIds.length} pending
+                    {cohort.updatedBy && ` · set by ${cohort.updatedBy} ${cohort.updatedAt ? new Date(cohort.updatedAt).toLocaleDateString('en-GB') : ''}`}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button type="button" className="btn-secondary" onClick={() => {
+                  setCohortDraft(cohortIds.join('\n'))
+                  setShowCohortEditor((v) => !v)
+                }}>
+                  {showCohortEditor ? 'Cancel' : cohortIds.length > 0 ? 'Edit' : 'Set cohort'}
+                </button>
+                {cohortIds.length > 0 && !showCohortEditor && (
+                  <button type="button" className="text-xs text-nhs-warm-red hover:underline" onClick={onClearCohort}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            {cohortIds.length > 0 && !showCohortEditor && (
+              <div className="mt-3">
+                <div className="h-2 w-full overflow-hidden rounded bg-gray-100">
+                  <div
+                    className="h-full bg-nhs-blue"
+                    style={{ width: `${Math.round(((cohortIds.length - pendingCohortIds.length) / cohortIds.length) * 100)}%` }}
+                  />
+                </div>
+                {pendingCohortIds.length > 0 && (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs font-medium text-nhs-blue">
+                      Pending IDs ({pendingCohortIds.length})
+                    </summary>
+                    <div className="mt-2 flex flex-wrap gap-1 text-[11px] font-mono">
+                      {pendingCohortIds.slice(0, 200).map((id) => (
+                        <span key={id} className="rounded bg-nhs-pale-grey px-1.5 py-0.5">{id}</span>
+                      ))}
+                      {pendingCohortIds.length > 200 && (
+                        <span className="text-nhs-mid-grey">…and {pendingCohortIds.length - 200} more</span>
+                      )}
+                    </div>
+                  </details>
+                )}
+                {unexpectedIds.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-medium text-amber-700">
+                      Entered but not in cohort ({unexpectedIds.length})
+                    </summary>
+                    <div className="mt-2 flex flex-wrap gap-1 text-[11px] font-mono">
+                      {unexpectedIds.map((id) => (
+                        <span key={id} className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">{id}</span>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+            {showCohortEditor && (
+              <div className="mt-3 space-y-2">
+                <div className="text-xs text-nhs-mid-grey">
+                  Paste expected audit IDs (one per line, comma or space separated). 3–40 chars,
+                  letters/digits/dash/underscore only. Existing entered cases are not affected.
+                </div>
+                <textarea
+                  rows={8}
+                  className="input font-mono text-xs"
+                  placeholder="GEH-2WW-001&#10;GEH-2WW-002&#10;GEH-2WW-003"
+                  value={cohortDraft}
+                  onChange={(e) => setCohortDraft(e.target.value)}
+                />
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-nhs-mid-grey">Your initials</label>
+                  <input
+                    className="input w-24"
+                    placeholder="AB"
+                    maxLength={8}
+                    value={cohortInitials}
+                    onChange={(e) => setCohortInitials(e.target.value.toUpperCase())}
+                  />
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={saveCohort}
+                    disabled={cohortInitials.length < 2 || cohortDraft.trim().length === 0}
+                  >
+                    Save cohort
+                  </button>
+                </div>
+              </div>
+            )}
+            {cohortIds.length === 0 && !showCohortEditor && (
+              <p className="mt-2 text-xs text-nhs-mid-grey">
+                No cohort set. Click "Set cohort" to paste the list of expected audit IDs from your spreadsheet —
+                the dashboard will then track entered vs pending against that list. Audit lead's name/NHS-no
+                linkage table stays offline.
+              </p>
+            )}
+          </section>
+        )}
+
+        {summary && summary.exclusionBreakdown.length > 0 && (
+          <section className="card border-l-4 border-l-nhs-mid-grey">
+            <h2 className="text-sm font-semibold text-nhs-dark-blue">
+              Excluded cases (denominator transparency)
+            </h2>
+            <p className="mt-0.5 text-xs text-nhs-mid-grey">
+              {summary.excluded} excluded from concordance analysis. Reasons per protocol §6:
+            </p>
+            <ul className="mt-2 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+              {summary.exclusionBreakdown.map((e) => (
+                <li key={e.reason}>
+                  <strong>{e.count}×</strong> {e.label}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {summary && summary.stopCriteria && (summary.stopCriteria.overallTriggered || summary.stopCriteria.armsTriggered.length > 0) && (
           <section className="card border-l-4 border-l-red-600 bg-red-50">
             <h2 className="text-sm font-bold text-red-900">
@@ -103,8 +277,13 @@ export function AuditPage() {
         {summary && (
           <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="card">
-              <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Cases</div>
-              <div className="mt-1 text-3xl font-bold text-nhs-dark-blue">{summary.total}</div>
+              <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Cases (analysed)</div>
+              <div className="mt-1 text-3xl font-bold text-nhs-dark-blue">{summary.analysed}</div>
+              {summary.excluded > 0 && (
+                <div className="text-xs text-nhs-mid-grey">
+                  +{summary.excluded} excluded ({summary.total} total)
+                </div>
+              )}
             </div>
             <div className="card">
               <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Concordance (primary)</div>
@@ -316,6 +495,7 @@ export function AuditPage() {
                 <option value="match">Concordant only</option>
                 <option value="mismatch">Mismatches only</option>
                 <option value="duplicates">Possible duplicates</option>
+                <option value="excluded">Excluded only</option>
               </select>
               <button
                 type="button"
@@ -374,9 +554,18 @@ export function AuditPage() {
                           <td className="py-2 pr-3">{c.enteredBy}</td>
                           <td className="py-2 pr-3">{c.clinicMonth}</td>
                           <td className="py-2 pr-3">{INVESTIGATION_LABELS[c.toolDecision.investigation]}</td>
-                          <td className="py-2 pr-3">{INVESTIGATION_LABELS[c.actualDecision]}</td>
                           <td className="py-2 pr-3">
-                            {c.concordant ? (
+                            {c.excluded ? <span className="text-nhs-mid-grey">—</span> : INVESTIGATION_LABELS[c.actualDecision]}
+                          </td>
+                          <td className="py-2 pr-3">
+                            {c.excluded ? (
+                              <span
+                                className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-700"
+                                title={c.exclusionReason ?? 'excluded'}
+                              >
+                                EXCL
+                              </span>
+                            ) : c.concordant ? (
                               <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">✓</span>
                             ) : (
                               <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">✗</span>

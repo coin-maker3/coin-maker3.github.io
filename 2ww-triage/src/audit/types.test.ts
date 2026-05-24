@@ -3,14 +3,22 @@
  * these functions being correct — they will end up in the ASGBI poster.
  */
 import { describe, expect, it } from 'vitest'
-import { buildSummary, cohenKappa, wilson95, type AuditCase } from './types'
+import { buildSummary, cohenKappa, wilson95, type AuditCase, type ExclusionReason } from './types'
 import { DEFAULT_INTAKE, type Intake } from '../schema/intake'
 
-function makeCase(overrides: Partial<AuditCase> & { intake?: Partial<Intake> } = {}): AuditCase {
+function makeCase(
+  overrides: Partial<AuditCase> & {
+    intake?: Partial<Intake>
+    excluded?: boolean
+    exclusionReason?: ExclusionReason
+  } = {},
+): AuditCase {
   return {
     id: overrides.id ?? `AUDIT-2026-${Math.random().toString().slice(2, 6)}`,
     enteredBy: overrides.enteredBy ?? 'AB',
     clinicMonth: overrides.clinicMonth ?? '2026-05',
+    excluded: overrides.excluded,
+    exclusionReason: overrides.exclusionReason,
     intake: { ...DEFAULT_INTAKE, ...(overrides.intake ?? {}) } as Intake,
     toolDecision: overrides.toolDecision ?? {
       investigation: 'colonoscopy',
@@ -197,6 +205,34 @@ describe('buildSummary subgroups + stop criteria', () => {
     expect(s.concordancePct).toBe(80)
     expect(s.ci95.lo).toBeGreaterThan(0.4)
     expect(s.ci95.hi).toBeLessThanOrEqual(1)
+  })
+
+  it('excluded cases are removed from concordance denominator', () => {
+    const cases = [
+      // 5 entered, 4 concordant
+      ...Array.from({ length: 4 }, () => makeCase({ concordant: true })),
+      makeCase({ concordant: false }),
+      // 2 excluded — should be excluded from numerator AND denominator
+      makeCase({ excluded: true, exclusionReason: 'dna', concordant: false }),
+      makeCase({ excluded: true, exclusionReason: 'direct_to_mdt', concordant: false }),
+    ]
+    const s = buildSummary(cases)
+    expect(s.total).toBe(7)
+    expect(s.excluded).toBe(2)
+    expect(s.analysed).toBe(5)
+    expect(s.concordancePct).toBe(80) // 4/5 not 4/7
+  })
+
+  it('exclusionBreakdown counts each reason', () => {
+    const cases = [
+      makeCase({ excluded: true, exclusionReason: 'dna', concordant: false }),
+      makeCase({ excluded: true, exclusionReason: 'dna', concordant: false }),
+      makeCase({ excluded: true, exclusionReason: 'direct_to_mdt', concordant: false }),
+      makeCase({ concordant: true }),
+    ]
+    const s = buildSummary(cases)
+    expect(s.exclusionBreakdown.find((e) => e.reason === 'dna')?.count).toBe(2)
+    expect(s.exclusionBreakdown.find((e) => e.reason === 'direct_to_mdt')?.count).toBe(1)
   })
 
   it('per-FY1 progress aggregates by initials', () => {
