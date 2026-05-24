@@ -564,7 +564,7 @@ describe('Output contract', () => {
   it('Every decision stamps algorithm version + timestamp + path', () => {
     const result = decide(base({ fit: 50, cibh: 'yes' }))
     expect(result.algorithm.id).toBe('GEH-2WW-COLORECTAL')
-    expect(result.algorithm.version).toBe('0.3.0')
+    expect(result.algorithm.version).toBe('0.4.0')
     expect(result.path.length).toBeGreaterThan(0)
     expect(() => new Date(result.computedAt).toISOString()).not.toThrow()
   })
@@ -719,5 +719,242 @@ describe('v0.3.0: IDA discharge-no-haematinics letter pathway', () => {
     )
     expect(result.investigation).toBe('discharge_to_gp')
     expect(result.warnings.some((w) => /haematinics/i.test(w))).toBe(true)
+  })
+})
+
+describe('v0.4.0: Abnormal CT branch (PDF page 1 right side)', () => {
+  it('Abnormal CT thickening, <80 + fit for prep → Colonoscopy', () => {
+    const result = decide(
+      base({
+        clinicType: 'face_to_face',
+        ageBand: '60-69',
+        sex: 'F',
+        abnormalCt: 'colonic_rectal_thickening',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+    expect(result.algorithmNodeId).toBe('ABCT.thickening.colonoscopy')
+  })
+
+  it('Abnormal CT thickening, ≥80 → CTVC with FOS alternative for left-sided', () => {
+    const result = decide(
+      base({
+        ageBand: '80-89',
+        sex: 'M',
+        abnormalCt: 'colonic_rectal_thickening',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('ctc')
+    expect(result.algorithmNodeId).toBe('ABCT.thickening.ctc')
+    expect(result.alternatives.some((a) => a.investigation === 'flexible_sigmoidoscopy')).toBe(true)
+  })
+
+  it('Abnormal CT thickening, not fit for prep + poor mobility + ≥90 → MDT discussion', () => {
+    const result = decide(
+      base({
+        ageBand: '>=90',
+        sex: 'F',
+        abnormalCt: 'colonic_rectal_thickening',
+        fitForBowelPrep: 'no',
+        mobilityAids: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('mdt_discussion')
+    expect(result.algorithmNodeId).toBe('ABCT.thickening.mdt')
+  })
+
+  it('Abnormal CT "other" → MDT discussion / discharge to GP alternative', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'M',
+        abnormalCt: 'other',
+      }),
+    )
+    expect(result.investigation).toBe('mdt_discussion')
+    expect(result.algorithmNodeId).toBe('ABCT.other')
+  })
+
+  it('IDA still takes priority over abnormal CT thickening', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'F',
+        hb: 95,
+        mcv: 70,
+        ferritin: 8,
+        abnormalCt: 'colonic_rectal_thickening',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy_plus_ogd')
+    expect(result.algorithmNodeId.startsWith('IDA.')).toBe(true)
+  })
+})
+
+describe('v0.4.0: Prior bowel surgery anatomy warnings', () => {
+  it('Subtotal colectomy + colonoscopy recommended → warn no colon to scope', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'M',
+        priorBowelSurgery: 'subtotal_colectomy',
+        cibh: 'yes',
+        fit: 50,
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+    expect(result.warnings.some((w) => /subtotal colectomy/i.test(w))).toBe(true)
+  })
+
+  it('APR + flexible sigmoidoscopy → warn no rectum / anal canal', () => {
+    // Force the engine to recommend FOS via the rectal-mass-unfit-prep branch.
+    const result = decide(
+      base({
+        clinicType: 'face_to_face',
+        ageBand: '70-79',
+        sex: 'F',
+        priorBowelSurgery: 'apr',
+        palpableRectalMass: 'yes',
+        fitForBowelPrep: 'no',
+      }),
+    )
+    expect(result.investigation).toBe('flexible_sigmoidoscopy')
+    expect(result.warnings.some((w) => /APR.*no rectum|anatomically/i.test(w))).toBe(true)
+  })
+
+  it('Pouch reconstruction + colonoscopy → warn pouchoscopy is appropriate scope', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'M',
+        priorBowelSurgery: 'pouch_reconstruction',
+        cibh: 'yes',
+        fit: 50,
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /pouchoscopy/i.test(w))).toBe(true)
+  })
+})
+
+describe('v0.4.0: Visible bleeding source (NICE NG12 downgrade prompt)', () => {
+  it('Bright PR bleeding + visible haemorrhoids → engine recommends colonoscopy BUT warns about downgrade', () => {
+    const result = decide(
+      base({
+        ageBand: '<40',
+        age: 19,
+        sex: 'F',
+        prBleed: 'bright',
+        bleedingSourceVisible: 'haemorrhoids',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+    expect(result.warnings.some((w) => /haemorrhoids.*bleeding source/i.test(w))).toBe(true)
+    expect(result.warnings.some((w) => /NICE NG12|downgrade/i.test(w))).toBe(true)
+  })
+
+  it('Bright PR bleeding + fissure → same downgrade prompt fires', () => {
+    const result = decide(
+      base({
+        ageBand: '40-49',
+        sex: 'M',
+        prBleed: 'bright',
+        bleedingSourceVisible: 'fissure',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /fissure.*bleeding source/i.test(w))).toBe(true)
+  })
+
+  it('Bright PR bleeding + no visible source on exam → no downgrade prompt (unexplained bleeding)', () => {
+    const result = decide(
+      base({
+        ageBand: '50-59',
+        sex: 'F',
+        prBleed: 'bright',
+        bleedingSourceVisible: 'none',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /bleeding source/i.test(w))).toBe(false)
+  })
+})
+
+describe('v0.4.0: Free-text scanner', () => {
+  it('PMH mentions "subtotal colectomy" but structured field is "none" → free-text warning fires', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'M',
+        priorBowelSurgery: 'none', // structured field empty
+        pmh: 'Hypertension, type 2 diabetes. Previous subtotal colectomy 2018 for diverticular disease.',
+        cibh: 'yes',
+        fit: 50,
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*subtotal colectom/i.test(w))).toBe(true)
+  })
+
+  it('Exam findings mentions "haemorrhoids" but structured bleed-source field is "unknown" → free-text warning fires', () => {
+    const result = decide(
+      base({
+        ageBand: '50-59',
+        sex: 'M',
+        prBleed: 'bright',
+        bleedingSourceVisible: 'unknown',
+        examinationFindings: 'DRE: external haemorrhoids visible, no mass',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*haemorrhoid/i.test(w))).toBe(true)
+  })
+
+  it('Drug history mentions "apixaban" but onAnticoag is "no" → free-text warning fires', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'F',
+        onAnticoag: 'no', // structured field says no
+        drugHistory: 'apixaban 5mg bd, simvastatin',
+        cibh: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*apixaban/i.test(w))).toBe(true)
+  })
+
+  it('Free-text mentions stoma → warns about bowel-prep / approach', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'M',
+        pmh: 'End colostomy following Hartmann procedure',
+        cibh: 'yes',
+      }),
+    )
+    expect(result.warnings.some((w) => /Free-text scan.*colostomy|stoma/i.test(w))).toBe(true)
+  })
+
+  it('Suppression: structured prior-surgery field IS ticked → no duplicate free-text warning for same surgery', () => {
+    const result = decide(
+      base({
+        ageBand: '60-69',
+        sex: 'M',
+        priorBowelSurgery: 'subtotal_colectomy', // ticked
+        pmh: 'Previous subtotal colectomy 2018', // same info in text
+        cibh: 'yes',
+        fit: 50,
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    // Should warn once via structured field, NOT a second time via free-text scan
+    const surgeryWarnings = result.warnings.filter((w) => /subtotal colectom/i.test(w))
+    expect(surgeryWarnings.length).toBe(1)
+    expect(surgeryWarnings[0].startsWith('[Free-text scan]')).toBe(false)
   })
 })

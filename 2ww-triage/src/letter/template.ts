@@ -58,7 +58,16 @@ export function buildLetter(intake: Intake, decision: DecisionResult): string {
       : '',
     ``,
     `Past medical / surgical history: ${intake.pmh || '—'}`,
+    intake.priorBowelSurgery && intake.priorBowelSurgery !== 'none'
+      ? `Prior bowel surgery: ${intake.priorBowelSurgery}`
+      : '',
     intake.surgicalHistory ? `Surgical history: ${intake.surgicalHistory}` : '',
+    intake.abnormalCt && intake.abnormalCt !== 'no'
+      ? `Abnormal CT findings: ${intake.abnormalCt}`
+      : '',
+    intake.bleedingSourceVisible && intake.bleedingSourceVisible !== 'unknown' && intake.bleedingSourceVisible !== 'none'
+      ? `Visible source of bleeding on examination: ${intake.bleedingSourceVisible}`
+      : '',
     `Drug history: ${intake.drugHistory || '—'}`,
     `Anticoagulants: ${yn(intake.onAnticoag)}${intake.anticoagDetails ? ` — ${intake.anticoagDetails}` : ''}`,
     `Antiplatelets: ${yn(intake.onAntiplatelet)}${intake.antiplateletDetails ? ` — ${intake.antiplateletDetails}` : ''}`,

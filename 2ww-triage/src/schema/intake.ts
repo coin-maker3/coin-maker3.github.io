@@ -54,6 +54,62 @@ export const REFERRAL_REASON_LABELS: Record<ReferralReason, string> = {
 export const PR_BLEED = ['none', 'bright', 'dark', 'mixed'] as const
 export type PRBleed = (typeof PR_BLEED)[number]
 
+/**
+ * Visible source of bleeding identified on examination (DRE or proctoscopy).
+ * Affects whether the rectal bleeding is "unexplained" for 2WW purposes per
+ * NICE NG12 — visible haemorrhoids/fissure may support downgrade to routine.
+ */
+export const BLEEDING_SOURCE = ['unknown', 'none', 'haemorrhoids', 'fissure', 'other'] as const
+export type BleedingSource = (typeof BLEEDING_SOURCE)[number]
+
+export const BLEEDING_SOURCE_LABELS: Record<BleedingSource, string> = {
+  unknown: 'Not examined / unknown',
+  none: 'No visible source on examination',
+  haemorrhoids: 'Visible haemorrhoids',
+  fissure: 'Visible fissure',
+  other: 'Other visible source',
+}
+
+/**
+ * Abnormal CT findings the patient came in with — Trust PDF page 1 right side.
+ * Different workup pathway from symptom-driven branches.
+ */
+export const ABNORMAL_CT = ['no', 'colonic_rectal_thickening', 'other'] as const
+export type AbnormalCt = (typeof ABNORMAL_CT)[number]
+
+export const ABNORMAL_CT_LABELS: Record<AbnormalCt, string> = {
+  no: 'No prior abnormal CT',
+  colonic_rectal_thickening: 'Colonic / rectal thickening or colonic pathology',
+  other: 'Other abnormal finding (e.g. extra-colonic mass)',
+}
+
+/**
+ * Prior bowel surgery — affects whether colonoscopy / CTVC make anatomical
+ * sense for this patient. Subtotal/total colectomy or APR change everything.
+ */
+export const PRIOR_BOWEL_SURGERY = [
+  'none',
+  'partial_colectomy',
+  'subtotal_colectomy',
+  'total_colectomy_ileostomy',
+  'apr',
+  'anterior_resection',
+  'pouch_reconstruction',
+  'other',
+] as const
+export type PriorBowelSurgery = (typeof PRIOR_BOWEL_SURGERY)[number]
+
+export const PRIOR_BOWEL_SURGERY_LABELS: Record<PriorBowelSurgery, string> = {
+  none: 'None',
+  partial_colectomy: 'Partial colectomy / hemicolectomy',
+  subtotal_colectomy: 'Subtotal colectomy',
+  total_colectomy_ileostomy: 'Total colectomy + ileostomy',
+  apr: 'Abdominoperineal resection (APR)',
+  anterior_resection: 'Anterior resection',
+  pouch_reconstruction: 'Ileal pouch–anal anastomosis (pouch)',
+  other: 'Other bowel surgery',
+}
+
 export const CLINIC_TYPE = ['telephone', 'face_to_face'] as const
 export type ClinicType = (typeof CLINIC_TYPE)[number]
 
@@ -106,6 +162,9 @@ export const IntakeSchema = z.object({
   palpableAbdoMass: z.enum(YN),
   palpableRectalMass: z.enum(YN),
   rectalMassLowAndTender: z.enum(YN),
+  /** Visible source of bleeding seen at DRE / proctoscopy (haemorrhoids,
+   *  fissure, none). Surfaces in engine warnings when bleeding is reported. */
+  bleedingSourceVisible: z.enum(BLEEDING_SOURCE).optional().default('unknown'),
   examinationFindings: z.string().optional().default(''),
 
   // -- History --
@@ -115,6 +174,12 @@ export const IntakeSchema = z.object({
   priorColonoscopyWithin2y: z.enum(YN),
   priorColonoscopyFindings: z.string().optional().default(''),
   recentInvestigations: z.string().optional().default(''),
+  /** Prior abnormal CT findings — separate pathway per Trust PDF page 1
+   *  right side. Default 'no' (most patients haven't had a CT yet). */
+  abnormalCt: z.enum(ABNORMAL_CT).optional().default('no'),
+  /** Prior bowel surgery — structured so the engine can warn when a
+   *  recommendation (e.g. colonoscopy) doesn't fit the patient's anatomy. */
+  priorBowelSurgery: z.enum(PRIOR_BOWEL_SURGERY).optional().default('none'),
   pmh: z.string().optional().default(''),
   surgicalHistory: z.string().optional().default(''),
 
@@ -179,6 +244,7 @@ export const DEFAULT_INTAKE: Intake = {
   palpableAbdoMass: 'no',
   palpableRectalMass: 'no',
   rectalMassLowAndTender: 'no',
+  bleedingSourceVisible: 'unknown',
   examinationFindings: '',
   fhxCrcOrIbd: 'no',
   previousCRC: 'no',
@@ -186,6 +252,8 @@ export const DEFAULT_INTAKE: Intake = {
   priorColonoscopyWithin2y: 'no',
   priorColonoscopyFindings: '',
   recentInvestigations: '',
+  abnormalCt: 'no',
+  priorBowelSurgery: 'none',
   pmh: '',
   surgicalHistory: '',
   onAnticoag: 'no',

@@ -1,6 +1,7 @@
 import type { AgeBand, Intake } from '../schema/intake'
 import type { DecisionResult, Investigation, PathStep } from './types'
 import { ALGORITHM_VERSION } from './version.js'
+import { dedupeHits, scanClinicalText } from './text-scan.js'
 
 // ---------- threshold constants ----------
 //
@@ -144,6 +145,31 @@ function decideCore(intake: Intake): DecisionResult {
 
   if (hasIDA(intake)) {
     return decideIDA(intake, path)
+  }
+
+  // ----- 1a. Abnormal CT branch (PDF page 1 right side) -----
+  // The patient came in with CT findings already — the workup is dictated by
+  // what the CT showed, not by symptoms. Fires after IDA (IDA still wins
+  // because it needs both upper + lower GI investigation).
+
+  if (intake.abnormalCt === 'colonic_rectal_thickening') {
+    return decideAbnormalCtThickening(intake, path)
+  }
+  if (intake.abnormalCt === 'other') {
+    path.push({
+      nodeId: 'ABCT.other',
+      label: 'Abnormal CT — other finding (not colonic / rectal thickening)',
+      evidence: 'abnormalCt = other',
+    })
+    return make(
+      'mdt_discussion',
+      'Abnormal CT with finding outside the colonic/rectal thickening pathway. Per Trust PDF page 1: list for discussion at the relevant MDT, or discharge with letter to GP to re-refer to the correct speciality.',
+      'ABCT.other',
+      path,
+      [
+        { investigation: 'discharge_to_gp', when: 'If finding belongs to a different speciality — re-refer letter to GP' },
+      ],
+    )
   }
 
   // ----- 2. Palpable mass on examination (page 1 algorithm) -----
@@ -290,6 +316,72 @@ function decideIDA(intake: Intake, path: PathStep[]): DecisionResult {
       { investigation: 'ct_tap', when: 'If patient deteriorates and becomes unfit for any scope/prep' },
     ],
     warnings,
+  )
+}
+
+// ---------- Abnormal CT — colonic / rectal thickening (Page 1 right) ----------
+
+function decideAbnormalCtThickening(intake: Intake, path: PathStep[]): DecisionResult {
+  path.push({
+    nodeId: 'ABCT.thickening.entry',
+    label: 'Abnormal CT — colonic / rectal thickening or colonic pathology',
+    evidence: 'abnormalCt = colonic_rectal_thickening',
+  })
+
+  const age90 = isAge90Plus(intake.ageBand)
+  const age80 = isAge80Plus(intake.ageBand)
+  const poorMob = hasPoorMobility(intake)
+  const notFit = isUnfitForPrep(intake)
+
+  // Tier 3: Not fit for prep + poor mobility + ≥90 → MDT, exam, FIT, discussion
+  if (notFit && poorMob && age90) {
+    path.push({
+      nodeId: 'ABCT.thickening.mdt',
+      label: 'Not fit for prep + poor mobility + ≥90 yrs → MDT discussion, clinical exam, FIT, discuss with patient/NOK',
+    })
+    return make(
+      'mdt_discussion',
+      'Abnormal CT thickening in patient ≥90 yrs, not fit for prep and poor mobility. Per Trust PDF page 1: discharge at colorectal MDT, clinical examination, FIT test, discussion with patient / NOK.',
+      'ABCT.thickening.mdt',
+      path,
+      [
+        { investigation: 'discharge_to_gp', when: 'After MDT if patient declines or unfit for any investigation' },
+      ],
+    )
+  }
+
+  // Tier 2: ≥80 / not fit for sedation or prep → CTVC (+/- limited prep, +/- FOS for left-sided)
+  if (age80 || notFit) {
+    path.push({
+      nodeId: 'ABCT.thickening.ctc',
+      label: '≥80 yrs OR not fit for sedation / bowel prep → CTVC',
+      evidence: `age ${intake.ageBand}, fit for prep: ${intake.fitForBowelPrep}`,
+    })
+    return make(
+      'ctc',
+      'Abnormal CT thickening in patient ≥80 or not fit for sedation / bowel prep. Per Trust PDF page 1: CTVC (+/- limited prep). Add FOS with enema if rectal, sigmoid or left colonic thickening.',
+      'ABCT.thickening.ctc',
+      path,
+      [
+        { investigation: 'flexible_sigmoidoscopy', when: 'Add FOS with enema if rectal / sigmoid / left colonic thickening' },
+      ],
+    )
+  }
+
+  // Tier 1: <80 + fit for prep → Colonoscopy
+  path.push({
+    nodeId: 'ABCT.thickening.colonoscopy',
+    label: '<80 yrs + fit for bowel prep → Colonoscopy',
+    evidence: `age ${intake.ageBand}, fit for prep: ${intake.fitForBowelPrep}`,
+  })
+  return make(
+    'colonoscopy',
+    'Abnormal CT thickening in patient <80 yrs and fit for bowel prep. Per Trust PDF page 1: Colonoscopy.',
+    'ABCT.thickening.colonoscopy',
+    path,
+    [
+      { investigation: 'ctc', when: 'If colonoscopy fails or prep poorly tolerated' },
+    ],
   )
 }
 
@@ -760,6 +852,106 @@ function postProcess(result: DecisionResult, intake: Intake): DecisionResult {
     warnings.push(
       'Operational (Trust PDF footnote *): if patient cannot tolerate or refuses OGD, consider barium swallow with counselling on its limitations. No indication for CT chest as investigation for IDA.',
     )
+  }
+
+  // ---- v0.4: Prior bowel surgery — anatomy / approach warnings ----
+  // Structured field (priorBowelSurgery) drives these so we don't depend on
+  // free-text scanning. Most bite when colonoscopy / CTC was recommended.
+  const surgery = intake.priorBowelSurgery
+  if (surgery && surgery !== 'none') {
+    const investigationsUsingColon =
+      investigation === 'colonoscopy' ||
+      investigation === 'colonoscopy_plus_ogd' ||
+      investigation === 'ctc' ||
+      investigation === 'ctc_plus_ogd' ||
+      investigation === 'flexible_sigmoidoscopy' ||
+      investigation === 'colon_capsule'
+    if (
+      (surgery === 'subtotal_colectomy' || surgery === 'total_colectomy_ileostomy') &&
+      investigationsUsingColon
+    ) {
+      warnings.push(
+        `Patient has ${surgery === 'subtotal_colectomy' ? 'subtotal colectomy' : 'total colectomy + ileostomy'}. There is no / minimal colon remaining — ${investigation === 'colon_capsule' || investigation === 'colonoscopy' ? 'standard colonoscopy / colon capsule does not apply' : 'CTVC anatomy is altered'}. Reconsider workup: OGD only if upper GI source suspected, MDT discussion otherwise.`,
+      )
+    }
+    if (surgery === 'apr' && investigation === 'flexible_sigmoidoscopy') {
+      warnings.push(
+        'Patient has had APR — no rectum / no anal canal. Flexible sigmoidoscopy is not anatomically possible. Reconsider workup.',
+      )
+    }
+    if (surgery === 'pouch_reconstruction' && investigationsUsingColon) {
+      warnings.push(
+        'Patient has an ileal pouch — pouchoscopy is the appropriate scope, not standard colonoscopy. Confirm scope plan before booking.',
+      )
+    }
+    if (surgery === 'partial_colectomy' && investigationsUsingColon) {
+      warnings.push(
+        'Patient has had partial colectomy / hemicolectomy. Confirm anastomosis and remaining colon length before booking colonoscopy or CTVC — endoscopist needs to know.',
+      )
+    }
+    if (surgery === 'anterior_resection' && investigation === 'colonoscopy') {
+      warnings.push(
+        'Patient has had anterior resection. Confirm anastomosis location with operative note before colonoscopy — depth-of-insertion and prep tolerance may differ.',
+      )
+    }
+  }
+
+  // ---- v0.4: Visible bleeding source on examination (NICE NG12 nudge) ----
+  // PR bleeding with a clear benign source (haemorrhoids / fissure) may not
+  // be "unexplained" rectal bleeding under NICE NG12 — consider downgrade.
+  if (
+    intake.prBleed !== 'none' &&
+    (intake.bleedingSourceVisible === 'haemorrhoids' ||
+      intake.bleedingSourceVisible === 'fissure') &&
+    investigation !== 'discharge_to_gp' &&
+    investigation !== 'mdt_discussion'
+  ) {
+    warnings.push(
+      `Visible ${intake.bleedingSourceVisible} on examination identified as a likely bleeding source. Per NICE NG12, rectal bleeding with a clearly identified benign source may not require 2WW investigation — consider downgrade to routine FOS or discharge with letter if no other red flags. Clinical judgement required.`,
+    )
+  }
+
+  // ---- v0.4: Free-text scan — surface clinically material phrases the FY1
+  // may have written in a free-text field but not captured in a structured one.
+  const textHits = dedupeHits([
+    ...scanClinicalText(intake.examinationFindings ?? '', 'examination findings'),
+    ...scanClinicalText(intake.pmh ?? '', 'PMH'),
+    ...scanClinicalText(intake.surgicalHistory ?? '', 'previous operations'),
+    ...scanClinicalText(intake.drugHistory ?? '', 'drug history'),
+    ...scanClinicalText(intake.referralNotes ?? '', 'referral notes'),
+    ...scanClinicalText(intake.recentInvestigations ?? '', 'recent investigations'),
+    ...scanClinicalText(intake.priorColonoscopyFindings ?? '', 'prior colonoscopy findings'),
+  ])
+  for (const hit of textHits) {
+    // Suppress if the structured field already covers it
+    if (
+      hit.category === 'bowel_surgery_anatomy_change' &&
+      intake.priorBowelSurgery &&
+      intake.priorBowelSurgery !== 'none'
+    ) {
+      continue
+    }
+    if (
+      hit.category === 'visible_bleed_source' &&
+      (intake.bleedingSourceVisible === 'haemorrhoids' ||
+        intake.bleedingSourceVisible === 'fissure' ||
+        intake.bleedingSourceVisible === 'other')
+    ) {
+      continue
+    }
+    if (
+      hit.category === 'anticoagulant' &&
+      (intake.onAnticoag === 'yes' || intake.onAntiplatelet === 'yes')
+    ) {
+      continue
+    }
+    if (
+      hit.category === 'recent_imaging' &&
+      intake.priorColonoscopyWithin2y === 'yes'
+    ) {
+      continue
+    }
+    warnings.push(`[Free-text scan] ${hit.message}`)
   }
 
   return {

@@ -25,7 +25,13 @@
  */
 import { AlertTriangle } from 'lucide-react'
 import {
+  ABNORMAL_CT,
+  ABNORMAL_CT_LABELS,
+  BLEEDING_SOURCE,
+  BLEEDING_SOURCE_LABELS,
   CLINIC_TYPE,
+  PRIOR_BOWEL_SURGERY,
+  PRIOR_BOWEL_SURGERY_LABELS,
   PR_BLEED,
   REFERRAL_REASONS,
   REFERRAL_REASON_LABELS,
@@ -238,7 +244,29 @@ export function IntakeForm({ value, onChange }: Props) {
             <PidWarning text={value.pmh} />
           </div>
           <div>
-            <label className="label" htmlFor="sh">Previous operations</label>
+            <label className="label" htmlFor="priorBowelSurgery">
+              Previous bowel surgery (algorithm-relevant)
+            </label>
+            <select
+              id="priorBowelSurgery"
+              className="select"
+              value={value.priorBowelSurgery ?? 'none'}
+              onChange={(e) =>
+                set('priorBowelSurgery', e.target.value as Intake['priorBowelSurgery'])
+              }
+            >
+              {PRIOR_BOWEL_SURGERY.map((s) => (
+                <option key={s} value={s}>
+                  {PRIOR_BOWEL_SURGERY_LABELS[s]}
+                </option>
+              ))}
+            </select>
+            <div className="mt-1 text-[11px] text-nhs-mid-grey">
+              Used by the engine to flag anatomy mismatches with the recommended investigation.
+            </div>
+          </div>
+          <div>
+            <label className="label" htmlFor="sh">Previous operations (free text)</label>
             <textarea id="sh" rows={2} className="input" value={value.surgicalHistory} onChange={(e) => set('surgicalHistory', e.target.value)} />
             <PidWarning text={value.surgicalHistory} />
           </div>
@@ -308,6 +336,23 @@ export function IntakeForm({ value, onChange }: Props) {
               ))}
             </select>
           </Row>
+          {value.prBleed !== 'none' && (
+            <Row label="Visible source of bleeding on examination?">
+              <select
+                className="select"
+                value={value.bleedingSourceVisible ?? 'unknown'}
+                onChange={(e) =>
+                  set('bleedingSourceVisible', e.target.value as Intake['bleedingSourceVisible'])
+                }
+              >
+                {BLEEDING_SOURCE.map((b) => (
+                  <option key={b} value={b}>
+                    {BLEEDING_SOURCE_LABELS[b]}
+                  </option>
+                ))}
+              </select>
+            </Row>
+          )}
 
           <Row label="Have you experienced any mucus per rectum?">
             <YesNoToggle value={value.mucusPR} onChange={(v) => set('mucusPR', v)} />
@@ -376,20 +421,45 @@ export function IntakeForm({ value, onChange }: Props) {
         </div>
       </section>
 
-      {/* 6. Recent investigations (letter rows 31-32) */}
+      {/* 6. Recent investigations (letter rows 31-32) + Abnormal CT findings */}
       <section className="card">
         <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">Recent investigations</h2>
         <p className="mb-4 text-xs text-nhs-mid-grey">
-          Letter: "Have you had any recent investigations?"
+          Letter: "Have you had any recent investigations?" Plus structured
+          abnormal-CT findings for the Trust PDF page 1 right-side pathway.
         </p>
-        <textarea
-          id="recentInv"
-          rows={2}
-          className="input"
-          placeholder="e.g. CT abdomen 2 months ago, USS abdomen, OGD"
-          value={value.recentInvestigations}
-          onChange={(e) => set('recentInvestigations', e.target.value)}
-        />
+        <div className="space-y-3">
+          <textarea
+            id="recentInv"
+            rows={2}
+            className="input"
+            placeholder="e.g. CT abdomen 2 months ago, USS abdomen, OGD"
+            value={value.recentInvestigations}
+            onChange={(e) => set('recentInvestigations', e.target.value)}
+          />
+          <div>
+            <label className="label" htmlFor="abnormalCt">
+              Abnormal CT findings (if any)
+            </label>
+            <select
+              id="abnormalCt"
+              className="select"
+              value={value.abnormalCt ?? 'no'}
+              onChange={(e) =>
+                set('abnormalCt', e.target.value as Intake['abnormalCt'])
+              }
+            >
+              {ABNORMAL_CT.map((c) => (
+                <option key={c} value={c}>
+                  {ABNORMAL_CT_LABELS[c]}
+                </option>
+              ))}
+            </select>
+            <div className="mt-1 text-[11px] text-nhs-mid-grey">
+              Triggers Trust PDF page 1 right-side pathway when set.
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 7. Social (letter rows 34-35) */}
