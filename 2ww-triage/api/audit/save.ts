@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { kvGet, kvSetForever } from '../_kv.js'
 import { decide } from '../../src/algorithm/engine.js'
 import { ALGORITHM_VERSION } from '../../src/algorithm/version.js'
-import { IntakeSchema } from '../../src/schema/intake.js'
+import { IntakeSchema, ageToBand } from '../../src/schema/intake.js'
 import { INVESTIGATIONS } from '../../src/algorithm/types.js'
 
 const MAX_CASE_BYTES = 100_000 // 100 KB — generous for a fully-populated audit case
@@ -44,16 +44,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'invalid actualDecision' })
     }
 
+    // Age is the source of truth — re-derive ageBand server-side so a
+    // tampered client can't send `age: 67, ageBand: '<40'` and trick the
+    // engine into the wrong branch. (Use spread instead of mutation —
+    // Zod's parsed output is shallow-frozen in strict mode.)
+    const intake =
+      parsedIntake.data.age != null
+        ? { ...parsedIntake.data, ageBand: ageToBand(parsedIntake.data.age) }
+        : parsedIntake.data
+
     // Server is the source of truth for the tool's recommendation.
     // Re-run the engine, stamp algorithm version + full path. The client-
     // sent toolDecision is ignored — this makes the audit dataset
     // tamper-evident.
-    const serverDecision = decide(parsedIntake.data)
+    const serverDecision = decide(intake)
     const authoritative = {
       id: data.id,
       enteredBy: typeof data.enteredBy === 'string' ? data.enteredBy.toUpperCase().slice(0, 4) : '',
       clinicMonth: typeof data.clinicMonth === 'string' ? data.clinicMonth : '',
-      intake: parsedIntake.data,
+      intake,
       toolDecision: {
         investigation: serverDecision.investigation,
         nodeId: serverDecision.algorithmNodeId,

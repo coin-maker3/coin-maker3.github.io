@@ -23,6 +23,7 @@
  * uses them — they are labelled "(read from examination findings)" or
  * "(clinical judgement)" so the FY1 knows where to derive the answer.
  */
+import { AlertTriangle } from 'lucide-react'
 import {
   CLINIC_TYPE,
   PR_BLEED,
@@ -33,6 +34,30 @@ import {
   type Intake,
 } from '../schema/intake'
 import { YesNoToggle } from './YesNo'
+import { PID_LABELS, scanForPid } from '../lib/pid-scan'
+
+function PidWarning({ text }: { text: string }) {
+  const hits = scanForPid(text)
+  if (hits.length === 0) return null
+  return (
+    <div
+      className="mt-1 flex items-start gap-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900"
+      role="alert"
+    >
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+      <div>
+        <strong>Possible patient identifier:</strong>{' '}
+        {hits.map((h, i) => (
+          <span key={i}>
+            {i > 0 && '; '}
+            {PID_LABELS[h.pattern]} ("{h.match}")
+          </span>
+        ))}
+        . Please remove — the audit must not contain PID.
+      </div>
+    </div>
+  )
+}
 
 interface Props {
   value: Intake
@@ -122,6 +147,7 @@ export function IntakeForm({ value, onChange }: Props) {
             value={value.referralNotes}
             onChange={(e) => set('referralNotes', e.target.value)}
           />
+          <PidWarning text={value.referralNotes} />
         </div>
       </section>
 
@@ -209,10 +235,12 @@ export function IntakeForm({ value, onChange }: Props) {
           <div>
             <label className="label" htmlFor="pmh">Past medical or surgical history</label>
             <textarea id="pmh" rows={2} className="input" value={value.pmh} onChange={(e) => set('pmh', e.target.value)} />
+            <PidWarning text={value.pmh} />
           </div>
           <div>
             <label className="label" htmlFor="sh">Previous operations</label>
             <textarea id="sh" rows={2} className="input" value={value.surgicalHistory} onChange={(e) => set('surgicalHistory', e.target.value)} />
+            <PidWarning text={value.surgicalHistory} />
           </div>
           <Row label="Anticoagulants">
             <YesNoToggle value={value.onAnticoag} onChange={(v) => set('onAnticoag', v)} />
@@ -457,6 +485,7 @@ export function IntakeForm({ value, onChange }: Props) {
               value={value.examinationFindings}
               onChange={(e) => set('examinationFindings', e.target.value)}
             />
+            <PidWarning text={value.examinationFindings} />
           </div>
           <p className="text-xs text-nhs-mid-grey">
             Read from the free text above and tick yes/no below — the algorithm uses these flags:
