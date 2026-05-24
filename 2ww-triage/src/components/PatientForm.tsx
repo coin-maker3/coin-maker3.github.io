@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Check, Loader2 } from 'lucide-react'
 import { submitPatientForm } from '../lib/api'
 import {
-  AGE_BANDS,
   DEFAULT_INTAKE,
+  ageToBand,
   type Intake,
 } from '../schema/intake'
 
@@ -27,10 +27,19 @@ export function PatientForm({ initialRef }: Props) {
   const [done, setDone] = useState<{ ref: string; expiresInHours: number } | null>(null)
 
   const isFemale = state.sex === 'F'
-  const childbearingAge = ['<40', '40-49'].includes(state.ageBand)
+  const childbearingAge =
+    state.age != null ? state.age < 50 : ['<40', '40-49'].includes(state.ageBand)
 
   const set = <K extends keyof Intake>(k: K, v: Intake[K]) =>
     setState((s) => ({ ...s, [k]: v }))
+
+  const setAge = (newAge: number | null) => {
+    if (newAge === null) {
+      setState((s) => ({ ...s, age: null }))
+    } else {
+      setState((s) => ({ ...s, age: newAge, ageBand: ageToBand(newAge) }))
+    }
+  }
 
   const submit = async () => {
     setError(null)
@@ -109,17 +118,20 @@ export function PatientForm({ initialRef }: Props) {
         <h2 className="mb-3 text-lg font-semibold text-nhs-dark-blue">About you</h2>
         <div className="space-y-3">
           <div>
-            <label className="label" htmlFor="ageBand">How old are you?</label>
-            <select
-              id="ageBand"
-              className="select"
-              value={state.ageBand}
-              onChange={(e) => set('ageBand', e.target.value as Intake['ageBand'])}
-            >
-              {AGE_BANDS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+            <label className="label" htmlFor="age">How old are you?</label>
+            <input
+              id="age"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={120}
+              className="input"
+              placeholder="e.g. 67"
+              value={state.age ?? ''}
+              onChange={(e) =>
+                setAge(e.target.value === '' ? null : Number(e.target.value))
+              }
+            />
           </div>
           <div>
             <label className="label" htmlFor="sex">Are you male or female?</label>

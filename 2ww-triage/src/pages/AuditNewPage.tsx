@@ -44,7 +44,10 @@ export function AuditNewPage() {
   const canSave =
     enteredBy.length >= 2 &&
     clinicMonth.match(/^\d{4}-\d{2}$/) &&
-    actualDecision !== ''
+    actualDecision !== '' &&
+    intake.age != null &&
+    intake.age >= 0 &&
+    intake.age <= 120
 
   const save = async () => {
     if (!canSave || saving) return
@@ -177,6 +180,16 @@ export function AuditNewPage() {
             {error && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
                 {error}
+              </div>
+            )}
+
+            {!canSave && (
+              <div className="rounded-md bg-amber-50 p-3 text-xs text-amber-900">
+                <strong>Required to save:</strong>{' '}
+                FY1 initials,
+                clinic month,
+                patient age,
+                and actual clinical decision.
               </div>
             )}
 

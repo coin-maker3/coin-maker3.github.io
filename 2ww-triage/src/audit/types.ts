@@ -57,9 +57,12 @@ const bucket = (v: number | null | undefined, step: number): string =>
 
 function dupSignature(c: AuditCase): string {
   const i = c.intake
+  // Use specific age if present, else fall back to band (for backwards-compat
+  // with cases entered before the age field existed).
+  const ageKey = i.age != null ? `a${i.age}` : `b${i.ageBand}`
   return [
     c.clinicMonth,
-    i.ageBand,
+    ageKey,
     i.sex,
     [...i.referralReasons].sort().join('+'),
     bucket(i.hb, 5),
@@ -424,6 +427,7 @@ export function exportCSV(cases: AuditCase[]): string {
     'id',
     'enteredBy',
     'clinicMonth',
+    'age',
     'ageBand',
     'sex',
     'whoScore',
@@ -463,6 +467,7 @@ export function exportCSV(cases: AuditCase[]): string {
       c.id,
       c.enteredBy,
       c.clinicMonth,
+      c.intake.age,
       c.intake.ageBand,
       c.intake.sex,
       c.intake.whoScore,

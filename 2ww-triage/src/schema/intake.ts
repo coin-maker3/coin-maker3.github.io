@@ -3,6 +3,28 @@ import { z } from 'zod'
 export const AGE_BANDS = ['<40', '40-49', '50-59', '60-69', '70-79', '80-89', '>=90'] as const
 export type AgeBand = (typeof AGE_BANDS)[number]
 
+/**
+ * Map a specific age to the Trust algorithm's age band.
+ *
+ * The algorithm makes routing decisions at the ≥80 and ≥90 thresholds
+ * (see engine.ts: `isAge80Plus`, `isAge90Plus`), so the bands MUST honour
+ * those cutoffs. Years are inclusive at the lower bound: 80-year-old →
+ * '80-89', 90-year-old → '>=90'.
+ *
+ * Negative or implausibly large values default to '<40' / '>=90' to
+ * keep the engine deterministic even on bad input.
+ */
+export function ageToBand(age: number): AgeBand {
+  if (!Number.isFinite(age)) return '60-69'
+  if (age < 40) return '<40'
+  if (age <= 49) return '40-49'
+  if (age <= 59) return '50-59'
+  if (age <= 69) return '60-69'
+  if (age <= 79) return '70-79'
+  if (age <= 89) return '80-89'
+  return '>=90'
+}
+
 export const SEX = ['F', 'M'] as const
 export type Sex = (typeof SEX)[number]
 
@@ -46,6 +68,10 @@ const optionalNumber = z
 export const IntakeSchema = z.object({
   // -- Clinic meta --
   clinicType: z.enum(CLINIC_TYPE),
+  /** Specific age in years. Source of truth — when present the form derives
+   *  `ageBand` automatically. Null only until clinician enters a value
+   *  (future: auto-fed from EPR patient demographics). */
+  age: optionalNumber.nullable().optional(),
   ageBand: z.enum(AGE_BANDS),
   sex: z.enum(SEX),
   whoScore: z.coerce.number().int().min(0).max(4),
@@ -128,6 +154,7 @@ export type Intake = z.infer<typeof IntakeSchema>
 
 export const DEFAULT_INTAKE: Intake = {
   clinicType: 'telephone',
+  age: null,
   ageBand: '60-69',
   sex: 'F',
   whoScore: 0,

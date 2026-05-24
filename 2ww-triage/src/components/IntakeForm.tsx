@@ -24,12 +24,12 @@
  * "(clinical judgement)" so the FY1 knows where to derive the answer.
  */
 import {
-  AGE_BANDS,
   CLINIC_TYPE,
   PR_BLEED,
   REFERRAL_REASONS,
   REFERRAL_REASON_LABELS,
   SEX,
+  ageToBand,
   type Intake,
 } from '../schema/intake'
 import { YesNoToggle } from './YesNo'
@@ -45,6 +45,17 @@ export function IntakeForm({ value, onChange }: Props) {
   const set = <Key extends K>(k: Key, v: Intake[Key]) =>
     onChange({ ...value, [k]: v })
 
+  // Age is the source of truth; the algorithm reads `ageBand` so we
+  // derive it whenever age changes. Future: when EPR integration lands,
+  // patient details will set age directly and the band updates automatically.
+  const setAge = (newAge: number | null) => {
+    if (newAge === null) {
+      onChange({ ...value, age: null })
+    } else {
+      onChange({ ...value, age: newAge, ageBand: ageToBand(newAge) })
+    }
+  }
+
   const toggleReason = (reason: (typeof REFERRAL_REASONS)[number]) => {
     const current = value.referralReasons
     const next = current.includes(reason)
@@ -54,7 +65,8 @@ export function IntakeForm({ value, onChange }: Props) {
   }
 
   const isFemale = value.sex === 'F'
-  const childbearingAge = ['<40', '40-49'].includes(value.ageBand)
+  const childbearingAge =
+    value.age != null ? value.age < 50 : ['<40', '40-49'].includes(value.ageBand)
 
   return (
     <div className="space-y-6">
@@ -124,17 +136,23 @@ export function IntakeForm({ value, onChange }: Props) {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           <NumberField id="fit" label="FIT (µg Hb / g)" v={value.fit} onChange={(n) => set('fit', n)} step="0.1" />
           <div>
-            <label className="label" htmlFor="ageBand">Age</label>
-            <select
-              id="ageBand"
-              className="select"
-              value={value.ageBand}
-              onChange={(e) => set('ageBand', e.target.value as Intake['ageBand'])}
-            >
-              {AGE_BANDS.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+            <label className="label" htmlFor="age">Age (years)</label>
+            <input
+              id="age"
+              type="number"
+              min={0}
+              max={120}
+              className="input"
+              placeholder="e.g. 67"
+              value={value.age ?? ''}
+              onChange={(e) =>
+                setAge(e.target.value === '' ? null : Number(e.target.value))
+              }
+            />
+            <div className="mt-1 text-[11px] text-nhs-mid-grey">
+              Algorithm band: <span className="font-mono">{value.ageBand}</span>
+              {value.age != null && ' (derived)'}
+            </div>
           </div>
           <div>
             <label className="label" htmlFor="sex">Gender</label>
