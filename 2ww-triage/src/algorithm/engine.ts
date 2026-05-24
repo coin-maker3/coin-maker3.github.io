@@ -94,6 +94,10 @@ const make = (
 })
 
 export function decide(intake: Intake): DecisionResult {
+  return postProcess(decideCore(intake), intake)
+}
+
+function decideCore(intake: Intake): DecisionResult {
   const path: PathStep[] = [
     {
       nodeId: 'ROOT',
@@ -661,4 +665,109 @@ function decideWeightLoss(intake: Intake, path: PathStep[]): DecisionResult {
     ],
     warnings,
   )
+}
+
+// ---------- post-processing (Trust PDF page 1 sub-branches + footnotes) ----------
+//
+// The core engine handles the main decision tree. These post-process rules
+// encode the page 1 "No rectal mass" sub-branch (page 1 left), and the page 3
+// footnotes about colon-capsule fallbacks, OGD alternatives, IDA discharge
+// pathways, and telephone-clinic limitations.
+//
+// Anything that needs to OVERRIDE the result (e.g. mass referral + no mass
+// + no other symptoms → discharge instead of falling through CIBH) is
+// handled here too.
+
+function postProcess(result: DecisionResult, intake: Intake): DecisionResult {
+  const warnings = [...result.warnings]
+  let { investigation, algorithmNodeId, rationale } = result
+  const path = [...result.path]
+
+  const referredForMass =
+    intake.referralReasons.includes('rectal_mass') ||
+    intake.referralReasons.includes('abdominal_mass')
+
+  const noMassOnExam =
+    intake.palpableAbdoMass !== 'yes' && intake.palpableRectalMass !== 'yes'
+
+  // ---- Trust PDF page 1: "No rectal mass" sub-branch ----
+  // When patient is referred for mass but exam confirms no mass, the PDF says:
+  // "If no other symptoms discharge. If other symptoms investigate as
+  //  appropriate. If in doubt, consider FOS."
+  if (intake.clinicType === 'face_to_face' && referredForMass && noMassOnExam) {
+    if (investigation === 'discharge_to_gp') {
+      // Already routed to discharge — replace path with mass-specific node so
+      // the audit shows this was the "no mass, no other symptoms" branch,
+      // not the generic "no criteria" fallthrough.
+      path.push({
+        nodeId: 'MASS.no_mass_referred.discharge',
+        label: 'Referred for mass, no mass on exam, no other symptoms — discharge per Trust PDF page 1',
+        evidence: `Referral: ${intake.referralReasons.join(', ')}; abdo mass: no; rectal mass: no`,
+      })
+      algorithmNodeId = 'MASS.no_mass_referred.discharge'
+      rationale =
+        `Patient referred for ${intake.referralReasons.includes('rectal_mass') ? 'rectal' : 'abdominal'} mass but no mass found on examination, and no other symptoms requiring 2WW investigation. Per Trust PDF page 1, discharge with letter to GP.`
+    } else {
+      // Other symptoms led to a 2WW investigation — keep that recommendation
+      // but flag the "consider FOS / downgrade" guidance from the PDF.
+      path.push({
+        nodeId: 'MASS.no_mass_referred.with_symptoms',
+        label: 'Referred for mass, no mass on exam, BUT other symptoms present — investigated as per other branch (PDF page 1: "if in doubt consider FOS")',
+        evidence: `Referral: ${intake.referralReasons.join(', ')}; no mass on exam; recommendation came from other-symptom branch`,
+      })
+      warnings.push(
+        `Patient referred for ${intake.referralReasons.includes('rectal_mass') ? 'rectal' : 'abdominal'} mass but no mass on examination. Per Trust PDF page 1: investigate as appropriate for the other symptoms (above) — but if in doubt, consider downgrade to routine FOS or discharge with letter. Clinical judgement required.`,
+      )
+    }
+  }
+
+  // ---- Telephone clinic + mass referral: must bring patient in ----
+  if (intake.clinicType === 'telephone' && referredForMass) {
+    warnings.push(
+      'Referred for mass but telephone clinic — examination required to complete the mass pathway. Bring patient in for F2F before finalising.',
+    )
+  }
+
+  // ---- Trust PDF page 3, footnote ***: IDA with no haematinics ----
+  // If Hb is low but no ferritin sent and patient otherwise asymptomatic /
+  // discharged, surface the "no haematinics, ask GP to recheck" letter
+  // guidance from the IDA footnote.
+  if (
+    investigation === 'discharge_to_gp' &&
+    intake.hb != null &&
+    ((intake.sex === 'M' && intake.hb < HB_LOW_MALE) ||
+      (intake.sex === 'F' && intake.hb < HB_LOW_FEMALE)) &&
+    intake.ferritin == null
+  ) {
+    warnings.push(
+      'Hb low but ferritin not sent. Per Trust PDF page 3 footnote ***: discharge to GP with letter stating no haematinics sent, re-refer if found to have IDA. Consider asking GP to refer to haematology if persistently low Hb.',
+    )
+  }
+
+  // ---- Trust PDF page 3, footnote ****: colon capsule fallback ----
+  if (investigation === 'colon_capsule') {
+    warnings.push(
+      'Operational (Trust PDF footnote ****): if patient refuses or colon capsule is rejected, request optical colonoscopy as urgent if fit for bowel prep; otherwise CTVC with limited prep as urgent. Select clinic outcome "Routine — sent for diagnostics, no follow-up required" to downgrade.',
+    )
+  }
+
+  // ---- Trust PDF page 3, footnote *: OGD alternative ----
+  if (
+    investigation === 'colonoscopy_plus_ogd' ||
+    investigation === 'ctc_plus_ogd' ||
+    investigation === 'ct_ap_plus_ogd'
+  ) {
+    warnings.push(
+      'Operational (Trust PDF footnote *): if patient cannot tolerate or refuses OGD, consider barium swallow with counselling on its limitations. No indication for CT chest as investigation for IDA.',
+    )
+  }
+
+  return {
+    ...result,
+    investigation,
+    algorithmNodeId,
+    rationale,
+    path,
+    warnings,
+  }
 }

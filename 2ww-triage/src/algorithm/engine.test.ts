@@ -564,8 +564,160 @@ describe('Output contract', () => {
   it('Every decision stamps algorithm version + timestamp + path', () => {
     const result = decide(base({ fit: 50, cibh: 'yes' }))
     expect(result.algorithm.id).toBe('GEH-2WW-COLORECTAL')
-    expect(result.algorithm.version).toBe('0.2.1')
+    expect(result.algorithm.version).toBe('0.3.0')
     expect(result.path.length).toBeGreaterThan(0)
     expect(() => new Date(result.computedAt).toISOString()).not.toThrow()
+  })
+})
+
+describe('v0.3.0: PDF page 1 "No rectal mass" sub-branch', () => {
+  it('19yo F, F2F, referred rectal mass, bright bleeding, no mass on exam → still Colonoscopy BUT with FOS/downgrade warning', () => {
+    // The case Mr Ali surfaced from the live tool screenshot — without the new
+    // sub-branch the audit could not distinguish "tool says colonoscopy"
+    // from "tool says colonoscopy and flags possible downgrade".
+    const result = decide(
+      base({
+        clinicType: 'face_to_face',
+        ageBand: '<40',
+        age: 19,
+        sex: 'F',
+        referralReasons: ['rectal_mass'],
+        prBleed: 'bright',
+        palpableAbdoMass: 'no',
+        palpableRectalMass: 'no',
+        hb: 140,
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+    expect(result.warnings.some((w) => /no mass on examination/i.test(w))).toBe(true)
+    expect(result.warnings.some((w) => /downgrade|FOS/i.test(w))).toBe(true)
+    expect(result.path.some((p) => p.nodeId === 'MASS.no_mass_referred.with_symptoms')).toBe(true)
+  })
+
+  it('Referred rectal mass, no mass on exam, no other symptoms → discharge with mass-specific rationale', () => {
+    const result = decide(
+      base({
+        clinicType: 'face_to_face',
+        ageBand: '60-69',
+        age: 67,
+        sex: 'F',
+        referralReasons: ['rectal_mass'],
+        palpableAbdoMass: 'no',
+        palpableRectalMass: 'no',
+        prBleed: 'none',
+        cibh: 'no',
+        weightLoss: 'no',
+        fit: 4,
+      }),
+    )
+    expect(result.investigation).toBe('discharge_to_gp')
+    expect(result.algorithmNodeId).toBe('MASS.no_mass_referred.discharge')
+    expect(result.rationale).toMatch(/no mass found on examination/i)
+  })
+
+  it('Referred abdominal mass, no mass on exam, no other symptoms → discharge with mass-specific rationale', () => {
+    const result = decide(
+      base({
+        clinicType: 'face_to_face',
+        ageBand: '60-69',
+        age: 65,
+        sex: 'M',
+        referralReasons: ['abdominal_mass'],
+        palpableAbdoMass: 'no',
+        palpableRectalMass: 'no',
+        prBleed: 'none',
+        cibh: 'no',
+        weightLoss: 'no',
+        fit: null,
+      }),
+    )
+    expect(result.investigation).toBe('discharge_to_gp')
+    expect(result.algorithmNodeId).toBe('MASS.no_mass_referred.discharge')
+  })
+
+  it('Referred rectal mass + actual mass on exam → unaffected (no warning, normal mass-branch flow)', () => {
+    const result = decide(
+      base({
+        clinicType: 'face_to_face',
+        ageBand: '60-69',
+        sex: 'M',
+        referralReasons: ['rectal_mass'],
+        palpableRectalMass: 'yes',
+        rectalMassLowAndTender: 'no',
+        fitForBowelPrep: 'yes',
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy')
+    expect(result.warnings.some((w) => /no mass on examination/i.test(w))).toBe(false)
+  })
+})
+
+describe('v0.3.0: Telephone clinic + mass referral warning', () => {
+  it('Telephone clinic + rectal mass referral → warn that F2F is required', () => {
+    const result = decide(
+      base({
+        clinicType: 'telephone',
+        ageBand: '60-69',
+        sex: 'F',
+        referralReasons: ['rectal_mass'],
+        // can't examine on telephone, so palpable flags default to 'no'
+      }),
+    )
+    expect(result.warnings.some((w) => /telephone.*F2F|Bring patient in/i.test(w))).toBe(true)
+  })
+})
+
+describe('v0.3.0: Operational footnote warnings', () => {
+  it('Colon capsule recommendation → warn about refusal fallback (urgent col / urgent CTVC limited prep)', () => {
+    const result = decide(
+      base({
+        referralReasons: ['change_in_bowel_habit'],
+        cibh: 'yes',
+        sex: 'F',
+        ageBand: '60-69',
+        fit: 4, // FIT negative
+        fitForBowelPrep: 'yes',
+        whoScore: 0,
+      }),
+    )
+    expect(result.investigation).toBe('colon_capsule')
+    expect(result.warnings.some((w) => /capsule.*rejected|refuses|optical colonoscopy.*urgent/i.test(w))).toBe(true)
+  })
+
+  it('Any OGD recommendation → warn about barium swallow alternative', () => {
+    const result = decide(
+      base({
+        referralReasons: ['iron_deficiency_anaemia'],
+        sex: 'F',
+        ageBand: '60-69',
+        hb: 95,
+        mcv: 70,
+        ferritin: 8,
+      }),
+    )
+    expect(result.investigation).toBe('colonoscopy_plus_ogd')
+    expect(result.warnings.some((w) => /barium swallow/i.test(w))).toBe(true)
+  })
+})
+
+describe('v0.3.0: IDA discharge-no-haematinics letter pathway', () => {
+  it('Low Hb + no ferritin + no other symptoms → discharge with "no haematinics sent" warning', () => {
+    const result = decide(
+      base({
+        sex: 'F',
+        ageBand: '60-69',
+        hb: 105, // low for female
+        mcv: 88, // normal — so hasIDA is false
+        ferritin: null,
+        referralReasons: ['other'],
+        cibh: 'no',
+        prBleed: 'none',
+        weightLoss: 'no',
+        fit: null,
+      }),
+    )
+    expect(result.investigation).toBe('discharge_to_gp')
+    expect(result.warnings.some((w) => /haematinics/i.test(w))).toBe(true)
   })
 })

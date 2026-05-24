@@ -48,7 +48,9 @@ export function buildLetter(intake: Intake, decision: DecisionResult): string {
       : '',
     ``,
     `FIT test result: ${intake.fit ?? '—'} ug/g`,
-    `Age band: ${intake.ageBand}    Gender: ${intake.sex === 'F' ? 'Female' : 'Male'}`,
+    intake.age != null
+      ? `Age: ${intake.age} (band ${intake.ageBand})    Gender: ${intake.sex === 'F' ? 'Female' : 'Male'}`
+      : `Age band: ${intake.ageBand}    Gender: ${intake.sex === 'F' ? 'Female' : 'Male'}`,
     `WHO score: ${intake.whoScore}`,
     `Bloods — Hb: ${intake.hb ?? '—'} g/L    Ferritin: ${intake.ferritin ?? '—'} ug/L    MCV: ${intake.mcv ?? '—'} fL    GFR: ${intake.gfr ?? '—'} ml/min`,
     intake.hbPrior != null || intake.ferritinPrior != null

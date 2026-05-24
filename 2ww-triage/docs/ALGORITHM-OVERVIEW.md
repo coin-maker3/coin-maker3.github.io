@@ -2,8 +2,8 @@
 
 **For:** Mr Kasun and the colorectal team
 **Source of truth:** `LATEST_2WW_INVESTIGATIONS__ALGORITHM_4.pdf` (Trust 2WW investigation algorithm)
-**Encoded version:** `GEH-2WW-COLORECTAL v0.2.1`
-**Test coverage:** 42 unit tests, all passing (one per branch + edge cases)
+**Encoded version:** `GEH-2WW-COLORECTAL v0.3.0`
+**Test coverage:** 50 algorithm unit tests + 20 audit-analytics tests, all passing (one per branch + edge cases + footnote rules)
 
 The tool encodes the Trust 2WW colorectal investigation algorithm as a deterministic decision tree. Every recommendation:
 
@@ -162,15 +162,29 @@ Six corrections identified during pre-pilot review:
 5. Weight loss + elderly + >3 kg → now CT AP + OGD (was CTVC + OGD).
 6. `lacksCapacity` + telephone clinic → `book_f2f_clinic` routing added.
 
+## v0.2.1 → v0.3.0 — missing-branch fixes (2026-05-24)
+
+Mr Ali ran a 19-year-old case through the live tool (referred for rectal mass, no mass on exam, bright PR bleeding, haemorrhoids on DRE) and the tool recommended Colonoscopy with no flag — a clear under-encoding of the Trust PDF. An audit launched on v0.2.1 would have recorded systematic mismatches for completely the wrong reason. v0.3.0 closes the missing branches:
+
+1. **PDF page 1 "No rectal mass" sub-branch** — when F2F clinic + patient referred for rectal/abdominal mass + no mass on exam:
+   - If no other symptoms → **discharge** with mass-specific rationale (new node `MASS.no_mass_referred.discharge`)
+   - If other symptoms → investigate as appropriate (existing branches) but with explicit warning: *"Per Trust PDF page 1: if in doubt, consider downgrade to routine FOS or discharge with letter"* (new node `MASS.no_mass_referred.with_symptoms`)
+2. **Telephone-clinic + mass referral** — engine warns the F2F clinic is required for the mass pathway.
+3. **PDF page 3 footnote *** ** — Hb low + no ferritin + discharge: surface the "no haematinics sent, ask GP to recheck and re-refer if IDA" letter guidance.
+4. **PDF page 3 footnote **** ** — colon-capsule recommendation: surface the operational fallback (urgent colonoscopy if fit; urgent CTVC limited-prep if not) for when patient refuses or capsule is rejected.
+5. **PDF page 3 footnote *** — OGD recommendation: surface the barium swallow alternative and the no-CT-chest-for-IDA rule.
+
+All new behaviour is unit-tested. Existing v0.2.1 leaves and node IDs are unchanged — old audit cases remain interpretable.
+
 ---
 
 ## Known limitations (candidate refinements for the audit to confirm)
 
-The audit may reveal that some clinician decisions deviate from the algorithm in systematic ways. Anticipated candidates for v0.3+:
+The audit may reveal that some clinician decisions deviate from the algorithm in systematic ways. Anticipated candidates for v0.4+:
 
-1. **Prior bowel surgery is not currently a structured input.** A patient with prior subtotal colectomy + FIT+ should not get colonoscopy (no colon to scope). Currently the surgical history field is free text and the engine doesn't read it. **The audit will likely surface this as a recurring mismatch.**
-2. **Abnormal-CT branch** (right side of PDF page 1) is not yet encoded — low clinical volume, deferred until the audit catches a need.
-3. **No structured "patient preference / declined investigation"** input — clinician overrides for patient choice currently captured in free-text reviewer notes.
+1. **Prior bowel surgery is not currently a structured input.** A patient with prior subtotal colectomy + FIT+ should not get colonoscopy (no colon to scope). Currently the surgical history field is free text and the engine doesn't read it.
+2. **Abnormal-CT branch** (right side of PDF page 1: colonic/rectal thickening or colonic pathology pathway, with age + fitness sub-rules) is **not yet encoded**. Needs a new structured input ("Abnormal CT findings: thickening / mass / other"). Deferred — low volume, raise priority if audit surfaces it.
+3. **No structured "visible source of bleeding"** input (e.g. haemorrhoids on DRE) — the engine cannot read free-text examination findings. A 19yo with bright bleeding + visible haemorrhoids gets the same recommendation as a 19yo with bright bleeding + no exam finding.
 4. **No structured comorbidity score** beyond WHO and ADL independence — Clinical Frailty Scale exists in the schema but is not yet used by the engine.
 
 ---
