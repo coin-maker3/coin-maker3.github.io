@@ -101,22 +101,148 @@ export function duplicateIdSet(groups: DuplicateGroup[]): Set<string> {
   return s
 }
 
+/**
+ * Wilson score 95% CI for a binomial proportion. Robust at small N, which
+ * matters when an audit arm only has a handful of cases.
+ */
+export function wilson95(numerator: number, denominator: number): { lo: number; hi: number } {
+  if (denominator === 0) return { lo: 0, hi: 0 }
+  const z = 1.959963984540054 // 97.5th percentile of N(0,1) — two-sided 95%
+  const p = numerator / denominator
+  const n = denominator
+  const denom = 1 + (z * z) / n
+  const centre = p + (z * z) / (2 * n)
+  const margin = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n)
+  return {
+    lo: Math.max(0, (centre - margin) / denom),
+    hi: Math.min(1, (centre + margin) / denom),
+  }
+}
+
+/**
+ * Cohen's kappa for two raters on a multi-class outcome.
+ *
+ * Treats the algorithm as rater A and the clinic-documented decision as
+ * rater B. Returns kappa with a Wald 95% CI based on Fleiss-Cohen-Everitt
+ * standard error (sufficient for the audit's primary inter-rater stat).
+ */
+export function cohenKappa(cases: AuditCase[]): {
+  kappa: number
+  ciLo: number
+  ciHi: number
+  n: number
+} | null {
+  const n = cases.length
+  if (n === 0) return null
+
+  const categories = new Set<string>()
+  for (const c of cases) {
+    categories.add(c.toolDecision.investigation)
+    categories.add(c.actualDecision)
+  }
+  const cats = Array.from(categories)
+  if (cats.length === 0) return null
+
+  let agree = 0
+  const rowTotals = new Map<string, number>()
+  const colTotals = new Map<string, number>()
+  for (const c of cases) {
+    if (c.toolDecision.investigation === c.actualDecision) agree++
+    rowTotals.set(
+      c.toolDecision.investigation,
+      (rowTotals.get(c.toolDecision.investigation) ?? 0) + 1,
+    )
+    colTotals.set(
+      c.actualDecision,
+      (colTotals.get(c.actualDecision) ?? 0) + 1,
+    )
+  }
+  const Po = agree / n
+  let Pe = 0
+  for (const cat of cats) {
+    Pe += ((rowTotals.get(cat) ?? 0) / n) * ((colTotals.get(cat) ?? 0) / n)
+  }
+  if (Pe >= 1) return { kappa: 1, ciLo: 1, ciHi: 1, n }
+  const kappa = (Po - Pe) / (1 - Pe)
+  // SE under H1 (Fleiss simplified) — robust enough at audit N
+  const se = Math.sqrt((Po * (1 - Po)) / (n * (1 - Pe) * (1 - Pe)))
+  const z = 1.959963984540054
+  return {
+    kappa,
+    ciLo: kappa - z * se,
+    ciHi: kappa + z * se,
+    n,
+  }
+}
+
+/** Quantile from a sorted ascending array. */
+function quantile(sorted: number[], q: number): number {
+  if (sorted.length === 0) return 0
+  const pos = (sorted.length - 1) * q
+  const lo = Math.floor(pos)
+  const hi = Math.ceil(pos)
+  if (lo === hi) return sorted[lo]
+  return sorted[lo] + (pos - lo) * (sorted[hi] - sorted[lo])
+}
+
 export interface AuditSummary {
   total: number
   concordant: number
   concordancePct: number
+  /** Wilson 95% CI on overall concordance proportion, 0..1. */
+  ci95: { lo: number; hi: number }
   byArm: Array<{
     nodeIdPrefix: string
     label: string
     total: number
     concordant: number
     concordancePct: number
+    ci95: { lo: number; hi: number }
   }>
   mismatchPatterns: Array<{
     toolDecision: Investigation
     actualDecision: Investigation
     count: number
   }>
+  /** Full confusion matrix: rows = tool decision, cols = actual decision. */
+  confusion: {
+    rowLabels: Investigation[]
+    colLabels: Investigation[]
+    /** Indexed by `${row}|${col}` → count. */
+    cells: Record<string, number>
+    rowTotals: Record<string, number>
+    colTotals: Record<string, number>
+  }
+  /** Cohen's kappa for tool-vs-clinic agreement, with 95% CI. */
+  kappa: ReturnType<typeof cohenKappa>
+  /** Time per case (seconds): n, mean, IQR (q1, median, q3). */
+  timeStats: { n: number; mean: number; q1: number; median: number; q3: number } | null
+  /** Per-FY1 progress: how many cases each initials have entered. */
+  byFy1: Array<{ enteredBy: string; total: number; concordant: number; concordancePct: number }>
+  /** Pre-specified subgroup analyses from protocol §10. */
+  subgroups: {
+    byReferralReason: Array<{ label: string; total: number; concordant: number; concordancePct: number; ci95: { lo: number; hi: number } }>
+    byAgeBand: Array<{ label: string; total: number; concordant: number; concordancePct: number; ci95: { lo: number; hi: number } }>
+    byBowelPrepFit: Array<{ label: string; total: number; concordant: number; concordancePct: number; ci95: { lo: number; hi: number } }>
+  }
+  /** Stop criteria per protocol §17. */
+  stopCriteria: {
+    overallTriggered: boolean
+    overallReason: string | null
+    armsTriggered: Array<{ label: string; total: number; concordancePct: number }>
+  }
+}
+
+function subgroupStat(label: string, list: AuditCase[]) {
+  const total = list.length
+  const concordant = list.filter((c) => c.concordant).length
+  return {
+    label,
+    total,
+    concordant,
+    concordancePct: total ? Math.round((concordant / total) * 100) : 0,
+    ci95: wilson95(concordant, total),
+  }
 }
 
 export function buildSummary(cases: AuditCase[]): AuditSummary {
@@ -138,13 +264,17 @@ export function buildSummary(cases: AuditCase[]): AuditSummary {
     ROUTE: 'Routing exception',
     ROOT: 'Other',
   }
-  const byArm = Array.from(armGroups.entries()).map(([prefix, list]) => ({
-    nodeIdPrefix: prefix,
-    label: ARM_LABELS[prefix] ?? prefix,
-    total: list.length,
-    concordant: list.filter((c) => c.concordant).length,
-    concordancePct: list.length ? Math.round((list.filter((c) => c.concordant).length / list.length) * 100) : 0,
-  }))
+  const byArm = Array.from(armGroups.entries()).map(([prefix, list]) => {
+    const armConcordant = list.filter((c) => c.concordant).length
+    return {
+      nodeIdPrefix: prefix,
+      label: ARM_LABELS[prefix] ?? prefix,
+      total: list.length,
+      concordant: armConcordant,
+      concordancePct: list.length ? Math.round((armConcordant / list.length) * 100) : 0,
+      ci95: wilson95(armConcordant, list.length),
+    }
+  })
 
   // Mismatch patterns
   const mismatchKey = new Map<string, { toolDecision: Investigation; actualDecision: Investigation; count: number }>()
@@ -161,12 +291,131 @@ export function buildSummary(cases: AuditCase[]): AuditSummary {
   }
   const mismatchPatterns = Array.from(mismatchKey.values()).sort((a, b) => b.count - a.count)
 
+  // Full confusion matrix
+  const rowSet = new Set<Investigation>()
+  const colSet = new Set<Investigation>()
+  const cells: Record<string, number> = {}
+  const rowTotals: Record<string, number> = {}
+  const colTotals: Record<string, number> = {}
+  for (const c of cases) {
+    const r = c.toolDecision.investigation
+    const k = c.actualDecision
+    rowSet.add(r)
+    colSet.add(k)
+    cells[`${r}|${k}`] = (cells[`${r}|${k}`] ?? 0) + 1
+    rowTotals[r] = (rowTotals[r] ?? 0) + 1
+    colTotals[k] = (colTotals[k] ?? 0) + 1
+  }
+  const confusion = {
+    rowLabels: Array.from(rowSet),
+    colLabels: Array.from(colSet),
+    cells,
+    rowTotals,
+    colTotals,
+  }
+
+  // Cohen's kappa
+  const kappa = cohenKappa(cases)
+
+  // Time stats
+  const times = cases
+    .map((c) => c.timeTakenSeconds)
+    .filter((t): t is number => t != null && t > 0)
+    .sort((a, b) => a - b)
+  const timeStats =
+    times.length > 0
+      ? {
+          n: times.length,
+          mean: Math.round(times.reduce((a, b) => a + b, 0) / times.length),
+          q1: Math.round(quantile(times, 0.25)),
+          median: Math.round(quantile(times, 0.5)),
+          q3: Math.round(quantile(times, 0.75)),
+        }
+      : null
+
+  // Per-FY1 progress
+  const fy1Groups = new Map<string, AuditCase[]>()
+  for (const c of cases) {
+    const k = c.enteredBy || '?'
+    fy1Groups.set(k, [...(fy1Groups.get(k) ?? []), c])
+  }
+  const byFy1 = Array.from(fy1Groups.entries())
+    .map(([enteredBy, list]) => ({
+      enteredBy,
+      total: list.length,
+      concordant: list.filter((c) => c.concordant).length,
+      concordancePct: list.length
+        ? Math.round((list.filter((c) => c.concordant).length / list.length) * 100)
+        : 0,
+    }))
+    .sort((a, b) => b.total - a.total)
+
+  // Subgroups per protocol §10
+  // 1. By referral reason (each reason is counted in every case that lists it)
+  const reasonGroups = new Map<string, AuditCase[]>()
+  for (const c of cases) {
+    for (const r of c.intake.referralReasons ?? []) {
+      reasonGroups.set(r, [...(reasonGroups.get(r) ?? []), c])
+    }
+  }
+  const REASON_LABELS: Record<string, string> = {
+    change_in_bowel_habit: 'CIBH',
+    rectal_bleeding: 'Rectal bleeding',
+    iron_deficiency_anaemia: 'IDA',
+    weight_loss: 'Weight loss',
+    abdominal_mass: 'Abdominal mass',
+    rectal_mass: 'Rectal mass',
+    asymptomatic_fit_positive: 'Asymptomatic FIT+',
+    other: 'Other',
+  }
+  const byReferralReason = Array.from(reasonGroups.entries())
+    .map(([reason, list]) => subgroupStat(REASON_LABELS[reason] ?? reason, list))
+    .sort((a, b) => b.total - a.total)
+
+  // 2. By age band per protocol § 10
+  const ageBuckets: Array<{ label: string; match: (a: string) => boolean }> = [
+    { label: '<60', match: (a) => ['<40', '40-49', '50-59'].includes(a) },
+    { label: '60–79', match: (a) => ['60-69', '70-79'].includes(a) },
+    { label: '≥80', match: (a) => ['80-89', '>=90'].includes(a) },
+  ]
+  const byAgeBand = ageBuckets.map((b) =>
+    subgroupStat(b.label, cases.filter((c) => b.match(c.intake.ageBand))),
+  )
+
+  // 3. By bowel-prep fitness
+  const byBowelPrepFit = [
+    subgroupStat('Fit for prep — yes', cases.filter((c) => c.intake.fitForBowelPrep === 'yes')),
+    subgroupStat('Fit for prep — no', cases.filter((c) => c.intake.fitForBowelPrep === 'no')),
+    subgroupStat('Fit for prep — unknown', cases.filter((c) => c.intake.fitForBowelPrep === 'unknown')),
+  ].filter((s) => s.total > 0)
+
+  // Stop criteria per protocol § 17
+  const overallTriggered =
+    total >= 25 && total > 0 && concordant / total < 0.6
+  const armsTriggered = byArm
+    .filter((a) => a.total >= 5 && a.concordancePct < 50)
+    .map((a) => ({ label: a.label, total: a.total, concordancePct: a.concordancePct }))
+  const stopCriteria = {
+    overallTriggered,
+    overallReason: overallTriggered
+      ? `Overall concordance ${Math.round((concordant / total) * 100)}% < 60% threshold at N=${total}`
+      : null,
+    armsTriggered,
+  }
+
   return {
     total,
     concordant,
     concordancePct: total ? Math.round((concordant / total) * 100) : 0,
+    ci95: wilson95(concordant, total),
     byArm: byArm.sort((a, b) => b.total - a.total),
     mismatchPatterns,
+    confusion,
+    kappa,
+    timeStats,
+    byFy1,
+    subgroups: { byReferralReason, byAgeBand, byBowelPrepFit },
+    stopCriteria,
   }
 }
 

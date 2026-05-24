@@ -84,6 +84,22 @@ export function AuditPage() {
           </div>
         )}
 
+        {summary && summary.stopCriteria && (summary.stopCriteria.overallTriggered || summary.stopCriteria.armsTriggered.length > 0) && (
+          <section className="card border-l-4 border-l-red-600 bg-red-50">
+            <h2 className="text-sm font-bold text-red-900">
+              ⚠ STOP-CRITERIA TRIGGERED — per protocol § 17, pause audit and review
+            </h2>
+            {summary.stopCriteria.overallReason && (
+              <p className="mt-1 text-xs text-red-900">• {summary.stopCriteria.overallReason}</p>
+            )}
+            {summary.stopCriteria.armsTriggered.map((a) => (
+              <p key={a.label} className="mt-1 text-xs text-red-900">
+                • Arm "{a.label}" concordance {a.concordancePct}% with N={a.total} (≥5 case threshold) — &lt; 50% requires defect review
+              </p>
+            ))}
+          </section>
+        )}
+
         {summary && (
           <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="card">
@@ -91,17 +107,27 @@ export function AuditPage() {
               <div className="mt-1 text-3xl font-bold text-nhs-dark-blue">{summary.total}</div>
             </div>
             <div className="card">
-              <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Concordance</div>
+              <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Concordance (primary)</div>
               <div className="mt-1 text-3xl font-bold text-nhs-green">{summary.concordancePct}%</div>
               <div className="text-xs text-nhs-mid-grey">
-                {summary.concordant} of {summary.total} agree
+                {summary.concordant} of {summary.total} ·{' '}
+                95% CI {Math.round(summary.ci95.lo * 100)}–{Math.round(summary.ci95.hi * 100)}%
               </div>
             </div>
             <div className="card">
-              <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Mismatches</div>
-              <div className="mt-1 text-3xl font-bold text-nhs-warm-red">
-                {summary.total - summary.concordant}
-              </div>
+              <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Cohen's κ</div>
+              {summary.kappa ? (
+                <>
+                  <div className="mt-1 text-3xl font-bold text-nhs-dark-blue">
+                    {summary.kappa.kappa.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-nhs-mid-grey">
+                    95% CI {summary.kappa.ciLo.toFixed(2)} – {summary.kappa.ciHi.toFixed(2)}
+                  </div>
+                </>
+              ) : (
+                <div className="mt-1 text-sm text-nhs-mid-grey">awaiting cases</div>
+              )}
             </div>
             <div className="card">
               <div className="text-xs uppercase tracking-wide text-nhs-mid-grey">Possible duplicates</div>
@@ -111,6 +137,42 @@ export function AuditPage() {
               <div className="text-xs text-nhs-mid-grey">
                 {duplicates.length} group{duplicates.length === 1 ? '' : 's'}
               </div>
+            </div>
+          </section>
+        )}
+
+        {summary && summary.byFy1.length > 0 && (
+          <section className="card">
+            <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">Per-FY1 progress</h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {summary.byFy1.map((r) => (
+                <div key={r.enteredBy} className="rounded border border-gray-200 p-3">
+                  <div className="text-sm font-mono font-medium">{r.enteredBy}</div>
+                  <div className="text-xs text-nhs-mid-grey">
+                    {r.total} cases · {r.concordancePct}% concordance
+                  </div>
+                  <div className="mt-1 h-1 w-full overflow-hidden rounded bg-gray-100">
+                    <div
+                      className="h-full bg-nhs-blue"
+                      style={{ width: `${Math.min(100, (r.total / 100) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 text-[10px] text-nhs-mid-grey">target 100/FY1</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {summary && summary.timeStats && (
+          <section className="card">
+            <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">Time per case (seconds)</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
+              <div><span className="text-nhs-mid-grey">N entered:</span> {summary.timeStats.n}</div>
+              <div><span className="text-nhs-mid-grey">Mean:</span> {summary.timeStats.mean}s</div>
+              <div><span className="text-nhs-mid-grey">Q1:</span> {summary.timeStats.q1}s</div>
+              <div><span className="text-nhs-mid-grey">Median:</span> {summary.timeStats.median}s</div>
+              <div><span className="text-nhs-mid-grey">Q3:</span> {summary.timeStats.q3}s</div>
             </div>
           </section>
         )}
@@ -148,7 +210,7 @@ export function AuditPage() {
 
         {summary && summary.byArm.length > 0 && (
           <section className="card">
-            <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">Concordance by arm</h2>
+            <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">Concordance by algorithm arm</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {summary.byArm.map((arm) => (
                 <div key={arm.nodeIdPrefix} className="rounded border border-gray-200 p-3">
@@ -156,9 +218,73 @@ export function AuditPage() {
                   <div className="text-xs text-nhs-mid-grey">
                     {arm.concordant}/{arm.total} = {arm.concordancePct}%
                   </div>
+                  <div className="text-[11px] text-nhs-mid-grey">
+                    95% CI {Math.round(arm.ci95.lo * 100)}–{Math.round(arm.ci95.hi * 100)}%
+                  </div>
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {summary && summary.confusion.rowLabels.length > 0 && (
+          <section className="card overflow-x-auto">
+            <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">
+              Confusion matrix — tool decision (rows) × actual decision (columns)
+            </h2>
+            <table className="text-xs">
+              <thead>
+                <tr>
+                  <th className="px-2 py-1 text-left">Tool ↓ / Actual →</th>
+                  {summary.confusion.colLabels.map((c) => (
+                    <th key={c} className="px-2 py-1 text-center">{INVESTIGATION_LABELS[c]}</th>
+                  ))}
+                  <th className="px-2 py-1 text-center font-bold">Row total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.confusion.rowLabels.map((r) => (
+                  <tr key={r} className="border-t border-gray-100">
+                    <td className="px-2 py-1 font-medium">{INVESTIGATION_LABELS[r]}</td>
+                    {summary.confusion.colLabels.map((c) => {
+                      const n = summary.confusion.cells[`${r}|${c}`] ?? 0
+                      const isDiag = r === c
+                      return (
+                        <td
+                          key={c}
+                          className={`px-2 py-1 text-center ${isDiag ? 'bg-green-50 font-semibold text-green-900' : n > 0 ? 'bg-amber-50 text-amber-900' : 'text-nhs-mid-grey'}`}
+                        >
+                          {n}
+                        </td>
+                      )
+                    })}
+                    <td className="px-2 py-1 text-center font-bold">
+                      {summary.confusion.rowTotals[r] ?? 0}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t border-gray-200">
+                  <td className="px-2 py-1 font-bold">Column total</td>
+                  {summary.confusion.colLabels.map((c) => (
+                    <td key={c} className="px-2 py-1 text-center font-bold">
+                      {summary.confusion.colTotals[c] ?? 0}
+                    </td>
+                  ))}
+                  <td className="px-2 py-1 text-center font-bold">{summary.total}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-[11px] text-nhs-mid-grey">
+              Diagonal cells (green) = concordant. Off-diagonal cells (amber) = mismatch — the tool said the row, the clinic did the column.
+            </p>
+          </section>
+        )}
+
+        {summary && (
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <SubgroupCard title="By referral reason" rows={summary.subgroups.byReferralReason} />
+            <SubgroupCard title="By age band" rows={summary.subgroups.byAgeBand} />
+            <SubgroupCard title="By bowel-prep fitness" rows={summary.subgroups.byBowelPrepFit} />
           </section>
         )}
 
@@ -341,6 +467,37 @@ export function AuditPage() {
           )}
         </section>
       </main>
+    </div>
+  )
+}
+
+function SubgroupCard({
+  title,
+  rows,
+}: {
+  title: string
+  rows: Array<{ label: string; total: number; concordant: number; concordancePct: number; ci95: { lo: number; hi: number } }>
+}) {
+  return (
+    <div className="card">
+      <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">{title}</h2>
+      {rows.length === 0 ? (
+        <p className="text-xs text-nhs-mid-grey">No cases yet.</p>
+      ) : (
+        <ul className="space-y-2 text-sm">
+          {rows.map((r) => (
+            <li key={r.label} className="border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+              <div className="flex justify-between">
+                <span className="font-medium">{r.label}</span>
+                <span className="font-semibold">{r.concordancePct}%</span>
+              </div>
+              <div className="text-[11px] text-nhs-mid-grey">
+                {r.concordant}/{r.total} · 95% CI {Math.round(r.ci95.lo * 100)}–{Math.round(r.ci95.hi * 100)}%
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
