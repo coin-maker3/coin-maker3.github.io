@@ -11,8 +11,10 @@
 - **Colorectal surgeon** at **George Eliot Hospital NHS Trust** (Nuneaton)
 - Runs the **2-week-wait (2WW) colorectal clinic**
 - Has Vercel, Railway, Claude API and Google Cloud subscriptions
-- **Senior endorsement obtained from Mr Kasun** (consultant) to run an FY1-led
-  concordance audit of the triage tool
+- **Senior endorsement obtained from Mr Kasun** (consultant) to run a
+  reviewer-led concordance audit of the triage tool. Reviewers may be
+  any grade (FY1, SHO, registrar, consultant) recruited on a voluntary
+  basis — the audit isn't FY1-restricted.
 
 ## The project
 
@@ -82,7 +84,7 @@ not just Colonoscopy.
 - "Issue patient pre-clinic form" — generates a TEST-prefixed reference + shareable URL
 - Live decision card + algorithm path viewer + letter generator
 
-### FY1 audit (the next-step deliverable)
+### Reviewer audit (the next-step deliverable)
 - `/#/audit` — dashboard: total cases, overall concordance %, per-arm
   breakdown, top mismatch patterns, case table with filter, CSV export
 - `/#/audit/new` — entry form (same intake + actual outcome panel)
@@ -97,7 +99,7 @@ not just Colonoscopy.
 - `DEPLOY.md` — Vercel-via-UI deployment guide (no CLI, no tokens shared)
 - `AUDIT-PROTOCOL.md` — full audit protocol for Trust Audit & QI office
   registration: aim, design, sample size, analysis plan, stop criteria
-- `AUDIT-FY1-GUIDE.md` — one-pager for FY1s: what to enter, what NOT to
+- `AUDIT-REVIEWER-GUIDE.md` — one-pager for reviewing doctors: what to enter, what NOT to
   enter, edge cases, privacy reminder
 - `letters/01-cso-introduction.md` — email draft to Trust CSO
 - `letters/02-executive-summary.md` — one-page proposal for divisional
@@ -163,8 +165,8 @@ In priority order:
    they're named. Attach `docs/DESIGN.md`.
 5. **Register the audit** with Trust Audit & QI office using
    `docs/AUDIT-PROTOCOL.md`. Get an audit ID.
-6. **Brief the FY1s** with `docs/AUDIT-FY1-GUIDE.md` + the deployed URL.
-   Pilot 10 cases, then scale to 100/FY1.
+6. **Brief the reviewers** with `docs/AUDIT-REVIEWER-GUIDE.md` + the deployed URL.
+   Pilot 10 cases, then scale to 100/reviewer.
 7. **Phase 2 DPIA** — submit `docs/letters/03-dpia-phase2.md` to Trust DPO
    only when ready to add real patient identifiers (Phase 2 is the patient
    form pilot with NHS Login; current pilot is anonymous so DPIA-lite).
@@ -214,7 +216,7 @@ node e2e-audit.mjs   # audit workflow demo
 User started wanting to make their 2WW clinic workflow easier. We built a
 local single-clinician decision-support tool, then encoded the full Trust
 algorithm with audit fixes, then added a patient pre-clinic form, then
-added an FY1 concordance audit module after Mr Kasun's endorsement. The
+added a reviewer-led concordance audit module after Mr Kasun's endorsement. The
 deployment hit a wall in the web sandbox because the container can't reach
 Vercel/Railway APIs — user is moving to local Claude Code to deploy from
 their laptop. Production architecture is fully documented in
@@ -225,4 +227,4 @@ DPIA template) are drafted in `docs/letters/`.
 
 When resuming: read this file, then `docs/DESIGN.md`, then `docs/DEPLOY.md`.
 Then ask the user what they want to tackle next — the most likely answer is
-"finish deploying so the FY1s can start the audit".
+"finish deploying so the reviewers can start the audit".

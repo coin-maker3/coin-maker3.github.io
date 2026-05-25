@@ -215,7 +215,7 @@ export function AuditNewPage() {
                   )}
                 </div>
                 <div>
-                  <label className="label" htmlFor="enteredBy">Entered by (initials)</label>
+                  <label className="label" htmlFor="enteredBy">Reviewer initials</label>
                   <input
                     id="enteredBy"
                     className="input"
@@ -314,7 +314,7 @@ export function AuditNewPage() {
             {!canSave && (
               <div className="rounded-md bg-amber-50 p-3 text-xs text-amber-900">
                 <strong>Required to save:</strong>{' '}
-                FY1 initials,
+                reviewer initials,
                 clinic month,
                 patient age,
                 and actual clinical decision.

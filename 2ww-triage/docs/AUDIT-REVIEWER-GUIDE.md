@@ -1,4 +1,6 @@
-# FY1 Guide — 2WW Colorectal Concordance Audit
+# Reviewer Guide — 2WW Colorectal Concordance Audit
+
+> *Open to any doctor reviewing 2WW colorectal cases (FY1, SHO, registrar, consultant). "Reviewer" below means whoever is doing the data entry for this session.*
 
 Welcome. Thank you for helping. Once you're warmed up, expect ~3–5 minutes per case (much faster for excluded ones). Aim for **25 cases per session**.
 

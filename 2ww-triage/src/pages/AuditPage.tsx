@@ -111,7 +111,7 @@ export function AuditPage() {
           <div>
             <h1 className="text-xl font-bold text-nhs-dark-blue">2WW Concordance Audit</h1>
             <p className="text-xs text-nhs-mid-grey">
-              George Eliot Hospital · FY1-entered, anonymised
+              George Eliot Hospital · reviewer-entered, anonymised
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -322,7 +322,7 @@ export function AuditPage() {
 
         {summary && summary.byFy1.length > 0 && (
           <section className="card">
-            <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">Per-FY1 progress</h2>
+            <h2 className="mb-3 text-sm font-semibold text-nhs-dark-blue">Per-reviewer progress</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {summary.byFy1.map((r) => (
                 <div key={r.enteredBy} className="rounded border border-gray-200 p-3">
@@ -336,7 +336,7 @@ export function AuditPage() {
                       style={{ width: `${Math.min(100, (r.total / 100) * 100)}%` }}
                     />
                   </div>
-                  <div className="mt-1 text-[10px] text-nhs-mid-grey">target 100/FY1</div>
+                  <div className="mt-1 text-[10px] text-nhs-mid-grey">target 100/reviewer</div>
                 </div>
               ))}
             </div>
@@ -363,13 +363,13 @@ export function AuditPage() {
             </h2>
             <p className="mt-1 text-xs text-amber-900">
               Same clinic month + demographics + referral reasons + banded bloods + symptoms.
-              Could be two FY1s on the same letter, or one letter entered twice. Resolve before analysis.
+              Could be two reviewers on the same letter, or one letter entered twice. Resolve before analysis.
             </p>
             <ul className="mt-3 space-y-2 text-sm">
               {duplicates.slice(0, 10).map((g, idx) => (
                 <li key={idx} className="rounded border border-amber-200 bg-white p-2">
                   <div className="text-xs font-medium text-amber-900">
-                    {g.crossFy1 ? 'Cross-FY1 duplicate' : 'Same-FY1 duplicate'}:
+                    {g.crossFy1 ? 'Cross-reviewer duplicate' : 'Same-reviewer duplicate'}:
                   </div>
                   <div className="mt-0.5 flex flex-wrap gap-2">
                     {g.cases.map((c) => (
@@ -517,7 +517,7 @@ export function AuditPage() {
                 <thead className="border-b border-gray-200 text-xs uppercase tracking-wide text-nhs-mid-grey">
                   <tr>
                     <th className="py-2 pr-3">ID</th>
-                    <th className="py-2 pr-3">FY1</th>
+                    <th className="py-2 pr-3">Reviewer</th>
                     <th className="py-2 pr-3">Month</th>
                     <th className="py-2 pr-3">Tool</th>
                     <th className="py-2 pr-3">Actual</th>

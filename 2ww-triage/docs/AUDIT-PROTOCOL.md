@@ -83,23 +83,26 @@ Single-centre, retrospective, consecutive-case concordance audit.
 
 ## 8. Sample size
 
-100 consecutive cases per reviewing FY1, with a minimum total of 100 if a
-single FY1 reviews. Power calculation (one-sided exact binomial):
+100 consecutive cases per reviewing doctor, with a minimum total of 100
+if a single doctor reviews. Reviewers may be any grade — FY1, SHO,
+registrar, or consultant — recruited on a voluntary basis. Power
+calculation (one-sided exact binomial):
 
 - Expected concordance ≥ 80%: 100 cases gives a 95% confidence interval
   width of ≈ ±8 percentage points.
-- This is sufficient precision for an internal audit. Multi-FY1 review
-  also enables inter-rater agreement (κ) as a secondary analysis.
+- This is sufficient precision for an internal audit. Multi-reviewer
+  participation also enables inter-rater agreement (κ) as a secondary
+  analysis.
 
-## 9. Data collection — what the FY1 enters
+## 9. Data collection — what the reviewer enters
 
-For each consecutive eligible case, the FY1 (one of the assigned team)
-opens the audit tool at `[tool URL]/#/audit/new` and enters the
+For each consecutive eligible case, the reviewing doctor opens the audit
+tool at `https://geh-2ww-colorectal.vercel.app/audit/new` and enters the
 following from the clinic letter:
 
 **Audit-only metadata (no PID):**
 
-- FY1 initials (e.g. "AB")
+- Reviewer initials (e.g. "AB")
 - Clinic month (YYYY-MM only — no specific day to avoid traceable identifiers)
 - Auto-generated audit ID (e.g. `AUDIT-2026-0001`)
 
@@ -189,11 +192,11 @@ The tool then automatically:
 
 | Risk | Mitigation |
 |------|------------|
-| FY1 enters incorrect data from the letter | Two-clinician spot-check of 10% of cases for fidelity |
-| FY1 unblinded to actual outcome at time of entry biases data extraction | The tool requires entry of clinical findings before the actual outcome field is enabled; analysis can also separately measure inter-FY1 agreement on data extraction |
+| Reviewer enters incorrect data from the letter | Two-clinician spot-check of 10% of cases for fidelity |
+| Reviewer unblinded to actual outcome at time of entry biases data extraction | The tool requires entry of clinical findings before the actual outcome field is enabled; analysis can also separately measure inter-reviewer agreement on data extraction |
 | Sample not representative | Use consecutive eligible cases from defined date range; document any exclusions and reasons |
 | Tool encoding error revealed | Halt audit, fix tool (engine version bumped), re-audit; algorithm version stamp on every case enables clean separation |
-| PID accidentally entered | Tool rejects any free-text field longer than schema permits; FY1 training emphasises no PID |
+| PID accidentally entered | Tool rejects any free-text field longer than schema permits; reviewer training emphasises no PID, and the engine surfaces an amber warning on NHS-number / DOB / hospital-number regex hits in free-text fields |
 
 ## 14. Roles
 
@@ -201,7 +204,7 @@ The tool then automatically:
 |------|--------|
 | Audit lead clinician | [Your name] |
 | Senior endorsement / supervisor | Mr Kasun |
-| Reviewing FY1s | [Names], colorectal team |
+| Reviewing doctors | [Names + grades], colorectal team — voluntary; open to FY1, SHO, registrar, consultant |
 | Tool maintenance | [Your name] |
 | Statistical advice | [TBC if needed] |
 | Trust audit office contact | [TBC] |
@@ -222,8 +225,8 @@ The tool then automatically:
 
 | Week | Activity |
 |------|----------|
-| 0    | Trust audit office registration; FY1 orientation; pilot run of 10 cases |
-| 1–4  | Data entry: ~25 cases/FY1/week |
+| 0    | Trust audit office registration; reviewer orientation; pilot run of 10 cases |
+| 1–4  | Data entry: ~25 cases/reviewer/week |
 | 5    | Data cleaning, mismatch review |
 | 6    | Analysis, report drafting |
 | 7    | Presentation to colorectal MDT |
