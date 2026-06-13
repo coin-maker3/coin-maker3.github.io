@@ -354,10 +354,11 @@ function finishSubmit() {
   stopTimer();
   recordStreak();
   unlock("first_submit");
-  if (store.history.filter((h) => true).length + 1 >= 5) {/* count after add below */}
   const records = exam.tasks.map((t, i) => ({ task: t, answer: exam.answers[i], wordCount: wordsOf(exam.answers[i]) }));
   show("result");
-  if (!store.settings.apiKey) { renderNoKey(records); return; }
+  // Always attempt marking: markOne uses the device key if set, otherwise the
+  // secure server endpoint (/api/mark). If neither is available it raises a
+  // NEEDS_KEY error and markAll shows the "add a key" screen.
   markAll(records);
 }
 function recordStreak() {
@@ -389,7 +390,8 @@ async function markAll(records) {
     renderResult(records);
   } catch (err) {
     stopTicker();
-    renderMarkError(err, records);
+    if (err && err.code === "NEEDS_KEY") renderNoKey(records);
+    else renderMarkError(err, records);
   }
 }
 function saveAttempt(r) {
@@ -528,16 +530,38 @@ async function markOne(r) {
   };
   if (!/haiku/.test(s.model)) body.output_config.effort = "high";
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": s.apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify(body),
-  });
+  // Two ways to reach the examiner:
+  //  1) a key saved in this browser (Settings)  -> call Anthropic directly
+  //  2) no device key                           -> call our own /api/mark,
+  //     which uses the secure server key (Vercel env var). On a host with no
+  //     backend (e.g. plain GitHub Pages) this 404s -> NEEDS_KEY -> add-key UI.
+  const useDevice = !!s.apiKey;
+  let res;
+  if (useDevice) {
+    res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": s.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify(body),
+    });
+  } else {
+    try {
+      res = await fetch("/api/mark", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      const e = new Error("offline"); e.code = "NEEDS_KEY"; throw e;
+    }
+    if (res.status === 404 || res.status === 503) {
+      const e = new Error("no server key"); e.code = "NEEDS_KEY"; throw e;
+    }
+  }
   if (!res.ok) {
     let msg = `Request failed (${res.status}).`;
     try {
