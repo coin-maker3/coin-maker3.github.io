@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       res.status(400).json({ error: { message: "Invalid request." } });
       return;
     }
-    body.max_tokens = Math.min(Number(body.max_tokens) || 3500, 4000);
+    body.max_tokens = Math.min(Number(body.max_tokens) || 6000, 8000);
 
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

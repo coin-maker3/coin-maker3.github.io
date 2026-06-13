@@ -57,7 +57,7 @@ function confirmDialog(text, onYes) {
 }
 
 /* ------------------------------------------------------------------ router */
-const VIEWS = ["home", "picker", "exam", "result", "history"];
+const VIEWS = ["home", "picker", "exam", "result", "history", "coach"];
 function show(view) {
   VIEWS.forEach((v) => { $("#view-" + v).hidden = v !== view; });
   window.scrollTo(0, 0);
@@ -459,8 +459,19 @@ function buildSystem(type) {
     "  the first criterion must reflect under-development (usually 5 or below).",
     "- 'evidence' for each criterion must refer to SPECIFIC wording from the script and",
     "  tie it to the descriptor. Be concrete, not generic.",
-    "- corrected_sentences must take ACTUAL sentences from the candidate and correct them.",
     "- Be honest and practical, never harsh for its own sake, but never inflate a band.",
+    "",
+    "ALSO PRODUCE — this is what makes you a COACH, not just a scorer:",
+    "- recurring_patterns: 2 to 4 of the candidate's HABITUAL weaknesses (e.g. 'missing articles',",
+    "  'subject-verb agreement', 'comma splices', 'weak topic sentences', 'imprecise word choice').",
+    "  For each: a short CONSISTENT name, the rule in one line, ONE example quoted verbatim from THIS",
+    "  script, and how to fix it. These are tracked across the candidate's essays to build a personal",
+    "  profile, so name the same weakness the same way every time.",
+    "- upgrade_edits: the SMALLEST set of surgical changes (4 to 7) that would lift THIS script by about",
+    "  one whole band. 'before' MUST be an exact, verbatim quote from the candidate's text (so it can be",
+    "  located in their essay); 'after' is your improved version; 'criterion' is which one it improves",
+    "  (use exactly one of: 'Task', 'Coherence & Cohesion', 'Lexical Resource', 'Grammar'); 'why'",
+    "  explains the move in one short line. Prefer minimal, teachable edits over wholesale rewriting.",
     "",
     "Return ONLY the structured JSON object requested.",
   ].join("\n");
@@ -497,19 +508,33 @@ const MARK_SCHEMA = {
         required: ["issue", "why", "fix", "example"],
       },
     },
-    corrected_sentences: {
+    upgrade_edits: {
       type: "array",
       items: {
         type: "object", additionalProperties: false,
-        properties: { original: { type: "string" }, improved: { type: "string" } },
-        required: ["original", "improved"],
+        properties: {
+          before: { type: "string" }, after: { type: "string" },
+          criterion: { type: "string" }, why: { type: "string" },
+        },
+        required: ["before", "after", "criterion", "why"],
+      },
+    },
+    recurring_patterns: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          name: { type: "string" }, rule: { type: "string" },
+          example: { type: "string" }, fix: { type: "string" },
+        },
+        required: ["name", "rule", "example", "fix"],
       },
     },
     examiner_summary: { type: "string" },
     next_band_advice: { type: "string" },
   },
   required: ["under_length", "criteria", "key_strengths", "priority_fixes",
-    "corrected_sentences", "examiner_summary", "next_band_advice"],
+    "upgrade_edits", "recurring_patterns", "examiner_summary", "next_band_advice"],
 };
 function critSchema() {
   return {
@@ -523,7 +548,7 @@ async function markOne(r) {
   const s = store.settings;
   const body = {
     model: s.model,
-    max_tokens: 3500,
+    max_tokens: 6000,
     system: buildSystem(r.task.type),
     messages: [{ role: "user", content: buildUser(r) }],
     output_config: { format: { type: "json_schema", schema: MARK_SCHEMA } },
@@ -595,6 +620,7 @@ const TICKER = [
   "Reading for task achievement…", "Checking your overview and main ideas…",
   "Tracing coherence and paragraphing…", "Weighing vocabulary range and precision…",
   "Auditing grammar for error-free sentences…", "Comparing against the band descriptors…",
+  "Finding your recurring patterns…", "Engineering the smallest edits to lift your band…",
   "Calibrating an honest band — no inflation…",
 ];
 let tickerInt, tickerI = 0;
@@ -724,22 +750,53 @@ function reportHTML(r) {
         <div class="fix-how">→ ${esc(f.fix)}</div>
         ${f.example ? `<div class="fix-eg">${esc(f.example)}</div>` : ""}</div>`).join(""));
 
-  if (m.corrected_sentences && m.corrected_sentences.length)
-    html += section("✏️ Sentence corrections",
-      m.corrected_sentences.map((c) => `<div class="correction">
-        <div class="corr-orig">${esc(c.original)}</div>
-        <div class="corr-new">${esc(c.improved)}</div></div>`).join(""));
+  if (m.upgrade_edits && m.upgrade_edits.length)
+    html += section("⤴︎ Your essay, one band higher — the smallest changes",
+      `<p class="section-lead">The fewest, most surgical edits that lift your band. Learn each move — this is the exact path up, on your own words.</p>` +
+      m.upgrade_edits.map((c) => `<div class="upgrade">
+        <span class="upg-tag">${esc(c.criterion)}</span>
+        <div class="correction"><div class="corr-orig">${esc(c.before)}</div>
+        <div class="corr-new">${esc(c.after)}</div></div>
+        <div class="upg-why">${esc(c.why)}</div></div>`).join(""));
+
+  if (m.recurring_patterns && m.recurring_patterns.length)
+    html += section("🧠 Your recurring patterns (your Coach is tracking these)",
+      m.recurring_patterns.map((p) => `<div class="pattern">
+        <div class="pat-name">${esc(p.name)}</div>
+        <div class="pat-rule">${esc(p.rule)}</div>
+        <div class="pat-eg">“${esc(p.example)}”</div>
+        <div class="pat-fix">✅ ${esc(p.fix)}</div></div>`).join(""));
 
   html += section("🎯 To reach the next half-band",
     `<p style="font-size:14px;line-height:1.55">${esc(m.next_band_advice)}</p>`);
 
-  html += `<div class="result-section"><h3>📝 Your answer (${r.wordCount} words)</h3>
-    <div class="your-answer">${esc(r.answer)}</div></div>`;
+  html += `<div class="result-section"><h3>📝 Your answer, marked up (${r.wordCount} words)</h3>
+    <p class="section-lead">Hover a <mark class="redpen">highlight</mark> to see the fix — your real errors, in place.</p>
+    <div class="your-answer">${redPen(r.answer, m.upgrade_edits)}</div></div>`;
   html += modelAnswerHTML(r.task);
   return html;
 }
 function section(title, body) {
   return `<div class="result-section"><h3>${title}</h3>${body}</div>`;
+}
+/* render the candidate's essay with their error spans highlighted in place */
+function redPen(answer, edits) {
+  let html = esc(answer);
+  const placed = [];
+  (edits || []).forEach((e, i) => {
+    if (!e || !e.before) return;
+    const needle = esc(e.before);
+    const idx = html.indexOf(needle);
+    if (idx < 0) return;                       // quote not found verbatim — skip
+    html = html.slice(0, idx) + "\uE000" + i + "\uE000" + html.slice(idx + needle.length);
+    placed.push({ i, needle, e });
+  });
+  placed.forEach(({ i, needle, e }) => {
+    const tip = esc((e.after ? "→ " + e.after : "") + (e.why ? "   ·   " + e.why : "")).replace(/"/g, "&quot;");
+    html = html.replace("\uE000" + i + "\uE000",
+      `<mark class="redpen" title="${tip}">${needle}</mark>`);
+  });
+  return html.replace(/\n/g, "<br>");
 }
 function modelAnswerHTML(t) {
   if (!t.modelAnswer) return "";
@@ -766,6 +823,76 @@ function renderHistory() {
   list.innerHTML = store.history.slice().reverse().map(attemptRow).join("");
   bindAttemptRows(list);
   show("history");
+}
+
+/* ================================================================ COACH === */
+function renderCoach() {
+  const marked = store.history.filter((h) => h.band != null);
+  const body = $("#coachBody");
+
+  if (!marked.length) {
+    body.innerHTML = `<div class="result-hero"><div class="result-overall-label">Your AI Coach</div>
+      <div class="result-overall">🧠</div>
+      <div class="result-vs-target">Write and mark a couple of essays and your Coach will learn
+      your personal patterns, then build your path to band ${fmtBand(store.settings.target)}.</div></div>`;
+    show("coach"); return;
+  }
+
+  // aggregate recurring patterns into a personal "fingerprint"
+  const tally = {};
+  marked.forEach((h) => {
+    const ps = h.mark && h.mark.recurring_patterns; if (!ps) return;
+    ps.forEach((p) => {
+      const key = (p.name || "").trim().toLowerCase(); if (!key) return;
+      if (!tally[key]) tally[key] = { name: p.name, count: 0 };
+      Object.assign(tally[key], { count: tally[key].count + 1, rule: p.rule, fix: p.fix, example: p.example });
+    });
+  });
+  const patterns = Object.values(tally).sort((a, b) => b.count - a.count);
+
+  // readiness
+  const best = Math.max(...marked.map((h) => h.band));
+  const recent = marked.slice(-3);
+  const recentAvg = recent.reduce((a, h) => a + h.band, 0) / recent.length;
+  const target = store.settings.target;
+  let status, klass;
+  if (recentAvg >= target) { status = "On track — you’re hitting your target in recent essays. Keep it stable under exam pressure."; klass = "hit"; }
+  else if (recentAvg >= target - 0.5) { status = "Almost there — about half a band to go. The fixes below are what stand between you and it."; klass = "miss"; }
+  else { status = "Building — keep practising. Your Coach has found exactly what to work on first."; klass = "miss"; }
+
+  const top = patterns[0];
+  let html = `<h2 style="margin:4px 2px 14px">🧠 Your Coach</h2>
+    <div class="result-hero">
+      <div class="result-overall-label">Recent form</div>
+      <div class="result-overall">${fmtBand(round05(recentAvg))}</div>
+      <div class="result-vs-target"><b class="${klass}">Target ${fmtBand(target)}</b> · best so far ${fmtBand(best)}</div>
+      <div class="marking-note">${esc(status)}</div>
+    </div>`;
+
+  if (top) html += `<div class="focus-banner" style="margin-bottom:18px">
+    <span class="focus-icon">🎯</span>
+    <span>The #1 thing between you and band ${fmtBand(target)} right now: <b>${esc(top.name)}</b>
+    — appeared in ${top.count} of your essays. ${esc(top.fix || "")}</span></div>`;
+
+  html += `<div class="panel"><div class="panel-head"><h2>Band over time</h2></div>
+    <div id="coachChart" class="progress-chart"></div></div>`;
+
+  html += `<div class="result-section"><h3>🧬 Your language fingerprint</h3>
+    <p class="section-lead">The habits that keep showing up in your writing, most frequent first. Beat these and your band moves.</p>
+    ${patterns.map((p) => `<div class="pattern">
+      <div class="pat-name">${esc(p.name)} <span class="pat-count">×${p.count}</span></div>
+      ${p.rule ? `<div class="pat-rule">${esc(p.rule)}</div>` : ""}
+      ${p.example ? `<div class="pat-eg">“${esc(p.example)}”</div>` : ""}
+      ${p.fix ? `<div class="pat-fix">✅ ${esc(p.fix)}</div>` : ""}</div>`).join("")}</div>`;
+
+  html += `<div class="result-actions">
+    <button class="primary-btn" id="coachPractise">Practise Task 2 now →</button></div>`;
+
+  body.innerHTML = html;
+  if (marked.length >= 2) $("#coachChart").innerHTML = lineSpark(marked.slice(-12).map((h) => h.band), target);
+  else $("#coachChart").innerHTML = `<p class="section-lead">One more marked essay unlocks your trend line.</p>`;
+  $("#coachPractise").onclick = () => openPicker("task2");
+  show("coach");
 }
 
 /* ============================================================== CHARTS === */
@@ -893,6 +1020,7 @@ $("#resetProgress").onclick = () => confirmDialog(
 $("#brandHome").onclick = () => { show("home"); renderHome(); };
 $("#navSettings").onclick = openSettings;
 $("#navHistory").onclick = renderHistory;
+$("#navCoach").onclick = renderCoach;
 $("#editTarget").onclick = openSettings;
 $$("[data-back]").forEach((b) => (b.onclick = () => { show("home"); renderHome(); }));
 $$("[data-start]").forEach((b) => (b.onclick = () => openPicker(b.dataset.start)));

@@ -200,9 +200,29 @@ button{font-family:inherit; cursor:pointer}
 .fix-why{font-size:13px; color:var(--muted); margin:4px 0}
 .fix-how{font-size:13px}
 .fix-eg{font-size:13px; font-family:var(--serif); background:var(--panel-2); border-radius:8px; padding:8px 10px; margin-top:6px}
-.correction{display:grid; gap:6px; margin-bottom:10px; font-size:14px; font-family:var(--serif)}
+.correction{display:grid; gap:6px; margin-bottom:0; font-size:14px; font-family:var(--serif)}
 .corr-orig{color:#ff9d9d; text-decoration:line-through; text-decoration-color:#7a3838}
 .corr-new{color:#9ff0c4}
+.section-lead{font-size:13px; color:var(--muted); margin:-2px 0 12px; line-height:1.5}
+
+/* upgrade engine */
+.upgrade{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px}
+.upg-tag{display:inline-block; font-size:10px; letter-spacing:.4px; text-transform:uppercase;
+  color:#cde0ff; background:#26365e; border:1px solid #34487a; border-radius:20px; padding:2px 9px; margin-bottom:8px}
+.upg-why{font-size:12px; color:var(--muted); margin-top:8px; border-top:1px dashed var(--line); padding-top:7px}
+
+/* recurring patterns / fingerprint */
+.pattern{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:10px; padding:12px 14px; margin-bottom:10px}
+.pat-name{font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px}
+.pat-count{font-size:11px; color:var(--bg); background:var(--accent); border-radius:20px; padding:1px 8px; font-weight:700}
+.pat-rule{font-size:13px; color:var(--muted); margin-top:4px}
+.pat-eg{font-family:var(--serif); font-size:13px; color:#ffd9a8; margin-top:6px}
+.pat-fix{font-size:13px; margin-top:6px}
+
+/* red-pen markup of the candidate's own essay */
+.redpen{background:rgba(255,107,107,.16); border-bottom:2px wavy #ff6b6b; border-radius:2px;
+  padding:0 1px; cursor:help; color:inherit}
 
 .model-toggle{width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
   color:var(--text); padding:12px; font-size:14px; font-weight:600; text-align:left}
