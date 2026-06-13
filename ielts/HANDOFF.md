@@ -22,6 +22,40 @@ owner's wife is preparing now. Long-term goal is to **sell access** (e.g. a time
 
 ---
 
+## 1A. Why Claude — the part that is NOT commodity (keep this sacred)
+
+The app *shell* — timers, word counter, a "mark this" button — is commodity; any tool can
+build it. **The value, and the reason this is worth selling, is the intelligence layer, and it
+is load-bearing on a frontier model.** Do not let this get diluted into a generic CRUD app, and
+do not downgrade the examiner model to save pennies at the cost of accuracy.
+
+What makes it different (and why a weak model can't fake it):
+- **Strict, calibrated examiner, not a flatterer.** It marks against the official IELTS band
+  descriptors and is explicitly told the band-7 reality (e.g. band-7 grammar needs *frequent
+  error-free sentences*; recurring errors cap you at 6/6.5). This honest calibration is exactly
+  what cheap "you got a 7.5!" tools get wrong — and it's the owner's #1 requirement.
+- **The Upgrade Engine** — it takes the candidate's *own* essay and returns the **smallest set
+  of surgical edits** that lift it one whole band, each tagged to the criterion it fixes and
+  why. That is genuinely hard: it must understand the exact sentences, diagnose what's capping
+  the band, and find the *minimal* teachable change — not swap in a stranger's model answer.
+- **A Coach that learns the individual.** Every essay, it extracts the candidate's *recurring*
+  error patterns and tracks them across time into a personal "language fingerprint", then names
+  the single thing between them and their target band. The more they write, the more it knows
+  them. A generic app marks each essay in isolation and forgets.
+- **Red-pen markup** — the candidate's real errors highlighted in place on their own page.
+
+Why the model choice matters: minimal-edit band diagnosis, accurate per-individual error-pattern
+extraction, calibrated descriptor-based marking, and remediation generated from the user's *own*
+mistakes all **degrade badly on weaker models**. Keep the examiner on `claude-opus-4-8` (Sonnet
+acceptable for cost; avoid marking on Haiku). The intelligence layer is the product.
+
+**Honest framing of the moat:** it is *not* "uncopyable software" — anyone can call an LLM. The
+real, defensible advantage is **trust + a niche the owner can actually reach (IMG / OET doctors)
++ the band-7-calibrated examiner + the adaptive coaching loop + brand**. Build toward that, not
+toward feature-bloat.
+
+---
+
 ## 2. Current state (what's done)
 
 The app is **built and committed**. Plain static site, **no build step**, vanilla HTML/CSS/JS.
