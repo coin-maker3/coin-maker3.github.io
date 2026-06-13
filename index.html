@@ -1,22 +1,753 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>coin-maker3</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IELTS Write Pro — AI-Powered IELTS Writing Practice</title>
+<meta name="description" content="Master IELTS Academic Writing with instant AI examiner feedback. Band score analysis, annotated essays, dynamic charts, and timed exam simulation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-body{font-family:system-ui,sans-serif;background:#0b0f1a;color:#e6edf7;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh}
-main{max-width:560px;padding:32px;text-align:center}
-h1{margin:0 0 12px;font-size:28px;letter-spacing:.5px}
-p{margin:8px 0;color:#a8b3c7}
-a{color:#7cc4ff;text-decoration:none}
+  :root {
+    --bg-primary: #050914;
+    --bg-secondary: #0d1526;
+    --bg-card: #111827;
+    --border: #1e2d45;
+    --gold: #d4a843;
+    --gold-light: #f0c040;
+    --text-primary: #e8edf5;
+    --text-secondary: #8a9ab5;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    background: rgba(5, 9, 20, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    text-decoration: none;
+  }
+
+  .nav-logo span {
+    color: var(--gold);
+  }
+
+  .btn-launch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    background: var(--gold);
+    color: #050914;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+
+  .btn-launch:hover {
+    background: var(--gold-light);
+    transform: translateY(-1px);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 24px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 500px;
+    background: radial-gradient(ellipse at center, rgba(212, 168, 67, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(212, 168, 67, 0.1);
+    border: 1px solid rgba(212, 168, 67, 0.3);
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gold);
+    letter-spacing: 0.3px;
+    margin-bottom: 28px;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hero h1 {
+    font-size: clamp(38px, 6vw, 68px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    color: var(--text-primary);
+    max-width: 800px;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 .gold-text {
+    color: var(--gold);
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    max-width: 540px;
+    line-height: 1.7;
+    margin-bottom: 36px;
+  }
+
+  .hero-ctas {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 60px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: var(--gold);
+    color: #050914;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(212, 168, 67, 0.3);
+  }
+
+  .btn-primary:hover {
+    background: var(--gold-light);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(212, 168, 67, 0.4);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(212, 168, 67, 0.04);
+  }
+
+  /* ── APP MOCKUP ── */
+  .mockup {
+    width: 100%;
+    max-width: 820px;
+    height: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  .mockup::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.5;
+  }
+
+  .mockup-panel {
+    padding: 24px;
+    position: relative;
+  }
+
+  .mockup-panel:first-child {
+    border-right: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+
+  .mockup-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .mockup-text-line {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+
+  .mockup-text-line.short { width: 70%; }
+  .mockup-text-line.shorter { width: 50%; }
+
+  .mockup-chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 120px;
+    margin-top: 20px;
+    padding-top: 10px;
+  }
+
+  .mock-bar-group {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    flex: 1;
+  }
+
+  .mock-bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    opacity: 0.8;
+  }
+
+  .mock-bar.b1 { background: var(--gold); }
+  .mock-bar.b2 { background: #4a6fa5; }
+  .mock-bar.b3 { background: var(--green); opacity: 0.7; }
+
+  .mockup-panel:last-child {
+    background: var(--bg-card);
+  }
+
+  .mockup-essay-line {
+    height: 7px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    margin-bottom: 9px;
+  }
+
+  .mockup-essay-line.full { width: 100%; }
+  .mockup-essay-line.long { width: 88%; }
+  .mockup-essay-line.med { width: 72%; }
+  .mockup-essay-line.short-e { width: 55%; }
+
+  .mockup-highlight {
+    display: inline-block;
+    height: 7px;
+    border-radius: 4px;
+    background: rgba(34, 197, 94, 0.25);
+    border-bottom: 2px solid rgba(34, 197, 94, 0.6);
+    margin-bottom: 9px;
+    width: 60%;
+  }
+
+  .mockup-score-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .mockup-score-label {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .mockup-score-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  .mockup-score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--gold);
+  }
+
+  .mockup-score-num {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold);
+    width: 20px;
+    text-align: right;
+  }
+
+  /* ── SECTION COMMON ── */
+  section {
+    padding: 96px 24px;
+  }
+
+  .section-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .section-subtitle {
+    font-size: 17px;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 520px;
+    margin: 0 auto 56px;
+  }
+
+  /* ── FEATURES ── */
+  #features {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+
+  .feature-card:hover {
+    border-color: rgba(212, 168, 67, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  .feature-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(212, 168, 67, 0.1);
+    border: 1px solid rgba(212, 168, 67, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .feature-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .feature-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── HOW IT WORKS ── */
+  #how-it-works {
+    background: var(--bg-primary);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    position: relative;
+  }
+
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 36px;
+    left: calc(16.67% + 24px);
+    right: calc(16.67% + 24px);
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold), rgba(212,168,67,0.3), var(--gold));
+    opacity: 0.4;
+  }
+
+  .step-card {
+    padding: 32px 28px;
+    text-align: center;
+    position: relative;
+  }
+
+  .step-number {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--gold);
+    margin: 0 auto 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+
+  .step-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── CTA SECTION ── */
+  .cta-section {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    text-align: center;
+    padding: 96px 24px;
+  }
+
+  .cta-section .section-title {
+    margin-bottom: 12px;
+  }
+
+  .cta-section p {
+    font-size: 17px;
+    color: var(--text-secondary);
+    margin-bottom: 36px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border);
+    padding: 32px 24px;
+    text-align: center;
+  }
+
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-logo {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .footer-logo span {
+    color: var(--gold);
+  }
+
+  .footer-copy {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 0 20px; }
+
+    .features-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .steps::before { display: none; }
+
+    .mockup { grid-template-columns: 1fr; height: auto; }
+    .mockup-panel:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+
+    .hero-ctas { flex-direction: column; align-items: stretch; }
+    .btn-primary, .btn-ghost { justify-content: center; }
+
+    .footer-inner { flex-direction: column; text-align: center; }
+  }
+
+  @media (max-width: 480px) {
+    .features-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
-<main>
-<h1>Orbitra</h1>
-<p>A minimalist arcade game for Android.</p>
-<p><a href="https://play.google.com/store/apps/details?id=com.ali.neonorbit">View on Google Play</a></p>
-</main>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">IELTS Write <span>Pro</span></a>
+  <a href="writing.html" class="btn-launch">Launch App →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Academic IELTS · AI-Powered</div>
+  <h1>Master IELTS Writing<br><span class="gold-text">with AI Expertise</span></h1>
+  <p class="hero-subtitle">Get instant, detailed feedback from an AI IELTS examiner — available 24/7. Practice Task 1 charts and Task 2 essays with real band score analysis.</p>
+  <div class="hero-ctas">
+    <a href="writing.html" class="btn-primary">Start Practicing Free</a>
+    <a href="#features" class="btn-ghost">See how it works ↓</a>
+  </div>
+
+  <!-- App Mockup -->
+  <div class="mockup">
+    <div class="mockup-panel">
+      <div class="mockup-label">Task Prompt</div>
+      <div class="mockup-text-line" style="width:90%"></div>
+      <div class="mockup-text-line" style="width:80%"></div>
+      <div class="mockup-text-line short"></div>
+      <div class="mockup-chart-bars">
+        <div class="mock-bar-group">
+          <div class="mock-bar b1" style="height:80px"></div>
+          <div class="mock-bar b2" style="height:55px"></div>
+          <div class="mock-bar b3" style="height:65px"></div>
+        </div>
+        <div class="mock-bar-group">
+          <div class="mock-bar b1" style="height:60px"></div>
+          <div class="mock-bar b2" style="height:90px"></div>
+          <div class="mock-bar b3" style="height:45px"></div>
+        </div>
+        <div class="mock-bar-group">
+          <div class="mock-bar b1" style="height:100px"></div>
+          <div class="mock-bar b2" style="height:70px"></div>
+          <div class="mock-bar b3" style="height:85px"></div>
+        </div>
+        <div class="mock-bar-group">
+          <div class="mock-bar b1" style="height:75px"></div>
+          <div class="mock-bar b2" style="height:95px"></div>
+          <div class="mock-bar b3" style="height:50px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup-panel">
+      <div class="mockup-label">Your Response</div>
+      <div class="mockup-essay-line full"></div>
+      <div class="mockup-essay-line long"></div>
+      <div class="mockup-highlight"></div>
+      <div class="mockup-essay-line full"></div>
+      <div class="mockup-essay-line med"></div>
+      <div style="margin-top:14px;">
+        <div class="mockup-score-row">
+          <div class="mockup-score-label"></div>
+          <div class="mockup-score-bar-wrap"><div class="mockup-score-bar-fill" style="width:78%"></div></div>
+          <div class="mockup-score-num">7.0</div>
+        </div>
+        <div class="mockup-score-row">
+          <div class="mockup-score-label" style="background:var(--green)"></div>
+          <div class="mockup-score-bar-wrap"><div class="mockup-score-bar-fill" style="width:83%;background:var(--green)"></div></div>
+          <div class="mockup-score-num" style="color:var(--green)">7.5</div>
+        </div>
+        <div class="mockup-score-row">
+          <div class="mockup-score-label" style="background:var(--amber)"></div>
+          <div class="mockup-score-bar-wrap"><div class="mockup-score-bar-fill" style="width:67%;background:var(--amber)"></div></div>
+          <div class="mockup-score-num" style="color:var(--amber)">6.0</div>
+        </div>
+        <div class="mockup-score-row">
+          <div class="mockup-score-label"></div>
+          <div class="mockup-score-bar-wrap"><div class="mockup-score-bar-fill" style="width:72%"></div></div>
+          <div class="mockup-score-num">6.5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <p class="section-eyebrow">Features</p>
+    <h2 class="section-title">Everything you need to achieve your target band</h2>
+    <p class="section-subtitle">Built on the official IELTS marking criteria, powered by state-of-the-art AI.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">AI Band Score Analysis</div>
+        <div class="feature-desc">Receive a detailed band score (1–9) for each of the four IELTS criteria, just like a real examiner would provide.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✍️</div>
+        <div class="feature-title">Annotated Essay Review</div>
+        <div class="feature-desc">Your essay is highlighted sentence by sentence — strong phrases in green, areas to improve in amber, weak points in red.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <div class="feature-title">Dynamic Chart Generation</div>
+        <div class="feature-desc">Task 1 prompts come with real interactive charts — bar charts, line graphs, and more — built fresh each session.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⏱️</div>
+        <div class="feature-title">Real-time Word Counter</div>
+        <div class="feature-desc">A live progress bar tracks your word count against the minimum requirement (150 for Task 1, 250 for Task 2).</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Timed Exam Simulation</div>
+        <div class="feature-desc">Switch to Exam Mode for a true test environment with a countdown timer and automatic submission when time runs out.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Quick Check Mid-Writing</div>
+        <div class="feature-desc">Not sure how you're doing? Get a rapid estimated band score mid-essay without losing your writing flow.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="section-inner">
+    <p class="section-eyebrow">How It Works</p>
+    <h2 class="section-title">From blank page to band score in minutes</h2>
+    <p class="section-subtitle">A streamlined practice loop designed around the official IELTS exam format.</p>
+
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <div class="step-title">Choose Your Task Type</div>
+        <div class="step-desc">Select Task 1 (describe a chart or diagram) or Task 2 (write a discursive essay). Choose Practice or timed Exam mode.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <div class="step-title">Write Your Response</div>
+        <div class="step-desc">Compose your answer directly in the split-screen editor. The live word counter and timer keep you on track throughout.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <div class="step-title">Get Expert AI Feedback</div>
+        <div class="step-desc">Your AI examiner analyses your essay across all four criteria and returns a full annotated review with actionable suggestions.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA SECTION -->
+<section class="cta-section">
+  <h2 class="section-title">Ready to improve your band score?</h2>
+  <p>Join thousands of IELTS candidates who practise smarter with AI feedback.</p>
+  <a href="writing.html" class="btn-primary" style="font-size:16px;padding:16px 36px;">Start Practicing Now →</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="/" class="footer-logo">IELTS Write <span>Pro</span></a>
+    <span class="footer-copy">&copy; 2024 IELTS Write Pro. AI-powered IELTS preparation.</span>
+  </div>
+</footer>
+
 </body>
 </html>
