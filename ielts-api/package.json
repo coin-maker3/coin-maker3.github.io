@@ -1,0 +1,10 @@
+{
+  "name": "ielts-api",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Serverless proxy that holds the Anthropic API key for the IELTS Writing Lab.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -16,7 +16,10 @@ const API_URL = "https://api.anthropic.com/v1/messages";
 
 /* ---------------------------------------------------------------- storage */
 const defaultStore = () => ({
-  settings: { name: "", target: 7.0, apiKey: "", model: "claude-opus-4-7", ownerMode: false },
+  settings: {
+    name: "", target: 7.0, apiKey: "", model: "claude-opus-4-7", ownerMode: false,
+    proxyUrl: "https://ielts-mark.vercel.app/api/mark",
+  },
   history: [],            // {id, ts, taskId, type, title, answer, wordCount, mark|null, band|null}
   streak: { date: "", count: 0 },
   achievements: [],
@@ -59,6 +62,8 @@ function save() { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
   }
   if (hp.has("owner-on")) { store.settings.ownerMode = true; dirty = true; }
   if (hp.has("owner-off")) { store.settings.ownerMode = false; dirty = true; }
+  const proxy = hp.get("proxy");
+  if (proxy && /^https:\/\//.test(proxy)) { store.settings.proxyUrl = proxy; dirty = true; }
   if (dirty) {
     save();
     history.replaceState({}, "", location.pathname + location.search);
@@ -649,10 +654,10 @@ async function markOne(r) {
   };
 
   // Two ways to reach the examiner:
-  //  1) a key saved in this browser (Settings)  -> call Anthropic directly
-  //  2) no device key                           -> call our own /api/mark,
-  //     which uses the secure server key (Vercel env var). On a host with no
-  //     backend (e.g. plain GitHub Pages) this 404s -> NEEDS_KEY -> add-key UI.
+  //  1) the proxy on a separate Vercel project (DEFAULT, holds key server-side).
+  //     This is the path Saja uses — no key ever lives in the browser.
+  //  2) an owner-saved device key (override, e.g. when proxy is down).
+  //     Only used if the owner has explicitly pasted a key in Settings.
   const useDevice = !!s.apiKey;
   let res;
   if (useDevice) {
@@ -668,7 +673,7 @@ async function markOne(r) {
     });
   } else {
     try {
-      res = await fetch("/api/mark", {
+      res = await fetch(s.proxyUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
