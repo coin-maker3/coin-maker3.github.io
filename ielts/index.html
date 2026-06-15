@@ -103,33 +103,51 @@
     <div id="pickerList" class="picker-list"></div>
   </section>
 
-  <!-- ======================= EXAM ======================= -->
-  <section class="view exam" id="view-exam" hidden>
-    <div class="exam-bar">
-      <button class="exam-quit" id="examQuit" title="Quit">✕</button>
-      <div class="exam-phase" id="examPhase">Writing</div>
-      <div class="exam-timer" id="examTimer">40:00</div>
-      <div class="exam-words">
+  <!-- ======================= EXAM (CD-IELTS layout) ======================= -->
+  <section class="view cd-exam" id="view-exam" hidden>
+    <!-- top blue bar: Test name + phase + Hide + countdown -->
+    <div class="cd-bar">
+      <div class="cd-bar-left">
+        <span class="cd-test-name">IELTS Academic — Writing</span>
+        <span class="cd-phase" id="examPhase">Part 2</span>
+      </div>
+      <div class="cd-bar-right">
+        <button class="cd-bar-btn" id="examQuit" title="Quit test">Quit</button>
+        <button class="cd-bar-btn" id="examHide" title="Hide test">Hide</button>
+        <div class="cd-timer-wrap">
+          <span class="cd-timer-label">Time remaining</span>
+          <span class="cd-timer" id="examTimer">40:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- task tabs (only shown in Full test) + instruction strip -->
+    <div class="cd-tabs" id="stimTabs" hidden></div>
+    <div class="cd-tabs cd-tabs-hidden" id="writeTabs" hidden></div>
+    <div class="cd-task-strip">
+      <span class="cd-task-rubric" id="examFootHint">You should spend about 40 minutes on this task. Write at least 250 words.</span>
+    </div>
+
+    <!-- split-screen body: stimulus left, answer right -->
+    <div class="cd-body" id="examBody">
+      <div class="cd-stim" id="examStimulus">
+        <div class="cd-stim-scroll" id="stimScroll"></div>
+      </div>
+      <div class="cd-write">
+        <textarea id="answerBox" class="cd-answer"
+          spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off"
+          placeholder=""></textarea>
+      </div>
+    </div>
+
+    <!-- bottom bar: word count left, submit right -->
+    <div class="cd-foot">
+      <div class="cd-words">
+        <span class="cd-words-label">Words:</span>
         <span id="wordCount">0</span>
-        <span class="words-target" id="wordsTarget">/ 250 min</span>
+        <span class="cd-words-target" id="wordsTarget">(250 min)</span>
       </div>
-    </div>
-
-    <div class="exam-body" id="examBody">
-      <div class="exam-stimulus" id="examStimulus">
-        <div class="stim-tabs" id="stimTabs" hidden></div>
-        <div class="stim-scroll" id="stimScroll"></div>
-      </div>
-      <div class="exam-writepane">
-        <div class="write-tabs" id="writeTabs" hidden></div>
-        <textarea id="answerBox" class="answer-box" spellcheck="true"
-          placeholder="Start typing your answer here…"></textarea>
-      </div>
-    </div>
-
-    <div class="exam-foot">
-      <span class="exam-foot-hint" id="examFootHint"></span>
-      <button class="primary-btn" id="submitBtn">Submit &amp; get my band →</button>
+      <button class="cd-submit" id="submitBtn">Submit answer ▸</button>
     </div>
   </section>
 
@@ -195,9 +213,9 @@
       <label class="field">
         <span class="field-label">Examiner model</span>
         <select id="setModel">
-          <option value="claude-opus-4-8">Claude Opus 4.8 — most accurate (recommended)</option>
+          <option value="claude-opus-4-7">Claude Opus 4.7 — most accurate (recommended)</option>
           <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — faster &amp; cheaper</option>
-          <option value="claude-haiku-4-5">Claude Haiku 4.5 — cheapest</option>
+          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — cheapest</option>
         </select>
       </label>
 

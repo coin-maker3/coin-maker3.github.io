@@ -16,7 +16,7 @@ const API_URL = "https://api.anthropic.com/v1/messages";
 
 /* ---------------------------------------------------------------- storage */
 const defaultStore = () => ({
-  settings: { name: "", target: 7.0, apiKey: "", model: "claude-opus-4-8" },
+  settings: { name: "", target: 7.0, apiKey: "", model: "claude-opus-4-7", ownerMode: false },
   history: [],            // {id, ts, taskId, type, title, answer, wordCount, mark|null, band|null}
   streak: { date: "", count: 0 },
   achievements: [],
@@ -31,6 +31,39 @@ function load() {
   } catch { return defaultStore(); }
 }
 function save() { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+
+/* Migrate stored settings from v0 (hallucinated model IDs) to current IDs. */
+(function migrate() {
+  let dirty = false;
+  if (store.settings.model === "claude-opus-4-8") { store.settings.model = "claude-opus-4-7"; dirty = true; }
+  if (store.settings.model === "claude-haiku-4-5") { store.settings.model = "claude-haiku-4-5-20251001"; dirty = true; }
+  if (dirty) save();
+})();
+
+/* ---------- one-time setup via hash params (key NEVER hits the network) ----------
+   Owner workflow on Saja's device:
+     1. Visit https://coin-maker3.github.io/ielts/#setup=sk-ant-...
+        -> key is written to her localStorage, hash is wiped, marking just works.
+     2. Visit https://coin-maker3.github.io/ielts/#owner-on on Ali's own device
+        -> unlocks ⚙︎ Settings so he can change the key/model from then on.
+        Visit /#owner-off to lock it down again.
+   Saja's daily URL is the plain /ielts/ — no Settings button, no key prompt. */
+(function applyHashCommands() {
+  if (!location.hash) return;
+  const hp = new URLSearchParams(location.hash.slice(1));
+  let dirty = false;
+  const setup = hp.get("setup");
+  if (setup && setup.startsWith("sk-ant-")) {
+    store.settings.apiKey = setup;
+    dirty = true;
+  }
+  if (hp.has("owner-on")) { store.settings.ownerMode = true; dirty = true; }
+  if (hp.has("owner-off")) { store.settings.ownerMode = false; dirty = true; }
+  if (dirty) {
+    save();
+    history.replaceState({}, "", location.pathname + location.search);
+  }
+})();
 
 /* ----------------------------------------------------------------- helpers */
 const $ = (s, r = document) => r.querySelector(s);
@@ -82,10 +115,21 @@ function renderHome() {
   renderRecent();
   renderAchievements();
 
-  // API hint
-  $("#apiHint").innerHTML = s.apiKey
-    ? `Examiner ready · using <b>${esc(s.model)}</b>`
-    : `Add your Anthropic API key in <b>⚙︎ Settings</b> to switch on AI band scoring.`;
+  // Owner-mode UI toggles: hide the ⚙︎ button for non-owners (Saja never sees Settings).
+  const owner = !!s.ownerMode;
+  $("#navSettings").hidden = !owner;
+  $("#editTarget").hidden = !owner;
+
+  // API hint — calm message for Saja, diagnostic for owner.
+  if (s.apiKey) {
+    $("#apiHint").innerHTML = owner
+      ? `Examiner ready · using <b>${esc(s.model)}</b>`
+      : `Examiner ready.`;
+  } else {
+    $("#apiHint").innerHTML = owner
+      ? `Add your Anthropic API key in <b>⚙︎ Settings</b> to enable AI band scoring.`
+      : `Setup is incomplete. Ask the owner to configure access.`;
+  }
 }
 
 const FOCUS_TIPS = {
@@ -266,32 +310,32 @@ function startExam(mode, id) {
 
 function buildExamUI() {
   const multi = exam.tasks.length > 1;
-  // tabs
-  const stimTabs = $("#stimTabs"), writeTabs = $("#writeTabs");
+  // single tab strip at top of exam (CD-IELTS shows tabs as one row)
+  const stimTabs = $("#stimTabs");
   if (multi) {
-    stimTabs.hidden = writeTabs.hidden = false;
-    const mk = (cls) => exam.tasks.map((t, i) =>
-      `<button class="${cls} ${i === exam.active ? "active" : ""}" data-tab="${i}">${i === 0 ? "Task 1" : "Task 2"}</button>`).join("");
-    stimTabs.innerHTML = mk("stim-tab"); writeTabs.innerHTML = mk("write-tab");
-    $$("[data-tab]").forEach((b) => (b.onclick = () => switchTab(+b.dataset.tab)));
-  } else { stimTabs.hidden = writeTabs.hidden = true; }
+    stimTabs.hidden = false;
+    stimTabs.innerHTML = exam.tasks.map((t, i) =>
+      `<button class="stim-tab ${i === exam.active ? "active" : ""}" data-tab="${i}">Part ${i + 1}</button>`).join("");
+    $$("#stimTabs [data-tab]").forEach((b) => (b.onclick = () => switchTab(+b.dataset.tab)));
+  } else { stimTabs.hidden = true; }
   loadActive();
 }
 function switchTab(i) {
   exam.answers[exam.active] = $("#answerBox").value;
   exam.active = i;
-  $$(".stim-tab, .write-tab").forEach((b) => b.classList.toggle("active", +b.dataset.tab === i));
+  $$(".stim-tab").forEach((b) => b.classList.toggle("active", +b.dataset.tab === i));
   loadActive();
 }
 function loadActive() {
   const t = exam.tasks[exam.active];
-  $("#examPhase").textContent = t.type === "task1" ? "Task 1" : "Task 2";
+  $("#examPhase").textContent = t.type === "task1" ? "Part 1" : "Part 2";
   $("#stimScroll").innerHTML = stimulusHTML(t);
   const box = $("#answerBox");
   box.value = exam.answers[exam.active];
   box.oninput = onAnswerInput;
   $("#examFootHint").textContent = t.type === "task1"
-    ? "Aim for 170–190 words in ~20 min." : "Aim for 260–290 words in ~40 min.";
+    ? "You should spend about 20 minutes on this task. Write at least 150 words."
+    : "You should spend about 40 minutes on this task. Write at least 250 words.";
   updateWordCount();
 }
 function stimulusHTML(t) {
@@ -308,8 +352,8 @@ function updateWordCount() {
   const n = wordsOf($("#answerBox").value);
   const min = taskMin(t.type);
   $("#wordCount").textContent = n;
-  $("#wordsTarget").textContent = `/ ${min} min`;
-  $(".exam-words").classList.toggle("ok", n >= min);
+  $("#wordsTarget").textContent = `(${min} min)`;
+  $(".cd-words").classList.toggle("ok", n >= min);
 }
 function startTimer() {
   updateTimer();
@@ -333,6 +377,21 @@ function stopTimer() { if (exam.timer) clearInterval(exam.timer); exam.timer = n
 
 $("#examQuit").onclick = () => confirmDialog(
   "Quit this attempt? Your writing won’t be saved.", () => { stopTimer(); show("home"); renderHome(); });
+
+/* CD-IELTS Hide: blanks the screen but the timer keeps running, mirroring the real exam. */
+$("#examHide").onclick = () => {
+  if (document.getElementById("cdHideOverlay")) return;
+  const overlay = document.createElement("div");
+  overlay.id = "cdHideOverlay";
+  overlay.className = "cd-hide-overlay";
+  overlay.innerHTML = `<div class="cd-hide-card">
+    <h2>Test hidden</h2>
+    <p>Your screen is hidden. <b>The clock is still running.</b></p>
+    <button class="cd-submit" id="cdResume">Resume test</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById("cdResume").onclick = () => overlay.remove();
+};
 
 $("#submitBtn").onclick = () => doSubmit(false);
 
@@ -483,8 +542,35 @@ function buildUser(r) {
   if (t.type === "task1" && t.dataFacts) {
     u += `WHAT THE VISUAL ACTUALLY SHOWS (use this to check the candidate's accuracy; the candidate could see the chart, not this text):\n${t.dataFacts}\n\n`;
   }
+  // Inject prior pattern names so the Coach's "fingerprint" stays consistent across attempts:
+  // the model is told exactly what it called the same flaw last time, and reuses that label.
+  const prior = collectPriorPatternNames();
+  if (prior.length) {
+    u += `THIS CANDIDATE HAS PRIOR MARKED ESSAYS. In those, you named these recurring patterns:\n`;
+    u += prior.map((n) => `  - ${n}`).join("\n");
+    u += `\nIf any of these recur in the script below, use the EXACT SAME NAME so the Coach can track them across time. Only introduce a new pattern name if it is genuinely distinct from the above.\n\n`;
+  }
   u += `CANDIDATE'S ANSWER (${r.wordCount} words):\n"""\n${r.answer}\n"""`;
   return u;
+}
+
+function collectPriorPatternNames() {
+  const tally = {};
+  store.history.forEach((h) => {
+    const ps = h.mark && h.mark.recurring_patterns;
+    if (!ps) return;
+    ps.forEach((p) => {
+      const name = (p.name || "").trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (!tally[key]) tally[key] = { name, count: 0 };
+      tally[key].count += 1;
+    });
+  });
+  return Object.values(tally)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
+    .map((e) => e.name);
 }
 
 const MARK_SCHEMA = {
@@ -546,14 +632,21 @@ function critSchema() {
 
 async function markOne(r) {
   const s = store.settings;
+  // Force structured output via the tool-use pattern: the examiner MUST call the
+  // `report_mark` tool, and the tool's input_schema is our MARK_SCHEMA, so the
+  // response is guaranteed to match the shape the UI expects.
   const body = {
     model: s.model,
-    max_tokens: 6000,
+    max_tokens: 4096,
     system: buildSystem(r.task.type),
     messages: [{ role: "user", content: buildUser(r) }],
-    output_config: { format: { type: "json_schema", schema: MARK_SCHEMA } },
+    tools: [{
+      name: "report_mark",
+      description: "Return the strict IELTS examiner mark for this script using the official band descriptors.",
+      input_schema: MARK_SCHEMA,
+    }],
+    tool_choice: { type: "tool", name: "report_mark" },
   };
-  if (!/haiku/.test(s.model)) body.output_config.effort = "high";
 
   // Two ways to reach the examiner:
   //  1) a key saved in this browser (Settings)  -> call Anthropic directly
@@ -601,11 +694,9 @@ async function markOne(r) {
   }
   const data = await res.json();
   if (data.stop_reason === "refusal") throw new Error("The model declined to mark this text. Try a different answer.");
-  const block = (data.content || []).find((b) => b.type === "text");
-  if (!block) throw new Error("No response from the examiner. Try again.");
-  let mark;
-  try { mark = JSON.parse(block.text); }
-  catch { throw new Error("Couldn’t read the examiner’s response. Please try again."); }
+  const block = (data.content || []).find((b) => b.type === "tool_use" && b.name === "report_mark");
+  if (!block || !block.input) throw new Error("No response from the examiner. Try again.");
+  const mark = block.input;
 
   // compute the band ourselves from the four whole-band criteria (reliable arithmetic)
   const c = mark.criteria;
@@ -651,17 +742,26 @@ function renderMarkError(err, records) {
 
 function renderNoKey(records) {
   const r = records[0];
-  $("#resultBody").innerHTML = `<div class="panel">
-    <h3>🔑 Add your key to get a band</h3>
-    <p style="color:var(--muted)">The AI examiner needs your Anthropic API key to score this.
-    It’s stored only on this device. Until then, here’s the examiner-standard model answer and a self-check.</p>
-    <div class="result-actions"><button class="primary-btn" id="nkSettings">Add API key in Settings</button></div>
-  </div>
+  const owner = !!store.settings.ownerMode;
+  const head = owner
+    ? `<div class="panel">
+        <h3>🔑 Add your key to get a band</h3>
+        <p style="color:var(--muted)">The AI examiner needs an Anthropic API key to score this.
+        It’s stored only on this device. Until then, here’s the band-8+ model answer and a self-check.</p>
+        <div class="result-actions"><button class="primary-btn" id="nkSettings">Add API key in Settings</button></div>
+      </div>`
+    : `<div class="panel">
+        <h3>Setup incomplete</h3>
+        <p style="color:var(--muted)">The examiner isn't configured on this device yet.
+        Ask the owner to set up access. In the meantime, here's the band-8+ model answer and a self-check.</p>
+      </div>`;
+  $("#resultBody").innerHTML = `${head}
   <div class="result-section"><h3>📝 Your answer (${r.wordCount} words)</h3>
     <div class="your-answer">${esc(r.answer) || "—"}</div></div>
   ${selfCheckHTML(r.task.type)}
   ${modelAnswerHTML(r.task)}`;
-  $("#nkSettings").onclick = openSettings;
+  const nk = document.getElementById("nkSettings");
+  if (nk) nk.onclick = openSettings;
   bindModelToggle();
 }
 function selfCheckHTML(type) {
@@ -713,8 +813,95 @@ function renderResult(records) {
 
   $("#resultBody").innerHTML = html;
   bindModelToggle();
+  bindIterateActions(records);
   $("#againBtn").onclick = () => openPicker(records[0].task.type);
   $("#homeBtn").onclick = () => { show("home"); renderHome(); };
+}
+
+/* ---- ITERATE LOOP: Apply edits + Re-mark ---------------------------------
+   Each upgrade_edit gets an Apply button that patches the candidate's OWN
+   essay in place (working copy). When 1+ edits are applied, a Re-mark bar
+   appears. Clicking it sends the patched essay back to the examiner and the
+   result page shows BAND-WAS -> BAND-NOW. This is the visceral proof that
+   the Upgrade Engine works. */
+const iterate = {}; // taskId -> { workingAnswer, applied: Set<number> }
+
+function bindIterateActions(records) {
+  records.forEach((r) => {
+    const tid = r.task.id;
+    if (!iterate[tid]) iterate[tid] = { workingAnswer: r.answer, applied: new Set() };
+    // Apply buttons
+    $$(`[data-apply-task="${tid}"]`).forEach((btn) => {
+      const idx = +btn.dataset.applyIdx;
+      if (iterate[tid].applied.has(idx)) {
+        btn.textContent = "✓ Applied"; btn.disabled = true; btn.classList.add("applied");
+      }
+      btn.onclick = () => {
+        if (iterate[tid].applied.has(idx)) return;
+        const edit = r.mark.upgrade_edits[idx];
+        if (!edit) return;
+        const w = iterate[tid].workingAnswer;
+        if (!w.includes(edit.before)) {
+          toast("That phrase is no longer in your essay (already replaced by another edit).");
+          btn.disabled = true; return;
+        }
+        iterate[tid].workingAnswer = w.replace(edit.before, edit.after);
+        iterate[tid].applied.add(idx);
+        btn.textContent = "✓ Applied"; btn.disabled = true; btn.classList.add("applied");
+        const bar = document.querySelector(`[data-remark-task="${tid}"]`);
+        const status = document.getElementById(`remarkStatus-${tid}`);
+        if (bar) bar.hidden = false;
+        if (status) {
+          const n = iterate[tid].applied.size;
+          status.textContent = `${n} edit${n === 1 ? "" : "s"} applied · word count ${wordsOf(iterate[tid].workingAnswer)}`;
+        }
+      };
+    });
+    // Re-mark button
+    const remarkBtn = document.querySelector(`[data-remark="${tid}"]`);
+    if (remarkBtn) {
+      remarkBtn.onclick = async () => {
+        const patched = iterate[tid].workingAnswer;
+        const newRecord = { task: r.task, answer: patched, wordCount: wordsOf(patched) };
+        const prevBand = r.mark.band;
+        $("#resultBody").innerHTML = markingSpinner();
+        $("#tickerLabel").textContent = "Re-marking with your edits applied…";
+        startTicker();
+        try {
+          newRecord.mark = await markOne(newRecord);
+          stopTicker();
+          saveAttempt(newRecord);
+          afterMarkAchievements([newRecord]);
+          // Reset iterate state — next round starts from the new answer.
+          iterate[tid] = { workingAnswer: patched, applied: new Set() };
+          renderResultWithDelta([newRecord], prevBand);
+        } catch (err) {
+          stopTicker();
+          if (err && err.code === "NEEDS_KEY") renderNoKey([newRecord]);
+          else renderMarkError(err, [newRecord]);
+        }
+      };
+    }
+  });
+}
+
+function renderResultWithDelta(records, prevBand) {
+  renderResult(records);
+  const r = records[0];
+  const delta = round05(r.mark.band - prevBand);
+  const dot = delta > 0 ? "▲" : delta < 0 ? "▼" : "—";
+  const klass = delta > 0 ? "hit" : delta < 0 ? "miss" : "";
+  const sub = delta > 0
+    ? `Up ${delta.toFixed(1)} band by applying your edits. This is the path up — keep going.`
+    : delta === 0
+    ? "Same band — apply the rest of the edits, or extend the underdeveloped paragraphs by 40–60 words."
+    : "Some edits introduced new issues. Review which ones, and remember the goal is the smallest change.";
+  const banner = document.createElement("div");
+  banner.className = "delta-banner";
+  banner.innerHTML = `<b class="${klass}">${dot} Band ${fmtBand(prevBand)} → ${fmtBand(r.mark.band)}</b>
+    <span class="delta-sub">${sub}</span>`;
+  const body = $("#resultBody");
+  body.insertBefore(banner, body.firstChild);
 }
 
 function reportHTML(r) {
@@ -751,13 +938,20 @@ function reportHTML(r) {
         ${f.example ? `<div class="fix-eg">${esc(f.example)}</div>` : ""}</div>`).join(""));
 
   if (m.upgrade_edits && m.upgrade_edits.length)
-    html += section("⤴︎ Your essay, one band higher — the smallest changes",
-      `<p class="section-lead">The fewest, most surgical edits that lift your band. Learn each move — this is the exact path up, on your own words.</p>` +
-      m.upgrade_edits.map((c) => `<div class="upgrade">
+    html += section("⤴︎ Your essay, one band higher — apply the edits, then re-mark",
+      `<p class="section-lead">Apply any of the surgical edits below — the patches are made to <b>your own</b> essay. When you've applied a few, hit <b>Re-mark</b> and watch the band move.</p>` +
+      m.upgrade_edits.map((c, ei) => `<div class="upgrade" data-edit-task="${esc(r.task.id)}" data-edit-idx="${ei}">
         <span class="upg-tag">${esc(c.criterion)}</span>
         <div class="correction"><div class="corr-orig">${esc(c.before)}</div>
         <div class="corr-new">${esc(c.after)}</div></div>
-        <div class="upg-why">${esc(c.why)}</div></div>`).join(""));
+        <div class="upg-row">
+          <span class="upg-why">${esc(c.why)}</span>
+          <button class="upg-apply" data-apply-task="${esc(r.task.id)}" data-apply-idx="${ei}">Apply ↪</button>
+        </div></div>`).join("") +
+      `<div class="remark-bar" data-remark-task="${esc(r.task.id)}" hidden>
+         <span class="remark-status" id="remarkStatus-${esc(r.task.id)}">0 edits applied</span>
+         <button class="primary-btn" data-remark="${esc(r.task.id)}">Re-mark with my edits ▸</button>
+       </div>`);
 
   if (m.recurring_patterns && m.recurring_patterns.length)
     html += section("🧠 Your recurring patterns (your Coach is tracking these)",

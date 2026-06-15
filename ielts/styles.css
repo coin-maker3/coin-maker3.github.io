@@ -116,41 +116,147 @@ button{font-family:inherit; cursor:pointer}
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
 .picker-random{background:linear-gradient(160deg,#22305a,#1a2236); border-color:#3a4f86}
 
-/* ---------- exam ---------- */
-.exam{max-width:1180px}
-.exam-bar{position:sticky; top:56px; z-index:20; display:flex; align-items:center; gap:14px;
-  background:var(--bg-soft); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin-bottom:12px}
-.exam-quit{background:none; border:none; color:var(--muted); font-size:18px; line-height:1}
-.exam-phase{font-size:13px; color:var(--accent); font-weight:600; letter-spacing:.3px}
-.exam-timer{font-variant-numeric:tabular-nums; font-size:22px; font-weight:700; margin-left:auto}
-.exam-timer.warn{color:var(--warn)}
-.exam-timer.danger{color:var(--bad); animation:pulse 1s infinite}
-@keyframes pulse{50%{opacity:.5}}
-.exam-words{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; min-width:96px; text-align:right}
-.exam-words #wordCount{color:var(--text); font-weight:700; font-size:15px}
-.exam-words.ok #wordCount{color:var(--good)}
+/* ---------- exam: CD-IELTS lookalike (white bg, blue header, Arial) ---------- */
+/* Scoped under .cd-exam so the rest of the app keeps its dark theme. */
+.cd-exam{
+  --cd-blue:#1c3d6e;       /* IELTS-style navy header */
+  --cd-blue-2:#23508f;     /* hover */
+  --cd-bg:#ffffff;
+  --cd-bg-soft:#f4f6fa;
+  --cd-bg-stim:#fafbfd;
+  --cd-text:#1a1a1a;
+  --cd-muted:#5b6577;
+  --cd-line:#cdd3df;
+  --cd-line-soft:#e3e7ee;
+  --cd-accent:#cf2e2e;     /* timer-warn red, used at <=5min */
+  --cd-submit:#10693a;     /* IELTS-style green submit */
+  --cd-submit-2:#0d572f;
+  --cd-sans:Arial, Helvetica, "Liberation Sans", sans-serif;
+  max-width:none; margin:0; padding:0;
+  background:var(--cd-bg); color:var(--cd-text);
+  font-family:var(--cd-sans);
+  position:fixed; inset:0; display:flex; flex-direction:column; z-index:40;
+  animation:none;
+}
+.cd-exam *{font-family:var(--cd-sans)}
 
-.exam-body{display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:stretch}
-.exam-stimulus,.exam-writepane{background:var(--panel); border:1px solid var(--line); border-radius:12px;
-  display:flex; flex-direction:column; min-height:62vh}
-.stim-scroll{padding:18px; overflow:auto}
-.stim-tabs,.write-tabs{display:flex; gap:6px; padding:10px 10px 0}
-.stim-tab,.write-tab{background:var(--panel-2); border:1px solid var(--line); border-bottom:none;
-  border-radius:8px 8px 0 0; color:var(--muted); padding:7px 12px; font-size:13px}
-.stim-tab.active,.write-tab.active{background:var(--panel); color:var(--text); font-weight:600}
+/* Top blue bar */
+.cd-exam .cd-bar{
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--cd-blue); color:#fff;
+  padding:8px 14px; border-bottom:1px solid #0f2647;
+  flex:none;
+}
+.cd-exam .cd-bar-left{display:flex; align-items:center; gap:14px}
+.cd-exam .cd-test-name{font-size:14px; font-weight:700; letter-spacing:.2px}
+.cd-exam .cd-phase{font-size:13px; color:#cbd6e8; background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.18); padding:2px 9px; border-radius:3px}
+.cd-exam .cd-bar-right{display:flex; align-items:center; gap:10px}
+.cd-exam .cd-bar-btn{
+  background:#ffffff; color:var(--cd-blue); border:1px solid #ffffff;
+  border-radius:3px; padding:5px 12px; font-size:13px; font-weight:600;
+}
+.cd-exam .cd-bar-btn:hover{background:#e8eef8}
+.cd-exam .cd-timer-wrap{
+  display:flex; flex-direction:column; align-items:flex-end; gap:0;
+  background:#ffffff; color:var(--cd-blue); padding:3px 12px;
+  border-radius:3px; min-width:130px; line-height:1.1;
+}
+.cd-exam .cd-timer-label{font-size:10px; color:#5b6577; letter-spacing:.4px; text-transform:uppercase}
+.cd-exam .cd-timer{font-variant-numeric:tabular-nums; font-size:20px; font-weight:700; color:var(--cd-blue)}
+.cd-exam .cd-timer.warn{color:#b87800}
+.cd-exam .cd-timer.danger{color:var(--cd-accent); animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.55}}
 
-.task-prompt{font-size:15px; margin:0 0 14px; line-height:1.55}
-.task-prompt b{color:var(--brand-2)}
-.task-rubric{font-size:13px; color:var(--muted); border-top:1px dashed var(--line); padding-top:12px; margin-top:14px}
-.chart-wrap{background:#0f1626; border:1px solid var(--line); border-radius:10px; padding:14px; margin:6px 0 4px}
-.chart-title{font-size:13px; color:var(--muted); text-align:center; margin-bottom:8px}
+/* Task tabs (Full-test mode only) */
+.cd-exam .cd-tabs{display:flex; background:#dbe2ee; border-bottom:1px solid var(--cd-line); flex:none}
+.cd-exam .cd-tabs-hidden{display:none !important}
+.cd-exam .cd-tabs button,
+.cd-exam .stim-tab,.cd-exam .write-tab{
+  background:#dbe2ee; color:#3f4d63; border:none; border-right:1px solid var(--cd-line);
+  padding:9px 22px; font-size:13px; font-weight:600; font-family:var(--cd-sans);
+  border-radius:0;
+}
+.cd-exam .cd-tabs button.active,
+.cd-exam .stim-tab.active,.cd-exam .write-tab.active{
+  background:var(--cd-bg); color:var(--cd-text); border-bottom:2px solid var(--cd-blue);
+}
 
-.answer-box{flex:1; width:100%; border:none; background:transparent; color:var(--text);
-  font-family:var(--serif); font-size:17px; line-height:1.7; padding:18px; resize:none; outline:none}
-.answer-box::placeholder{color:var(--faint)}
+/* Task rubric strip */
+.cd-exam .cd-task-strip{
+  background:#fbf6e2; border-bottom:1px solid #e7ddb1;
+  padding:8px 16px; flex:none;
+}
+.cd-exam .cd-task-rubric{font-size:13px; color:#5e4f1a; font-weight:600}
 
-.exam-foot{display:flex; align-items:center; gap:14px; margin-top:12px}
-.exam-foot-hint{font-size:13px; color:var(--muted)}
+/* Split body */
+.cd-exam .cd-body{
+  flex:1; display:grid; grid-template-columns:1fr 1fr; gap:0; min-height:0;
+  border-top:1px solid var(--cd-line);
+}
+.cd-exam .cd-stim{
+  background:var(--cd-bg-stim); border-right:1px solid var(--cd-line);
+  display:flex; flex-direction:column; min-height:0;
+}
+.cd-exam .cd-stim-scroll{padding:22px 28px; overflow:auto; flex:1; font-size:15px; line-height:1.55}
+.cd-exam .cd-write{background:#ffffff; display:flex; flex-direction:column; min-height:0}
+.cd-exam .cd-answer{
+  flex:1; width:100%; border:none; background:transparent; color:var(--cd-text);
+  font-family:var(--cd-sans); font-size:16px; line-height:1.6;
+  padding:22px 28px; resize:none; outline:none;
+}
+.cd-exam .cd-answer::placeholder{color:#a4adbd}
+
+/* Stimulus inner */
+.cd-exam .task-prompt{font-size:15px; margin:0 0 14px; line-height:1.55; color:var(--cd-text)}
+.cd-exam .task-prompt b{color:var(--cd-blue)}
+.cd-exam .task-rubric{font-size:13px; color:var(--cd-muted); border-top:1px dashed var(--cd-line);
+  padding-top:12px; margin-top:14px}
+.cd-exam .chart-wrap{background:#ffffff; border:1px solid var(--cd-line); border-radius:4px;
+  padding:14px; margin:8px 0}
+.cd-exam .chart-title{font-size:13px; color:var(--cd-muted); text-align:center; margin-bottom:8px; font-weight:600}
+.cd-exam .chart-svg text{fill:var(--cd-muted)}
+.cd-exam .chart-legend{color:var(--cd-muted)}
+.cd-exam .chart-legend span{color:var(--cd-muted)}
+.cd-exam .data-table th{background:#e8edf5; color:var(--cd-text)}
+.cd-exam .data-table th,.cd-exam .data-table td{border:1px solid var(--cd-line); color:var(--cd-text)}
+.cd-exam .proc-num{background:var(--cd-blue)}
+.cd-exam .proc-cyclic{color:var(--cd-blue-2)}
+
+/* Bottom bar */
+.cd-exam .cd-foot{
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--cd-bg-soft); border-top:1px solid var(--cd-line);
+  padding:10px 16px; flex:none;
+}
+.cd-exam .cd-words{font-size:13px; color:var(--cd-muted); font-variant-numeric:tabular-nums; display:flex; gap:6px; align-items:baseline}
+.cd-exam .cd-words-label{font-weight:600; color:var(--cd-text)}
+.cd-exam .cd-words #wordCount{color:var(--cd-text); font-weight:700; font-size:16px}
+.cd-exam .cd-words .cd-words-target{color:var(--cd-muted)}
+.cd-exam .cd-words.ok #wordCount{color:var(--cd-submit)}
+.cd-exam .cd-submit{
+  background:var(--cd-submit); color:#fff; border:none; border-radius:3px;
+  padding:9px 22px; font-size:14px; font-weight:700; font-family:var(--cd-sans); letter-spacing:.3px;
+}
+.cd-exam .cd-submit:hover{background:var(--cd-submit-2)}
+
+/* Hide overlay (mirrors CD-IELTS "Test paused" screen) */
+.cd-hide-overlay{
+  position:fixed; inset:0; background:#1c3d6e; z-index:60;
+  display:flex; align-items:center; justify-content:center;
+  font-family:Arial, Helvetica, sans-serif;
+}
+.cd-hide-card{
+  background:#fff; padding:32px 36px; border-radius:6px;
+  max-width:380px; text-align:center;
+}
+.cd-hide-card h2{margin:0 0 10px; color:#1c3d6e; font-size:20px}
+.cd-hide-card p{color:#5b6577; margin:0 0 18px; font-size:14px; line-height:1.5}
+.cd-hide-card .cd-submit{background:#10693a; color:#fff; border:none; padding:10px 22px;
+  border-radius:3px; font-weight:700; font-size:14px}
+.cd-hide-card .cd-submit:hover{background:#0d572f}
+
+/* Generic primary button still used elsewhere in the app */
 .primary-btn{margin-left:auto; background:var(--brand); color:#fff; border:none; border-radius:10px;
   padding:12px 20px; font-size:15px; font-weight:600}
 .primary-btn:hover{background:#4a7bf0}
@@ -205,11 +311,31 @@ button{font-family:inherit; cursor:pointer}
 .corr-new{color:#9ff0c4}
 .section-lead{font-size:13px; color:var(--muted); margin:-2px 0 12px; line-height:1.5}
 
-/* upgrade engine */
+/* upgrade engine + iterate loop */
 .upgrade{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px}
+.upgrade.applied{background:linear-gradient(0deg,rgba(62,207,142,.05),transparent); border-color:#2f5b48}
 .upg-tag{display:inline-block; font-size:10px; letter-spacing:.4px; text-transform:uppercase;
   color:#cde0ff; background:#26365e; border:1px solid #34487a; border-radius:20px; padding:2px 9px; margin-bottom:8px}
-.upg-why{font-size:12px; color:var(--muted); margin-top:8px; border-top:1px dashed var(--line); padding-top:7px}
+.upg-row{display:flex; align-items:center; gap:10px; margin-top:8px; border-top:1px dashed var(--line); padding-top:7px}
+.upg-why{font-size:12px; color:var(--muted); flex:1}
+.upg-apply{background:var(--brand); color:#fff; border:none; border-radius:8px; padding:7px 14px;
+  font-size:12px; font-weight:700; cursor:pointer; flex:none}
+.upg-apply:hover{background:#4a7bf0}
+.upg-apply.applied{background:#2f5b48; color:#9ff0c4; cursor:default}
+.upg-apply:disabled{cursor:default; opacity:.85}
+
+.remark-bar{display:flex; align-items:center; gap:14px; background:linear-gradient(160deg,#22305a,#161d30);
+  border:1px solid #3a4f86; border-radius:12px; padding:14px 16px; margin-top:14px; position:sticky;
+  bottom:14px; z-index:5}
+.remark-status{font-size:13px; color:var(--brand-2); flex:1}
+.remark-bar .primary-btn{margin-left:0; padding:10px 18px; font-size:14px}
+
+.delta-banner{display:flex; align-items:center; gap:14px; background:linear-gradient(90deg,rgba(62,207,142,.18),rgba(91,140,255,.06));
+  border:1px solid #2f5b48; border-radius:var(--radius); padding:14px 18px; margin-bottom:16px}
+.delta-banner b{font-size:18px}
+.delta-banner b.hit{color:var(--good)}
+.delta-banner b.miss{color:var(--accent)}
+.delta-sub{font-size:13px; color:var(--muted); flex:1}
 
 /* recurring patterns / fingerprint */
 .pattern{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
@@ -285,13 +411,16 @@ button{font-family:inherit; cursor:pointer}
 @media (max-width:820px){
   .stat-row{grid-template-columns:repeat(2,1fr)}
   .cta-grid{grid-template-columns:1fr}
-  .exam-body{grid-template-columns:1fr}
-  .exam-stimulus{min-height:auto; max-height:42vh}
-  .exam-stimulus .stim-scroll{max-height:38vh}
-  .exam-writepane{min-height:46vh}
-  .exam-bar{top:54px}
+  .cd-exam .cd-body{grid-template-columns:1fr; grid-template-rows:42vh 1fr}
+  .cd-exam .cd-stim{border-right:none; border-bottom:1px solid var(--cd-line)}
+  .cd-exam .cd-stim-scroll{padding:14px 16px}
+  .cd-exam .cd-answer{padding:14px 16px}
+  .cd-exam .cd-test-name{display:none}
+  .cd-exam .cd-bar{padding:6px 10px}
+  .cd-exam .cd-timer-wrap{min-width:104px; padding:2px 8px}
+  .cd-exam .cd-timer{font-size:17px}
 }
 @media (max-width:480px){
   .result-overall{font-size:52px}
-  .exam-timer{font-size:19px}
+  .cd-exam .cd-bar-btn{padding:4px 8px; font-size:12px}
 }

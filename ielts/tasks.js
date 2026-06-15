@@ -151,6 +151,109 @@ const TASK1 = [
       "In the final stage, the newly formed products are delivered to shops for sale. Once these items have been used by consumers, they can be collected once more, allowing the entire process to repeat.",
   },
   {
+    id: "t1-internet-users-line",
+    type: "task1",
+    chartKind: "line",
+    title: "Internet users by region, 2000–2020",
+    prompt:
+      "The line graph below shows the percentage of the population using the " +
+      "internet in three regions of the world between 2000 and 2020.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "line",
+      yLabel: "Population using internet (%)",
+      xLabels: ["2000", "2005", "2010", "2015", "2020"],
+      yMax: 100,
+      series: [
+        { name: "North America", color: "#2563eb", values: [44, 67, 79, 84, 90] },
+        { name: "Europe",        color: "#dc2626", values: [22, 49, 67, 78, 87] },
+        { name: "Sub-Saharan Africa", color: "#059669", values: [1, 4, 11, 20, 30] },
+      ],
+    },
+    dataFacts:
+      "Line graph, % of population using the internet, 2000-2020, three regions.\n" +
+      "North America: 44% (2000) -> 90% (2020), highest throughout, growth slowed after 2010.\n" +
+      "Europe: 22% (2000) -> 87% (2020), strong steady rise, almost catches North America by 2020.\n" +
+      "Sub-Saharan Africa: 1% (2000) -> 30% (2020), lowest throughout but grew 30-fold; growth accelerated after 2010.\n" +
+      "Overall: digital gap narrowed for Europe vs North America, but Sub-Saharan Africa still well behind despite the fastest relative growth.",
+    modelAnswer:
+      "The line graph illustrates the proportion of people using the internet in North America, Europe and Sub-Saharan Africa between 2000 and 2020.\n\n" +
+      "Overall, internet use rose substantially in all three regions, with North America consistently in the lead and Sub-Saharan Africa lagging well behind despite the most dramatic relative increase.\n\n" +
+      "In 2000, internet use was already established in North America at 44%, well above Europe at 22% and almost non-existent in Sub-Saharan Africa at just 1%. Over the next decade, both wealthy regions expanded rapidly: North America climbed to 79% and Europe to 67% by 2010, while Sub-Saharan African usage rose only modestly to around 11%.\n\n" +
+      "By 2020, the two leading regions had nearly converged, reaching 90% and 87% respectively, with North American growth visibly slowing as saturation approached. Sub-Saharan Africa, by contrast, accelerated sharply after 2010 to reach 30% by 2020 — a thirty-fold rise over the period, but still less than a third of the levels seen elsewhere.",
+  },
+  {
+    id: "t1-daily-activities-bar",
+    type: "task1",
+    chartKind: "bar",
+    title: "Time spent on daily activities by age group",
+    prompt:
+      "The bar chart below shows the average number of hours per day people in " +
+      "three age groups in one country spent on selected activities in 2023.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "bar",
+      yLabel: "Hours per day",
+      yMax: 6,
+      categories: ["Social media", "Exercise", "Reading", "Watching TV"],
+      series: [
+        { name: "16–25", color: "#2563eb", values: [4.2, 1.0, 0.4, 1.8] },
+        { name: "26–45", color: "#dc2626", values: [2.5, 1.3, 0.6, 2.2] },
+        { name: "46–65", color: "#059669", values: [0.9, 1.5, 1.4, 3.6] },
+      ],
+    },
+    dataFacts:
+      "Grouped bar chart, hours/day on each activity, 2023, three age groups (16-25, 26-45, 46-65).\n" +
+      "Social media: dropped sharply with age, 4.2 (16-25) -> 2.5 (26-45) -> 0.9 (46-65).\n" +
+      "Exercise: rose slightly with age, 1.0 -> 1.3 -> 1.5.\n" +
+      "Reading: rose with age, 0.4 -> 0.6 -> 1.4.\n" +
+      "Watching TV: rose with age, 1.8 -> 2.2 -> 3.6 (biggest single-activity figure overall).\n" +
+      "Overall: social media is overwhelmingly a young-people activity; TV, reading and exercise all increase with age. The 16-25 group spends twice as much time on social media as on TV.",
+    modelAnswer:
+      "The bar chart compares the average daily hours spent on four activities by people in three age bands in 2023.\n\n" +
+      "Overall, social media dominated younger people's days but fell sharply with age, while time devoted to television, reading and exercise all rose as people grew older.\n\n" +
+      "Among 16-25 year-olds, social media consumed an average of 4.2 hours a day, more than twice as much as television (1.8 hours) and far ahead of exercise (1.0) or reading (just 0.4 hours). The 26-45 group showed a more balanced pattern: social media dropped to 2.5 hours while television rose to 2.2 hours, with exercise and reading inching upwards.\n\n" +
+      "The oldest group, 46-65, displayed the opposite priorities. Television became the dominant activity at 3.6 hours per day, while social media fell to under an hour. Reading rose markedly to 1.4 hours and exercise reached its highest level at 1.5 hours, suggesting that physical and traditional pursuits replaced screen-based ones with age.",
+  },
+  {
+    id: "t1-energy-pie",
+    type: "task1",
+    chartKind: "pie",
+    title: "Sources of electricity in one country, 2010 vs 2030 (projected)",
+    prompt:
+      "The two pie charts below show the sources of electricity generation in " +
+      "one country in 2010 and the projected mix for 2030.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "pie",
+      charts: [
+        { title: "2010", slices: [
+          { name: "Coal",        value: 45, color: "#4b5563" },
+          { name: "Natural gas", value: 25, color: "#f59e0b" },
+          { name: "Nuclear",     value: 20, color: "#dc2626" },
+          { name: "Renewables",  value: 10, color: "#059669" },
+        ]},
+        { title: "2030 (projected)", slices: [
+          { name: "Coal",        value: 15, color: "#4b5563" },
+          { name: "Natural gas", value: 20, color: "#f59e0b" },
+          { name: "Nuclear",     value: 15, color: "#dc2626" },
+          { name: "Renewables",  value: 50, color: "#059669" },
+        ]},
+      ],
+    },
+    dataFacts:
+      "Two pie charts, % share of electricity generation, 2010 vs projected 2030.\n" +
+      "2010: Coal 45% (largest), Natural gas 25%, Nuclear 20%, Renewables 10% (smallest).\n" +
+      "2030 (projected): Renewables 50% (largest), Natural gas 20%, Coal 15%, Nuclear 15%.\n" +
+      "Changes: Coal cut to one-third its previous share (45->15). Renewables five-fold rise (10->50) and overtakes coal to become dominant. Natural gas slight fall (25->20). Nuclear modest fall (20->15).\n" +
+      "Overall: a projected reversal — fossil fuels recede and renewables become the leading source.",
+    modelAnswer:
+      "The two pie charts compare the share of electricity generated by four sources in one country in 2010 and the projected mix for 2030.\n\n" +
+      "Overall, the country is forecast to undergo a dramatic shift away from fossil fuels, with renewables expected to grow five-fold and overtake coal as the leading source by 2030.\n\n" +
+      "In 2010, coal was by far the dominant source, providing 45% of electricity, followed by natural gas at 25% and nuclear power at 20%. Renewables made the smallest contribution at just 10%.\n\n" +
+      "The projected 2030 figures invert this hierarchy. Renewables are expected to rise sharply to 50%, becoming the single biggest source of electricity, while coal is forecast to fall to only 15% — a third of its earlier share. Natural gas and nuclear are also projected to decline modestly, to 20% and 15% respectively. If the projections are accurate, fossil fuels and nuclear together will account for only half of generation, where they once produced 90%.",
+  },
+  {
     id: "t1-housing-pie",
     type: "task1",
     chartKind: "pie",
@@ -292,6 +395,60 @@ const TASK2 = [
       "There are two principal reasons why people buy more than they need. The first is relentless advertising, which deliberately creates desires that did not previously exist by associating products with happiness, status and success. The second is social pressure: in a culture where possessions are seen as a measure of achievement, people purchase expensive items in order to keep up with friends and colleagues rather than out of genuine necessity.\n\n" +
       "The effects of this behaviour are largely negative. For individuals, excessive spending often leads to debt and financial anxiety, as people stretch their resources to fund a lifestyle they cannot truly afford. There is also a psychological cost, since the satisfaction gained from a new purchase is usually short-lived, prompting yet more buying. At the societal level, mass consumption drives the overuse of natural resources and generates enormous quantities of waste, accelerating environmental damage such as pollution and climate change.\n\n" +
       "In conclusion, people buy more than they need chiefly because of advertising and social comparison, and the consequences include personal debt and serious environmental harm. A shift towards more mindful, sustainable consumption would clearly benefit everyone.",
+  },
+  {
+    id: "t2-smartphones",
+    type: "task2",
+    qType: "Advantages / disadvantages",
+    title: "Smartphones in daily life",
+    prompt:
+      "The widespread use of smartphones has changed the way people live, work " +
+      "and communicate with one another.\n\n" +
+      "Do the advantages of this development outweigh the disadvantages?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "Smartphones have become an inseparable feature of modern life, reshaping everything from how we keep in touch to how we navigate, shop and earn a living. Although their impact has not been wholly positive, I believe the advantages they offer clearly outweigh the drawbacks.\n\n" +
+      "The most obvious benefit is sheer convenience. A single device now performs the functions that once required a camera, a map, a wallet, a notebook and a desktop computer. This has saved enormous amounts of time and made services such as banking, healthcare and education accessible to people in remote areas who would otherwise struggle to reach them. Smartphones have also democratised information: anyone with a connection can access news, online courses and professional networks that were previously the preserve of the privileged few.\n\n" +
+      "On the negative side, smartphones can be addictive and have been linked to falling attention spans, disrupted sleep and rising anxiety, particularly among teenagers. The constant availability they create has also blurred the line between work and personal life, leaving many people unable to switch off. Privacy concerns add a further worry, as enormous amounts of personal data flow through these devices every day.\n\n" +
+      "However, most of these problems stem from how smartphones are used rather than from the devices themselves. Sensible habits, clearer workplace boundaries and better digital-literacy education in schools can mitigate the harm without sacrificing the benefits.\n\n" +
+      "On balance, the gains in convenience, connectivity and access to information far exceed the costs, and I am convinced that the advantages of widespread smartphone use outweigh its disadvantages.",
+  },
+  {
+    id: "t2-climate-individuals",
+    type: "task2",
+    qType: "Opinion (agree / disagree)",
+    title: "Climate change and individual action",
+    prompt:
+      "Some people believe that climate change is too big a problem to be " +
+      "solved by individuals, and that only governments and large companies " +
+      "can make a real difference.\n\n" +
+      "To what extent do you agree or disagree?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "There is a common view that ordinary people are powerless against a challenge as vast as climate change, and that meaningful progress can only come from governments and major industries. I partly accept this argument but ultimately disagree, because individual choices remain an essential part of any genuine solution.\n\n" +
+      "It is undeniable that the largest sources of emissions sit firmly outside personal control. Industrial agriculture, fossil-fuel power generation and global supply chains together produce the vast majority of greenhouse gases, and only governments can set the regulations, taxes and subsidies that reshape these systems. International treaties, large-scale clean-energy investment and bans on the most polluting practices are decisions no individual can make alone, so to that extent the argument has clear merit.\n\n" +
+      "Nevertheless, treating individuals as powerless is both inaccurate and unhelpful. Personal choices — driving less, eating less meat, insulating homes, voting and pressuring employers — together account for a significant proportion of national emissions in wealthy countries. Moreover, citizens are the ones who elect governments and buy from companies; without sustained public demand for cleaner products and stricter policies, neither will move quickly enough. The success of recycling, the rapid uptake of electric cars and the rise of plant-based diets all show how individual behaviour can shift entire markets.\n\n" +
+      "In conclusion, while the heaviest lifting must indeed be done by governments and corporations, I disagree that individual action is irrelevant. The two operate together: institutional change creates the conditions for personal action, and personal action creates the political pressure that drives institutional change.",
+  },
+  {
+    id: "t2-youth-employment",
+    type: "task2",
+    qType: "Two-part (direct) question",
+    title: "Youth unemployment",
+    prompt:
+      "In many countries, young people today find it more difficult to secure " +
+      "well-paid, stable jobs than previous generations did.\n\n" +
+      "What are the reasons for this? What can governments and employers do " +
+      "to address the problem?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "Across much of the world, young adults today face a far harder route into secure, well-paid employment than their parents did a generation ago. This essay will examine why this is happening and suggest what governments and employers can do to improve matters.\n\n" +
+      "Several factors lie behind the problem. The first is structural: automation and the offshoring of routine work have hollowed out the entry-level jobs that once gave young people their first foothold in the labour market. The second is educational: while university participation has expanded rapidly, the skills many graduates leave with often do not match what employers actually need, particularly in technical and digital fields. A third factor is the rise of insecure, gig-style contracts, which leave young workers without the training, pensions and progression that previous generations could take for granted.\n\n" +
+      "There are clear steps that policymakers and businesses could take to ease this situation. Governments could invest more heavily in vocational training and high-quality apprenticeships, giving young people credible alternatives to often-expensive university degrees. They could also use tax incentives and labour-law reform to encourage employers to offer secure contracts and proper training for new entrants. For their part, employers should treat early-career talent as a long-term investment rather than disposable labour, providing structured mentorship, transparent progression and fair entry-level pay.\n\n" +
+      "In conclusion, young people's difficulty in finding good jobs stems from a combination of automation, mismatched education and the spread of insecure work. By rebuilding the bridge between education and employment, and by restoring stability to entry-level roles, governments and employers can give the next generation a genuine chance to flourish.",
   },
   {
     id: "t2-arts-funding",
