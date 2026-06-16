@@ -118,6 +118,12 @@ button{font-family:inherit; cursor:pointer}
 
 /* ---------- exam: CD-IELTS lookalike (white bg, blue header, Arial) ---------- */
 /* Scoped under .cd-exam so the rest of the app keeps its dark theme. */
+/* .cd-exam sets display:flex on its base rule, which would override the HTML
+   `hidden` attribute (UA stylesheet `[hidden]{display:none}` loses to an author
+   rule of equal specificity). Without this, the blank exam screen stays
+   position:fixed inset:0 over every other view and eats all clicks. */
+.cd-exam[hidden]{display:none !important}
+
 .cd-exam{
   --cd-blue:#1c3d6e;       /* IELTS-style navy header */
   --cd-blue-2:#23508f;     /* hover */
