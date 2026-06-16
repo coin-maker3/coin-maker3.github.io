@@ -122,6 +122,35 @@ button{font-family:inherit; cursor:pointer; color:inherit}
   background:none; border:none; color:var(--brand-2); font-size:11px; padding:0;
 }
 
+/* ---- Learn primary CTA on home --------------------------------------- */
+.learn-cta{
+  display:flex; align-items:center; gap:18px; width:100%;
+  background:linear-gradient(160deg, #1f3970, #1a2538);
+  border:1px solid #3a4f86; border-radius:var(--radius);
+  padding:22px 22px;
+  text-align:left; color:var(--text);
+  cursor:pointer; transition:transform .12s, border-color .12s, background .12s;
+  margin-bottom:18px;
+}
+.learn-cta:hover{transform:translateY(-2px); border-color:var(--brand-2)}
+.learn-cta-left{flex:1; min-width:0}
+.learn-cta-kicker{font-size:11px; letter-spacing:.4px; color:var(--accent); text-transform:uppercase; font-weight:700}
+.learn-cta-title{font-size:22px; font-weight:800; margin-top:6px; letter-spacing:-.2px}
+.learn-cta-desc{font-size:13px; color:var(--muted); margin-top:6px; line-height:1.55}
+.learn-cta-progress{
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  background:rgba(0,0,0,.18); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:14px 18px;
+  min-width:120px;
+}
+.learn-cta-mastered{
+  font-size:34px; font-weight:800; color:var(--brand-2); line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.learn-cta-mastered span{font-size:18px; color:var(--muted); font-weight:600}
+.learn-cta-prog-label{font-size:11px; letter-spacing:.4px; color:var(--muted); text-transform:uppercase; margin-top:4px; font-weight:600}
+.learn-cta-prog-sub{font-size:11px; color:var(--accent); margin-top:2px}
+
 /* ---- focus banner ------------------------------------------------------- */
 .focus-banner{
   display:flex; align-items:center; gap:10px;
@@ -252,6 +281,89 @@ button{font-family:inherit; cursor:pointer; color:inherit}
 .picker-card{cursor:pointer}
 .picker-card:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 .picker-helpers{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px}
+
+/* ---- Learn module list + module flow --------------------------------- */
+.module-list{display:flex; flex-direction:column; gap:10px; margin-top:8px}
+.module-card{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius); padding:16px 18px;
+  text-align:left; cursor:pointer;
+  transition:transform .12s, border-color .12s, background .12s;
+}
+.module-card:hover{transform:translateY(-1px); border-color:var(--brand)}
+.module-card:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+.module-card.mastered{border-color:#2f5b48; background:linear-gradient(160deg, rgba(62,207,142,.06), transparent)}
+.module-card-head{display:flex; align-items:center; gap:12px; justify-content:space-between}
+.module-card-title{font-weight:700; font-size:16px}
+.module-card-short{font-size:13px; color:var(--muted); margin-top:6px; line-height:1.4}
+.module-card-blocks{font-size:12px; color:var(--brand-2); margin-top:8px}
+.module-card-blocks b{font-weight:700}
+.module-badge{
+  display:inline-block; font-size:11px; font-weight:700;
+  background:var(--panel-2); color:var(--brand-2);
+  border:1px solid var(--line); border-radius:20px;
+  padding:3px 10px;
+}
+.module-badge.mastered{background:var(--good); color:#0a221a; border-color:var(--good)}
+
+.module-head{display:flex; align-items:baseline; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:10px}
+.module-meta{font-size:13px; color:var(--muted)}
+.module-meta b{color:var(--brand-2)}
+
+.module-why{
+  background:linear-gradient(90deg, rgba(255,180,84,.08), transparent);
+  border:1px solid #4d3a18; border-left:3px solid var(--accent);
+  border-radius:var(--radius-sm); padding:12px 14px;
+  margin-bottom:18px;
+}
+.module-why-label{font-size:11px; letter-spacing:.4px; color:var(--accent); font-weight:700; text-transform:uppercase; margin-bottom:6px}
+.module-why div:last-child{font-size:13px; color:var(--muted); line-height:1.55}
+
+.module-concept{font-size:14px; line-height:1.6; color:var(--text)}
+.module-concept p{margin:0 0 10px}
+
+.module-example{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:10px;
+}
+.module-example-good{border-left:3px solid var(--good)}
+.module-example-bad{border-left:3px solid var(--bad)}
+.module-example-label{
+  display:inline-block; font-size:11px; font-weight:800; letter-spacing:.4px;
+  text-transform:uppercase; padding:2px 9px; border-radius:20px;
+  margin-bottom:8px;
+}
+.module-example-good .module-example-label{background:var(--good); color:#0a221a}
+.module-example-bad  .module-example-label{background:var(--bad);  color:#220a0a}
+.module-example-prompt{font-size:13px; color:var(--muted); margin-bottom:6px}
+.module-example-text{font-family:var(--serif); font-size:15px; line-height:1.6; color:var(--text); padding:10px 12px; background:var(--panel-2); border-radius:8px}
+.module-example-why{font-size:12px; color:var(--muted); margin-top:8px; font-style:italic}
+
+.module-tryit-prompt{
+  background:var(--panel); border:1px solid var(--line);
+  border-left:3px solid var(--brand-2);
+  border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:14px;
+  font-size:14px; line-height:1.5; color:var(--text);
+}
+
+.module-result-hero{
+  background:linear-gradient(160deg, #233460, #161d30);
+  border:1px solid #34487a; border-radius:var(--radius);
+  padding:24px; text-align:center; margin-bottom:18px;
+}
+.module-result-hero.pass{background:linear-gradient(160deg, rgba(62,207,142,.18), #161d30); border-color:#2f5b48}
+.module-result-hero.fail{background:linear-gradient(160deg, rgba(255,107,107,.10), #161d30); border-color:#6e3333}
+.module-result-label{font-size:12px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase}
+.module-result-pass{font-size:34px; font-weight:800; margin-top:6px}
+.module-result-hero.pass .module-result-pass{color:var(--good)}
+.module-result-hero.fail .module-result-pass{color:var(--accent)}
+.module-result-score{font-size:14px; color:var(--muted); margin-top:8px}
+
+/* ---- topbar primary nav --------------------------------------------- */
+.ghost-btn.primary-nav{
+  background:var(--brand); color:#fff; border-color:var(--brand); font-weight:700;
+}
+.ghost-btn.primary-nav:hover{background:#4a7bf0; color:#fff}
 
 /* ---- mode toggle + staged practice ---------------------------------- */
 .mode-toggle{

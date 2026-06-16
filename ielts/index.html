@@ -17,6 +17,7 @@
     <span class="brand-name">Band&nbsp;7 Lab</span>
   </button>
   <nav class="topnav" id="topnav">
+    <button class="ghost-btn primary-nav" id="navLearn" type="button" title="Master the skills, one at a time">Learn</button>
     <button class="ghost-btn" id="navVault" type="button" title="Spelling vault" hidden>Vault</button>
     <button class="ghost-btn" id="navCoach" type="button" title="Your AI coach">Coach</button>
     <button class="ghost-btn" id="navHistory" type="button" title="Your past attempts">Progress</button>
@@ -58,11 +59,22 @@
       <span id="focusText"></span>
     </div>
 
+    <!-- Primary path: structured skill-by-skill learning. -->
+    <button class="learn-cta" type="button" id="learnCta">
+      <div class="learn-cta-left">
+        <div class="learn-cta-kicker">START HERE · Six skill modules · ~10 min each</div>
+        <div class="learn-cta-title">Learn — Master the skills</div>
+        <div class="learn-cta-desc">Read the concept, see good vs bad examples, write a short piece, get a focused mark. One skill at a time. This is how 4.5 becomes 7.</div>
+      </div>
+      <div class="learn-cta-progress" id="learnCtaProgress"></div>
+    </button>
+
+    <!-- Secondary: practise full essays in exam or staged-practice mode. -->
     <div class="cta-grid">
-      <button class="cta-card primary" type="button" data-start="task2">
-        <span class="cta-kicker">Task 2 · 40 min · 250+ words · counts double</span>
+      <button class="cta-card" type="button" data-start="task2">
+        <span class="cta-kicker">Task 2 · 40 min · 250+ words</span>
         <span class="cta-title">Practise Task 2</span>
-        <span class="cta-desc">The essay. This is where bands are won or lost.</span>
+        <span class="cta-desc">The essay. Exam mode or staged practice (plan first, then write).</span>
       </button>
       <button class="cta-card" type="button" data-start="task1">
         <span class="cta-kicker">Task 1 · 20 min · 150+ words</span>
@@ -191,6 +203,16 @@
   <!-- ============================ SPELLING VAULT ============================ -->
   <section class="view" id="view-vault" data-view="vault" hidden>
     <div id="vaultBody"></div>
+  </section>
+
+  <!-- ============================ LEARN — module list ============================ -->
+  <section class="view" id="view-learn" data-view="learn" hidden>
+    <div id="learnBody"></div>
+  </section>
+
+  <!-- ============================ MODULE — concept / try-it / result ============================ -->
+  <section class="view" id="view-module" data-view="module" hidden>
+    <div id="moduleBody"></div>
   </section>
 
 </main>

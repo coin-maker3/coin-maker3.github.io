@@ -913,4 +913,233 @@ const BAND_DESCRIPTORS = {
   },
 };
 
-window.IELTS_DATA = { TASK1, TASK2, BAND_DESCRIPTORS };
+/* ============================================================================
+   LEARN MASTERY PATH — Master the X modules
+   Each module isolates ONE micro-skill that, when fixed, lifts a specific
+   criterion. Built for someone stuck at 4.5–6.5 who needs structured practice,
+   not just "do another essay and hope it improves".
+   ========================================================================== */
+
+const MODULES = [
+  {
+    id: "mod_intro",
+    title: "Master the Introduction",
+    short: "Open every essay strong",
+    blocks: "Task Response",
+    why: "A weak introduction caps Task Response. Copying the prompt verbatim, or writing 'this essay will discuss', signals 'band 5 candidate' to the examiner before they reach paragraph 2.",
+    concept: [
+      "An IELTS Task 2 introduction must do THREE things in 2–3 sentences (about 50–70 words):",
+      "1. PARAPHRASE the prompt — restate it in your own words.",
+      "2. STATE YOUR POSITION clearly — what side of the question do you take?",
+      "3. (Optional) PREVIEW your structure — briefly hint at the 2 main ideas you'll develop.",
+      "",
+      "Never copy the prompt verbatim. Never use 'this essay will discuss' as your position. Never write more than 3 sentences.",
+    ],
+    examples: [
+      {
+        kind: "good",
+        prompt: "Some people believe universities should be free for all students. To what extent do you agree or disagree?",
+        text: "There is a long-running debate about whether higher education should be funded entirely by the state. While supporters argue this guarantees equal access, opponents warn it is unsustainable. In my view, free university tuition is desirable in principle but impractical without major funding reforms.",
+        why: "Paraphrases 'universities' → 'higher education', 'free' → 'funded by the state'. States a clear nuanced position. Hints at the body's structure.",
+      },
+      {
+        kind: "bad",
+        prompt: "Some people believe universities should be free for all students. To what extent do you agree or disagree?",
+        text: "Some people believe universities should be free for all students. This essay will discuss this topic and give my opinion.",
+        why: "Copies the prompt almost verbatim. 'Will discuss' is empty filler with no actual position. The examiner discounts this opening.",
+      },
+    ],
+    try_it_prompt:
+      "Write an introduction (2–3 sentences) for this Task 2 prompt:\n\n" +
+      "\"Many people now work from home rather than commute to an office. " +
+      "Do the advantages of this development outweigh the disadvantages?\"",
+    skill_description:
+      "writing a strong IELTS Task 2 introduction that (1) paraphrases the prompt in different words from the original, (2) states a clear position on the question, and (3) optionally previews the structure. Penalise: copying the prompt verbatim, using empty 'this essay will discuss' filler, no clear position, more than 3 sentences.",
+    mastery_target: 3,
+  },
+  {
+    id: "mod_topic_sentence",
+    title: "Master the Topic Sentence",
+    short: "Open every body paragraph with a clear claim",
+    blocks: "Coherence & Cohesion",
+    why: "Without a strong topic sentence, the examiner can't see your structure. Coherence drops because each paragraph reads like an unfocused list of thoughts.",
+    concept: [
+      "The first sentence of every body paragraph is its TOPIC SENTENCE. It must state, in one clear sentence, the main claim that paragraph will defend.",
+      "A good topic sentence is:",
+      "- A CLAIM, not a fact or question.",
+      "- Specific enough to defend in 4–5 sentences.",
+      "- Phrased so the examiner can predict where the paragraph will go.",
+      "",
+      "Avoid: 'There are many reasons.' (Too vague.) 'Firstly, technology is good.' (Too broad.) 'In addition, more.' (Just a connector, no claim.)",
+    ],
+    examples: [
+      {
+        kind: "good",
+        prompt: "Argument for why remote work benefits employers",
+        text: "The most compelling reason for employers to embrace remote work is the dramatic reduction in office overhead, which can be redirected into salaries and growth.",
+        why: "A specific claim ('reduction in office overhead'), framed so we know what comes next (evidence + redirected to salaries).",
+      },
+      {
+        kind: "bad",
+        prompt: "Argument for why remote work benefits employers",
+        text: "There are many advantages of remote work for employers.",
+        why: "A statement of fact with no claim. The reader has no idea which advantage the paragraph will defend.",
+      },
+    ],
+    try_it_prompt:
+      "Write a TOPIC SENTENCE (one sentence only) that could open a body paragraph defending this claim:\n\n" +
+      "\"Governments should tax sugary drinks to reduce obesity.\"\n\n" +
+      "The claim your topic sentence should defend: a tax on sugary drinks would shift consumer behaviour towards healthier alternatives.",
+    skill_description:
+      "writing a single clear topic sentence to open a body paragraph. It must make a SPECIFIC CLAIM (not a fact, not a question), be defensible in 4–5 sentences, and let the reader predict where the paragraph is going. Penalise: vague openers like 'There are many advantages', empty connectors like 'In addition, more', anything that does not commit to a specific claim.",
+    mastery_target: 3,
+  },
+  {
+    id: "mod_development",
+    title: "Master Idea Development",
+    short: "Develop every claim with reason → example → consequence",
+    blocks: "Task Response · Coherence & Cohesion",
+    why: "Underdeveloped paragraphs are the #1 reason candidates get stuck at Band 6 instead of 7. A claim without a reason and example is just an assertion.",
+    concept: [
+      "Every body paragraph in a band-7 essay follows a CHAIN:",
+      "1. CLAIM (topic sentence).",
+      "2. REASON — why is the claim true?",
+      "3. EXAMPLE — a specific real-world case (a country, study, policy, named programme).",
+      "4. CONSEQUENCE — so what? what follows from the example?",
+      "",
+      "Each link is 1–2 sentences. Total paragraph: 4–6 sentences, about 80–110 words.",
+      "Vague generalisations ('many people think...', 'in some countries...') are NOT examples. Examples must be specific enough that the examiner could fact-check them.",
+    ],
+    examples: [
+      {
+        kind: "good",
+        prompt: "Develop a paragraph defending the claim 'public transport reduces urban congestion'",
+        text: "Well-designed public transport visibly reduces congestion because each filled train or bus removes dozens of private cars from the road. London is the clearest example: after the introduction of the Congestion Charge alongside expanded Tube and bus services, peak-time traffic in the central zone dropped by around 30%. The wider lesson is that supply and demand-side measures work together — investment in transit only succeeds when driving is also made less attractive.",
+        why: "Claim → reason (filled trains remove cars) → specific example (London congestion charge + transit) → consequence (supply + demand work together). Specific enough to fact-check.",
+      },
+      {
+        kind: "bad",
+        prompt: "Develop a paragraph defending the claim 'public transport reduces urban congestion'",
+        text: "Public transport is good for traffic. Many people think buses and trains can help. In some countries, this has worked well. So we should support public transport.",
+        why: "Four sentences with zero specific content. No reason, no example, no consequence. Examiner caps Task Response at 5.",
+      },
+    ],
+    try_it_prompt:
+      "Write a 4-sentence body paragraph (claim → reason → example → consequence) defending this claim:\n\n" +
+      "\"Compulsory community service in schools builds civic responsibility.\"",
+    skill_description:
+      "developing a single body paragraph as a chain: CLAIM → REASON → SPECIFIC REAL-WORLD EXAMPLE → CONSEQUENCE. About 4–6 sentences, 80–110 words. Penalise: missing any of the four links, vague non-examples like 'in some countries' or 'many people think', restating the claim as the consequence, paragraphs under 60 words, paragraphs over 130 words.",
+    mastery_target: 3,
+  },
+  {
+    id: "mod_linking",
+    title: "Master Linking Words",
+    short: "Connect ideas without monotony",
+    blocks: "Coherence & Cohesion",
+    why: "Over-using 'Firstly / Secondly / Finally' marks a candidate at band 5–6. Band 7+ uses varied, embedded connectors that don't shout.",
+    concept: [
+      "Cohesion at band 7 means connectors that signal the relationship between ideas — but VARIED and sometimes embedded inside sentences, not always stuck at the front.",
+      "Replace your top 3 over-used connectors:",
+      "- 'Firstly' → 'The most compelling reason is…' / 'To begin with…'",
+      "- 'In addition' → 'A further factor is…' / 'Beyond this, …'",
+      "- 'In conclusion' → 'On balance, …' / 'Taken together, …'",
+      "",
+      "And inside sentences: 'while', 'although', 'whereas', 'despite', 'because of', 'as a result of'.",
+      "Rule of thumb: NO connector appears more than twice in the whole essay.",
+    ],
+    examples: [
+      {
+        kind: "good",
+        prompt: "Joining two contrasting body paragraphs",
+        text: "While the economic argument for remote work is compelling, the social cost has received less attention.",
+        why: "'While… ,' connects contrast inside a single sentence. No 'On the other hand' shouted at the front.",
+      },
+      {
+        kind: "bad",
+        prompt: "Joining two contrasting body paragraphs",
+        text: "Firstly, remote work saves money. Secondly, on the other hand, there are some bad things too.",
+        why: "Two front-of-sentence connectors stacked ('Secondly, on the other hand'), and 'some bad things' is empty. Marks down for over-use AND vagueness.",
+      },
+    ],
+    try_it_prompt:
+      "Rewrite this clunky paragraph opener as ONE sentence using an embedded connector:\n\n" +
+      "\"Firstly, online learning has many advantages. Secondly, on the other hand, traditional classrooms also have advantages.\"\n\n" +
+      "Aim for a single sentence that signals the contrast without using 'on the other hand' at the front.",
+    skill_description:
+      "varied, sometimes-embedded cohesive devices that connect ideas without monotony. Replace front-of-sentence 'Firstly / Secondly / On the other hand' patterns with embedded connectors ('while', 'although', 'whereas', 'despite') or fresher alternatives ('The most compelling reason is', 'A further factor is', 'On balance'). Penalise: any answer that still uses front-of-sentence 'Firstly / Secondly / On the other hand', any answer that just deletes the connector without replacing the function.",
+    mastery_target: 3,
+  },
+  {
+    id: "mod_conclusion",
+    title: "Master the Conclusion",
+    short: "Close with conviction, not repetition",
+    blocks: "Task Response",
+    why: "A weak conclusion that just repeats the intro is the single most common 'last impression' band 5/6 marker. A good conclusion takes 30 seconds to write but lifts the whole essay.",
+    concept: [
+      "A band-7 conclusion is 2–3 sentences (about 40–60 words) that:",
+      "1. RESTATES YOUR POSITION clearly, in different words from the intro.",
+      "2. SUMMARISES the two main reasons (very briefly — one phrase each).",
+      "3. (Optional) Adds a SHORT final thought — a recommendation or implication.",
+      "",
+      "Never introduce new arguments. Never write 'In conclusion' if you used it in a previous essay this week — vary your opening phrase.",
+    ],
+    examples: [
+      {
+        kind: "good",
+        prompt: "Concluding an essay arguing schools should teach financial literacy",
+        text: "On balance, equipping young people with practical financial skills clearly benefits both the individual and society, by reducing personal debt and strengthening household economies. Schools that already do this should be the model, not the exception.",
+        why: "Restates the position ('benefits both individual and society'), summarises the two reasons in one clause, ends with a forward-looking recommendation. 41 words.",
+      },
+      {
+        kind: "bad",
+        prompt: "Concluding an essay arguing schools should teach financial literacy",
+        text: "In conclusion, financial literacy is important. Schools should teach it. I agree with this.",
+        why: "Three near-empty sentences. No summary of reasons. 'I agree' adds nothing. Marker treats this as band 5.",
+      },
+    ],
+    try_it_prompt:
+      "Write a CONCLUSION (2–3 sentences) for an essay arguing:\n\n" +
+      "\"Working from home benefits both employees and employers more than it disadvantages them.\"\n\n" +
+      "Assume the essay made two arguments: (1) it saves time/money for both sides, (2) it widens access to skilled work for parents and people with disabilities.",
+    skill_description:
+      "writing a 2–3 sentence band-7 IELTS Task 2 conclusion that restates the position in different words, briefly summarises the two main reasons, and optionally adds a short recommendation. Penalise: openings that just say 'In conclusion, X is important', conclusions that introduce new arguments, conclusions over 70 words, or under 30 words.",
+    mastery_target: 3,
+  },
+  {
+    id: "mod_articles",
+    title: "Master Articles & Inflections",
+    short: "Fix the grammar errors examiners notice instantly",
+    blocks: "Grammatical Range & Accuracy",
+    why: "Missing articles ('the government', 'a study'), wrong plurals ('every subjects'), and stative verb errors ('I am agree') are the most-flagged grammar errors for non-native candidates — and the easiest to fix once spotted.",
+    concept: [
+      "Three grammar patterns to hard-wire:",
+      "1. ARTICLES — singular countable nouns need 'a/an/the' (the government, a policy, an exam). Don't say 'government should', say 'the government should'.",
+      "2. PLURAL AGREEMENT — 'every / each / one' is followed by SINGULAR. 'Every student' not 'every students'. 'One country' not 'one countries'.",
+      "3. STATIVE VERBS — verbs like 'agree, disagree, know, think, believe' are FULL verbs. Never write 'I am agree' — write 'I agree'. Same for 'I am think' (wrong) → 'I think'.",
+      "",
+      "If you fix only these three, your Grammar band typically rises by a full point.",
+    ],
+    examples: [
+      {
+        kind: "good",
+        prompt: "Express a position on a Task 2 prompt about climate change",
+        text: "I largely agree that the government must take the lead on climate policy, although individual citizens also have a meaningful role to play in every household.",
+        why: "Articles where needed ('the government', 'the lead'), 'every' followed by singular ('every household'), 'I agree' not 'I am agree'.",
+      },
+      {
+        kind: "bad",
+        prompt: "Express a position on a Task 2 prompt about climate change",
+        text: "I am agree that government must take lead on climate policy, although individuals also have role to play in every households.",
+        why: "'I am agree' (stative-verb error), missing 'the' before government/lead/role, 'every households' (every needs singular). Three errors flagged in one sentence.",
+      },
+    ],
+    try_it_prompt:
+      "Rewrite this sentence correctly — fix the article, plural and stative-verb errors:\n\n" +
+      "\"I am agree that university should provide free education for every students because economic argument is clear.\"",
+    skill_description:
+      "correct use of articles (a/an/the), plural agreement (every/each/one + SINGULAR), and stative verbs (no 'am/is/are' before agree/think/know/believe). Mark strictly: if any of these three error types remains in the candidate's submission, it does NOT pass. Penalise: missing articles before singular countable nouns, 'every/each + plural', 'I am agree/think/know'.",
+    mastery_target: 3,
+  },
+];
+
+window.IELTS_DATA = { TASK1, TASK2, BAND_DESCRIPTORS, MODULES };

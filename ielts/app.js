@@ -15,7 +15,7 @@ if (!window.IELTS_DATA) {
   console.error("tasks.js failed to load — window.IELTS_DATA is missing.");
   return;
 }
-const { TASK1, TASK2, BAND_DESCRIPTORS } = window.IELTS_DATA;
+const { TASK1, TASK2, BAND_DESCRIPTORS, MODULES } = window.IELTS_DATA;
 
 const STORE_KEY = "ielts_lab_v2";
 const ANTHROPIC_DIRECT_URL = "https://api.anthropic.com/v1/messages";
@@ -155,7 +155,7 @@ function infoDialog(html) {
 
 /* ============================== ROUTER ============================== */
 
-const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill", "vault", "staged"];
+const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill", "vault", "staged", "learn", "module"];
 function show(view) {
   // hide the topbar while exam is up (CD-IELTS owns the screen)
   $("#topbar").hidden = view === "exam";
@@ -206,6 +206,7 @@ function renderHome() {
   renderProgressChart(marked, "#progressPanel", "#progressChart", "#progressNote");
   renderRecent();
   renderAchievements();
+  renderLearnCtaProgress();
   applyOwnerUI();
 
   const owner = !!s.ownerMode;
@@ -358,6 +359,21 @@ function unlock(id) {
   if (a) toast(`Milestone unlocked — ${a.name}`);
 }
 
+function renderLearnCtaProgress() {
+  const el = $("#learnCtaProgress");
+  if (!el) return;
+  if (!Array.isArray(MODULES)) { el.innerHTML = ""; return; }
+  const total = MODULES.length;
+  const mastered = MODULES.filter((m) => moduleState(m.id).mastered).length;
+  const inProgress = MODULES.filter((m) => {
+    const st = moduleState(m.id);
+    return !st.mastered && st.correct > 0;
+  }).length;
+  el.innerHTML = `<div class="learn-cta-mastered">${mastered}<span>/${total}</span></div>
+    <div class="learn-cta-prog-label">mastered</div>
+    ${inProgress > 0 ? `<div class="learn-cta-prog-sub">+${inProgress} in progress</div>` : ""}`;
+}
+
 function renderProgressChart(marked, panelSel, chartSel, noteSel) {
   const panel = $(panelSel);
   if (marked.length < 2) { if (panel) panel.hidden = true; return; }
@@ -430,19 +446,15 @@ function openPicker(mode) {
       <div class="picker-kicker">${esc(t.qType || t.chartKind || "")}</div>
       <div class="picker-title">${esc(t.title)}</div>
       <div class="picker-desc">${esc(promptPreview(t.prompt))}</div>
-      ${mode === "task2" ? `<div class="picker-helpers">
-        <button class="picker-plan-btn" type="button" data-plan="${esc(t.id)}">📋 Plan with me</button>
-        <button class="picker-plan-btn" type="button" data-idea="${esc(t.id)}">💡 Brainstorm ideas</button>
-      </div>` : ""}
     </div>
   </div>`).join("");
   $("#pickerList").innerHTML = html;
   $$("#pickerList .picker-card").forEach((c) => {
-    c.onclick = (e) => {
-      if (e.target.closest("[data-plan]") || e.target.closest("[data-idea]")) return;
+    c.onclick = () => {
       let id = c.dataset.pick;
       if (id === "__random") id = list[Math.floor(Math.random() * list.length)].id;
-      // Practice mode applies to Task 2 only.
+      // Practice mode applies to Task 2 only. The Plan-with-me and
+      // Brainstorm-ideas helpers live inside Practice mode's planning stage.
       if (mode === "task2" && pickerSessionMode === "practice") {
         startStagedSession(id);
       } else {
@@ -451,20 +463,6 @@ function openPicker(mode) {
     };
     c.onkeydown = (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); c.click(); }
-    };
-  });
-  $$("#pickerList [data-plan]").forEach((b) => {
-    b.onclick = (e) => {
-      e.stopPropagation();
-      const task = list.find((t) => t.id === b.dataset.plan);
-      if (task) openDeconstruct(task);
-    };
-  });
-  $$("#pickerList [data-idea]").forEach((b) => {
-    b.onclick = (e) => {
-      e.stopPropagation();
-      const task = list.find((t) => t.id === b.dataset.idea);
-      if (task) openIdeaBank(task);
     };
   });
   show("picker");
@@ -2019,6 +2017,294 @@ function renderDeconstruct(task, plan) {
   };
 }
 
+/* ============================== LEARN — Master the X ============================== */
+/* Structured learning path. Each module isolates ONE micro-skill:
+   - Master the Introduction
+   - Master the Topic Sentence
+   - Master Idea Development
+   - Master Linking Words
+   - Master the Conclusion
+   - Master Articles & Inflections
+   Flow: read the concept + good/bad examples -> try it (write a short
+   piece) -> Claude marks ONLY on that skill -> pass increments mastery.
+   3 passes = module mastered. Progress persists in store.modules. */
+
+const MODULE_MARK_SCHEMA = {
+  type: "object", additionalProperties: false,
+  properties: {
+    pass:             { type: "boolean" },
+    score:            { type: "integer" },
+    feedback:         { type: "string" },
+    specific_issues:  { type: "array", items: { type: "string" } },
+    improved_version: { type: "string" },
+  },
+  required: ["pass", "score", "feedback", "specific_issues", "improved_version"],
+};
+
+function moduleState(id) {
+  if (!store.modules) store.modules = {};
+  if (!store.modules[id]) {
+    store.modules[id] = { attempts: 0, correct: 0, mastered: false, last_score: 0, last_attempt: 0 };
+  }
+  return store.modules[id];
+}
+
+function renderLearn() {
+  show("learn");
+  const body = $("#learnBody");
+
+  const cards = MODULES.map((m) => {
+    const state = moduleState(m.id);
+    const progress = state.mastered
+      ? `<span class="module-badge mastered">Mastered ✓</span>`
+      : `<span class="module-badge">${state.correct}/${m.mastery_target} correct</span>`;
+    return `<div class="module-card ${state.mastered ? "mastered" : ""}" data-module-id="${esc(m.id)}" tabindex="0" role="button">
+      <div class="module-card-head">
+        <div class="module-card-title">${esc(m.title)}</div>
+        ${progress}
+      </div>
+      <div class="module-card-short">${esc(m.short)}</div>
+      <div class="module-card-blocks">Lifts: <b>${esc(m.blocks)}</b></div>
+    </div>`;
+  }).join("");
+
+  body.innerHTML = `<button class="back-btn" type="button" data-back>← Home</button>
+    <h2 class="view-title">Master the skills</h2>
+    <p class="section-lead">Each module isolates one micro-skill. Read the concept, see good vs bad examples, then write your own. Claude marks it strictly on that one skill. Three passes = mastered. This is how you actually get from 4.5 to 7 — one skill at a time, not by writing the same essay over and over.</p>
+    <div class="module-list">${cards}</div>`;
+
+  $$("[data-back]", body).forEach((b) => (b.onclick = () => { show("home"); renderHome(); }));
+  $$(".module-card", body).forEach((c) => {
+    c.onclick = () => openModule(c.dataset.moduleId);
+    c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); c.click(); } };
+  });
+}
+
+function openModule(id) {
+  const m = MODULES.find((x) => x.id === id);
+  if (!m) { renderLearn(); return; }
+  const state = moduleState(id);
+  show("module");
+  const body = $("#moduleBody");
+
+  body.innerHTML = `<button class="back-btn" type="button" id="modBack">← Back to Learn</button>
+    <div class="module-head">
+      <h2 class="view-title">${esc(m.title)}</h2>
+      <div class="module-meta">Lifts: <b>${esc(m.blocks)}</b> · ${state.mastered ? `<span class="module-badge mastered">Mastered ✓</span>` : `${state.correct}/${m.mastery_target} correct`}</div>
+    </div>
+
+    <div class="module-why">
+      <div class="module-why-label">Why this matters</div>
+      <div>${esc(m.why)}</div>
+    </div>
+
+    <div class="result-section">
+      <h3>The concept</h3>
+      <div class="module-concept">${m.concept.map((line) => line ? `<p>${esc(line)}</p>` : `<div style="height:6px"></div>`).join("")}</div>
+    </div>
+
+    <div class="result-section">
+      <h3>Examples — band 7+ vs band 5</h3>
+      ${m.examples.map((ex) => `<div class="module-example module-example-${ex.kind}">
+        <div class="module-example-label">${ex.kind === "good" ? "Band 7+" : "Band 5"}</div>
+        <div class="module-example-prompt"><b>Prompt:</b> ${esc(ex.prompt)}</div>
+        <div class="module-example-text">${esc(ex.text)}</div>
+        <div class="module-example-why">${esc(ex.why)}</div>
+      </div>`).join("")}
+    </div>
+
+    <div class="result-actions">
+      <button class="primary-btn" id="modTryIt" type="button">Try it yourself ▸</button>
+    </div>`;
+
+  $("#modBack").onclick   = () => renderLearn();
+  $("#modTryIt").onclick  = () => startModuleTryIt(id);
+}
+
+function startModuleTryIt(id) {
+  const m = MODULES.find((x) => x.id === id);
+  if (!m) { renderLearn(); return; }
+  show("module");
+  const body = $("#moduleBody");
+
+  body.innerHTML = `<button class="back-btn" type="button" id="modTryBack">← Back to concept</button>
+    <h2 class="view-title">${esc(m.title)} — try it</h2>
+
+    <div class="module-tryit-prompt">${esc(m.try_it_prompt).replace(/\n/g, "<br>")}</div>
+
+    <label class="staged-textarea-label" for="modTryText">Your submission</label>
+    <textarea id="modTryText" class="staged-plan-textarea" style="min-height:140px"
+      spellcheck="false" autocorrect="off" autocapitalize="off"
+      placeholder="Type your answer here…"></textarea>
+
+    <div class="result-actions">
+      <button class="secondary-btn" id="modTryCancel" type="button">Back</button>
+      <button class="primary-btn"   id="modTrySubmit" type="button">Get my mark ▸</button>
+    </div>`;
+
+  $("#modTryBack").onclick   = () => openModule(id);
+  $("#modTryCancel").onclick = () => openModule(id);
+  $("#modTrySubmit").onclick = async () => {
+    const text = $("#modTryText").value.trim();
+    if (text.length < 10) { toast("Write at least a short answer first."); return; }
+    body.innerHTML = markingSpinner("Marking your attempt on this one skill…");
+    startTicker();
+    try {
+      const mark = await markModule(m, text);
+      stopTicker();
+      // Update state
+      const state = moduleState(id);
+      state.attempts += 1;
+      state.last_attempt = Date.now();
+      state.last_score = mark.score;
+      if (mark.pass) {
+        state.correct += 1;
+        if (state.correct >= m.mastery_target) state.mastered = true;
+      }
+      save();
+      renderModuleResult(id, mark, text);
+    } catch (err) {
+      stopTicker();
+      body.innerHTML = `<div class="panel">
+        <h3>Couldn't mark</h3>
+        <p class="section-lead">${esc(err.message)}</p>
+        <div class="result-actions">
+          <button class="secondary-btn" id="modErrBack" type="button">Back to module</button>
+          <button class="primary-btn" id="modErrRetry" type="button">Try again</button>
+        </div>
+      </div>`;
+      $("#modErrBack").onclick  = () => openModule(id);
+      $("#modErrRetry").onclick = () => startModuleTryIt(id);
+    }
+  };
+
+  setTimeout(() => { const t = $("#modTryText"); if (t) t.focus(); }, 50);
+}
+
+function renderModuleResult(id, mark, submission) {
+  const m = MODULES.find((x) => x.id === id);
+  if (!m) { renderLearn(); return; }
+  const state = moduleState(id);
+  show("module");
+  const body = $("#moduleBody");
+
+  const passCls = mark.pass ? "pass" : "fail";
+  const passLbl = mark.pass ? "✓ Pass" : "Not yet — keep working";
+  const scoreLabel = ["", "Below band 5", "Band 5", "Band 6", "Band 6.5", "Band 7+"][mark.score] || `Score ${mark.score}/5`;
+
+  body.innerHTML = `<button class="back-btn" type="button" id="modResBack">← Back to module</button>
+    <div class="module-result-hero ${passCls}">
+      <div class="module-result-label">${esc(m.title)}</div>
+      <div class="module-result-pass">${passLbl}</div>
+      <div class="module-result-score">${esc(scoreLabel)} · ${state.correct}/${m.mastery_target} correct${state.mastered ? " — MASTERED ✓" : ""}</div>
+    </div>
+
+    <div class="result-section">
+      <h3>Examiner's feedback</h3>
+      <p style="font-size:14px; line-height:1.6; color:var(--muted)">${esc(mark.feedback)}</p>
+    </div>
+
+    ${mark.specific_issues && mark.specific_issues.length ? `<div class="result-section">
+      <h3>Specific issues in your submission</h3>
+      <ul class="bullets">${mark.specific_issues.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>
+    </div>` : ""}
+
+    <div class="result-section">
+      <h3>Your version vs band-7 version</h3>
+      <div class="compare-grid">
+        <div class="compare-col">
+          <h3>Your submission</h3>
+          <div class="your-answer">${esc(submission)}</div>
+        </div>
+        <div class="compare-col compare-col-current">
+          <h3>Band-7 rewrite</h3>
+          <div class="your-answer">${esc(mark.improved_version)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      ${state.mastered ? `<button class="primary-btn" id="modResLearn" type="button">Back to Learn — pick the next skill</button>`
+        : `<button class="secondary-btn" id="modResAgain" type="button">Try this skill again</button>
+           <button class="primary-btn" id="modResLearn" type="button">Back to all modules</button>`}
+    </div>`;
+
+  $("#modResBack").onclick = () => openModule(id);
+  if ($("#modResAgain")) $("#modResAgain").onclick = () => startModuleTryIt(id);
+  $("#modResLearn").onclick = () => renderLearn();
+}
+
+async function markModule(module, submission) {
+  const s = store.settings;
+  const body = {
+    model: s.model,
+    max_tokens: 1024,
+    system: [
+      "You are an IELTS Writing tutor. The candidate is drilling ONE micro-skill in isolation.",
+      "Mark the submission STRICTLY on this skill only. Ignore problems with other skills",
+      "(those are covered in other modules — don't mix them in here).",
+      "",
+      "Scoring:",
+      "- pass: TRUE only if the submission clearly demonstrates this skill at band-7 level.",
+      "- score: 1-5 where 1=below band 5, 2=band 5, 3=band 6, 4=band 6.5, 5=band 7+.",
+      "- feedback: 2-3 sentences saying exactly what was good or what's missing on THIS skill.",
+      "- specific_issues: 0-4 short bullets pointing to exact phrases in the candidate's text.",
+      "- improved_version: rewrite the candidate's submission as a band-7+ version of the SAME idea,",
+      "  fixing only what's relevant to this skill. Keep the candidate's voice and content.",
+      "",
+      "Be strict but not harsh. The candidate is learning. If they don't yet demonstrate the skill,",
+      "fail it cleanly — they need to know exactly what to fix.",
+      "",
+      "Call the mark_module tool. Do not write prose.",
+    ].join("\n"),
+    messages: [{
+      role: "user",
+      content:
+        `SKILL TO MARK: ${module.skill_description}\n\n` +
+        `THE TRY-IT PROMPT (context only):\n${module.try_it_prompt}\n\n` +
+        `CANDIDATE'S SUBMISSION:\n"""\n${submission}\n"""\n\n` +
+        `Mark on the skill above only.`,
+    }],
+    tools: [{
+      name: "mark_module",
+      description: "Return a focused mark for one micro-skill.",
+      input_schema: MODULE_MARK_SCHEMA,
+    }],
+    tool_choice: { type: "tool", name: "mark_module" },
+  };
+
+  const useDevice = !!s.apiKey;
+  let res;
+  try {
+    res = useDevice
+      ? await postWithRetry(ANTHROPIC_DIRECT_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": s.apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify(body),
+        })
+      : await postWithRetry(s.proxyUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+  } catch {
+    const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
+  }
+  if (res.status === 404 || res.status === 503) {
+    const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
+  }
+  if (!res.ok) throw new Error(`Module marker failed (${res.status}).`);
+  const data = await res.json();
+  const block = (data.content || []).find((b) => b.type === "tool_use" && b.name === "mark_module");
+  if (!block || !block.input) throw new Error("Module marker returned no result.");
+  return block.input;
+}
+
 /* ============================== STAGED PRACTICE MODE ============================== */
 /* The candidate cannot write Task 2 until they have planned. Stage 1: type
    a bullet plan (with help from Plan-with-me and Brainstorm-ideas as
@@ -2511,9 +2797,11 @@ $("#navSettings").onclick = openSettings;
 $("#navHistory").onclick  = renderHistory;
 $("#navCoach").onclick    = renderCoach;
 $("#navVault").onclick    = renderVault;
+$("#navLearn").onclick    = renderLearn;
 $("#editTarget").onclick  = openSettings;
 $$("[data-back]").forEach((b) => (b.onclick = () => { show("home"); renderHome(); }));
 $$("[data-start]").forEach((b) => (b.onclick = () => openPicker(b.dataset.start)));
+$("#learnCta").onclick = renderLearn;
 
 $("#examQuit").onclick = () => confirmDialog(
   "Quit this attempt? Your writing won't be saved.",
