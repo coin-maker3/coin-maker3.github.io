@@ -17,6 +17,7 @@
     <span class="brand-name">Band&nbsp;7 Lab</span>
   </button>
   <nav class="topnav" id="topnav">
+    <button class="ghost-btn" id="navVault" type="button" title="Spelling vault" hidden>Vault</button>
     <button class="ghost-btn" id="navCoach" type="button" title="Your AI coach">Coach</button>
     <button class="ghost-btn" id="navHistory" type="button" title="Your past attempts">Progress</button>
     <button class="ghost-btn" id="navSettings" type="button" title="Settings" hidden>Settings</button>
@@ -177,6 +178,11 @@
     <div id="drillBody"></div>
   </section>
 
+  <!-- ============================ SPELLING VAULT ============================ -->
+  <section class="view" id="view-vault" data-view="vault" hidden>
+    <div id="vaultBody"></div>
+  </section>
+
 </main>
 
 <!-- ============================ SETTINGS MODAL ============================ -->
@@ -220,6 +226,17 @@
       <button class="primary-btn full" id="settingsSave" type="button">Save</button>
       <button class="text-btn danger" id="resetProgress" type="button" hidden>Reset all progress &amp; data</button>
     </div>
+  </div>
+</div>
+
+<!-- ============================ PROMPT DECONSTRUCTION MODAL ============================ -->
+<div class="modal-backdrop" id="deconstructModal" hidden>
+  <div class="modal large" role="dialog" aria-labelledby="deconTitle">
+    <div class="modal-head">
+      <h2 id="deconTitle">Plan with me</h2>
+      <button class="modal-close" id="deconClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="deconBody"></div>
   </div>
 </div>
 

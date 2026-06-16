@@ -237,6 +237,15 @@ button{font-family:inherit; cursor:pointer; color:inherit}
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
 }
 .picker-card.random{background:linear-gradient(160deg, #233461, #1a2236); border-color:#3a4f86}
+.picker-plan-btn{
+  display:inline-block; margin-top:10px;
+  background:transparent; color:var(--brand-2);
+  border:1px solid var(--line); border-radius:8px;
+  padding:6px 12px; font-size:12px; font-weight:600;
+}
+.picker-plan-btn:hover{background:rgba(91,140,255,.08); border-color:var(--brand)}
+.picker-card{cursor:pointer}
+.picker-card:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 
 /* =========================================================================
    CD-IELTS exam screen (light theme, scoped under .cd-exam)
@@ -670,6 +679,69 @@ button{font-family:inherit; cursor:pointer; color:inherit}
   padding:12px 18px; border-radius:10px; font-size:14px;
   z-index:70; box-shadow:var(--shadow);
 }
+
+/* ---- prompt deconstruction modal --------------------------------------- */
+.modal.large{max-width:640px}
+.decon-prompt{
+  background:var(--panel); border:1px solid var(--line);
+  border-left:3px solid var(--brand-2);
+  border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;
+  font-size:14px; line-height:1.5; color:var(--muted);
+}
+.decon-section{margin-bottom:16px}
+.decon-section h3{
+  font-size:13px; margin:0 0 8px;
+  color:var(--brand-2); text-transform:uppercase; letter-spacing:.4px;
+}
+.decon-pill{
+  display:inline-block; background:#26365e; color:#cde0ff;
+  border:1px solid #34487a; border-radius:20px;
+  padding:3px 12px; font-size:12px; font-weight:700;
+}
+.decon-list{margin:0; padding-left:22px}
+.decon-list li{margin-bottom:8px; font-size:14px; line-height:1.5}
+.decon-list li b{color:var(--text)}
+.decon-list li .decon-why{display:block; font-size:12px; color:var(--muted); margin-top:2px}
+.decon-key{
+  display:inline-block; background:var(--panel-2); color:var(--accent);
+  border:1px solid var(--line); border-radius:6px;
+  padding:2px 8px; font-size:12px; margin:0 4px 4px 0; font-weight:600;
+}
+.decon-pitfall{
+  background:rgba(255,107,107,.08); border:1px solid #6e3333;
+  border-radius:var(--radius-sm); padding:10px 12px;
+  font-size:13px; color:#ffb0b0;
+}
+.decon-actions{display:flex; gap:10px; margin-top:18px}
+.decon-actions button{flex:1}
+
+/* ---- spelling vault ---------------------------------------------------- */
+.vault-word{
+  display:flex; align-items:center; gap:14px;
+  background:var(--panel-2); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:8px;
+}
+.vault-word.mastered{opacity:.6; border-color:#2f5b48}
+.vault-word.mastered .vault-word-correct{color:var(--good)}
+.vault-word-correct{
+  font-weight:700; font-size:15px; color:var(--text);
+  font-family:var(--serif); min-width:160px;
+}
+.vault-word-meta{
+  display:flex; flex-direction:column; gap:3px;
+  font-size:12px; color:var(--muted); flex:1;
+}
+.vault-interval{font-weight:600; color:var(--brand-2)}
+.vault-mastered{font-weight:700; color:var(--good)}
+.vault-variants{font-family:var(--serif); color:#ffb0b0; text-decoration:line-through; text-decoration-color:#6e3333}
+.vault-wrong-tag{
+  display:inline-block; font-family:var(--serif);
+  color:#ffb0b0; background:rgba(255,107,107,.10);
+  border:1px solid #6e3333; border-radius:4px;
+  padding:1px 6px; text-decoration:line-through;
+  text-decoration-color:#6e3333;
+}
+.vault-context{font-family:var(--serif); font-size:12px; color:var(--muted); font-style:italic; display:inline-block; margin-top:4px}
 
 /* ---- drill mode -------------------------------------------------------- */
 .drill-card{

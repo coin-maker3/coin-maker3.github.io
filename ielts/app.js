@@ -128,7 +128,7 @@ function infoDialog(html) {
 
 /* ============================== ROUTER ============================== */
 
-const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill"];
+const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill", "vault"];
 function show(view) {
   // hide the topbar while exam is up (CD-IELTS owns the screen)
   $("#topbar").hidden = view === "exam";
@@ -144,6 +144,9 @@ function applyOwnerUI() {
   $("#editTarget").hidden      = !owner;
   $("#ownerOnlyFields").hidden = !owner;
   $("#resetProgress").hidden   = !owner;
+  // Vault button is shown once the candidate has any tracked spellings.
+  const v = vaultStats();
+  $("#navVault").hidden = v.total === 0;
 }
 
 /* ============================== HOME ============================== */
@@ -327,19 +330,32 @@ function openPicker(mode) {
       <div class="picker-title">Random — closest to real exam</div>
       <div class="picker-desc">Give me a ${mode === "task1" ? "Task 1 chart" : "Task 2 question"} I haven't seen.</div>
     </div></button>`;
-  html += list.map((t) => `<button class="picker-card" type="button" data-pick="${esc(t.id)}">
+  html += list.map((t) => `<div class="picker-card" data-pick="${esc(t.id)}" tabindex="0" role="button">
     <div class="picker-thumb">${mode === "task1" ? thumbFor(t) : "T2"}</div>
     <div class="picker-info">
       <div class="picker-kicker">${esc(t.qType || t.chartKind || "")}</div>
       <div class="picker-title">${esc(t.title)}</div>
       <div class="picker-desc">${esc(promptPreview(t.prompt))}</div>
-    </div></button>`).join("");
+      ${mode === "task2" ? `<button class="picker-plan-btn" type="button" data-plan="${esc(t.id)}">📋 Plan with me first</button>` : ""}
+    </div>
+  </div>`).join("");
   $("#pickerList").innerHTML = html;
   $$("#pickerList .picker-card").forEach((c) => {
-    c.onclick = () => {
+    c.onclick = (e) => {
+      if (e.target.closest("[data-plan]")) return;
       let id = c.dataset.pick;
       if (id === "__random") id = list[Math.floor(Math.random() * list.length)].id;
       startExam("single", id);
+    };
+    c.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); c.click(); }
+    };
+  });
+  $$("#pickerList [data-plan]").forEach((b) => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const task = list.find((t) => t.id === b.dataset.plan);
+      if (task) openDeconstruct(task);
     };
   });
   show("picker");
@@ -655,6 +671,12 @@ function buildSystem(type) {
     "  the candidate's text. 'after' is your improved version. 'criterion' is one of:",
     "  'Task', 'Coherence & Cohesion', 'Lexical Resource', 'Grammar'. 'why' explains",
     "  the move in one short line. Prefer minimal, teachable edits over wholesale rewriting.",
+    "- misspellings: for every GENUINE spelling error in the script, return an entry with",
+    "  'wrong' (the misspelled token, verbatim, lowercased), 'correct' (canonical spelling),",
+    "  and 'context' (up to 8 words of surrounding context from the script so the candidate",
+    "  can locate it). Do NOT include word-choice errors here — only spelling. These feed",
+    "  the candidate's personal Spelling Vault, which uses spaced repetition to drill them.",
+    "  If there are no spelling errors, return an empty array.",
     "",
     "Always call the report_mark tool with the structured object. Do not write prose.",
   ].join("\n");
@@ -673,8 +695,64 @@ function buildUser(r) {
     u += prior.map((n) => `  - ${n}`).join("\n");
     u += `\nIf any recur in the script below, REUSE THE SAME NAME so the Coach can track them. Only invent a new name when the pattern is genuinely distinct.\n\n`;
   }
+  const traj = collectTrajectory();
+  if (traj && traj.totalMarked >= 1) {
+    u += `CANDIDATE'S TRAJECTORY ON THIS APP (use this to make the feedback feel like a tutor who REMEMBERS them):\n`;
+    u += `- Essays marked so far: ${traj.totalMarked}\n`;
+    if (traj.last5Bands.length) {
+      u += `- Bands (oldest → newest): ${traj.last5Bands.map((b) => Number(b).toFixed(1)).join(" → ")}\n`;
+    }
+    if (traj.trends.length > 0) {
+      u += `- Pattern frequency change (% of essays containing each pattern, EARLY → RECENT):\n`;
+      traj.trends.forEach((t2) => {
+        const dir = t2.delta < -0.05 ? "↓ improving" : t2.delta > 0.05 ? "↑ getting worse" : "→ flat";
+        u += `    • ${t2.name}: ${Math.round(t2.early * 100)}% → ${Math.round(t2.recent * 100)}%   ${dir}\n`;
+      });
+    }
+    u += `\nIn your examiner_summary and next_band_advice, REFERENCE this trajectory explicitly. Name progress already made (e.g. "you've cut your spelling errors in half since attempt 1"). Name the remaining biggest blocker. Be the tutor who remembers them, not a stranger seeing the script for the first time.\n\n`;
+  }
   u += `CANDIDATE'S ANSWER (${r.wordCount} words):\n"""\n${r.answer}\n"""`;
   return u;
+}
+
+function collectTrajectory() {
+  const marked = store.history.filter((h) => h.band != null);
+  if (marked.length === 0) return null;
+  const last5Bands = marked.slice(-5).map((h) => h.band);
+  const totalMarked = marked.length;
+
+  // Compare pattern frequency: first half of attempts vs last half (or first attempt vs the rest if only 2).
+  const split = Math.max(1, Math.floor(marked.length / 2));
+  const earlyEssays  = marked.slice(0, split);
+  const recentEssays = marked.slice(-split);
+
+  const seenNames = {};
+  const tally = (essays) => {
+    const t = {};
+    essays.forEach((h) => {
+      const ps = h.mark && h.mark.recurring_patterns;
+      if (!ps) return;
+      ps.forEach((p) => {
+        const key = (p.name || "").trim().toLowerCase();
+        if (!key) return;
+        if (!seenNames[key]) seenNames[key] = p.name;
+        t[key] = (t[key] || 0) + 1;
+      });
+    });
+    return t;
+  };
+  const earlyTally  = tally(earlyEssays);
+  const recentTally = tally(recentEssays);
+
+  const trends = [];
+  const allKeys = new Set([...Object.keys(earlyTally), ...Object.keys(recentTally)]);
+  allKeys.forEach((key) => {
+    const early  = (earlyTally[key]  || 0) / Math.max(earlyEssays.length, 1);
+    const recent = (recentTally[key] || 0) / Math.max(recentEssays.length, 1);
+    trends.push({ name: seenNames[key], early, recent, delta: recent - early });
+  });
+  trends.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  return { totalMarked, last5Bands, trends: trends.slice(0, 5) };
 }
 
 function collectPriorPatternNames() {
@@ -750,11 +828,23 @@ const MARK_SCHEMA = {
         required: ["name","rule","example","fix"],
       },
     },
+    misspellings: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          wrong:   { type: "string" },   // exact misspelled token from the script (lowercase)
+          correct: { type: "string" },   // canonical correct spelling
+          context: { type: "string" },   // up to ~8 words of surrounding context from the script
+        },
+        required: ["wrong", "correct", "context"],
+      },
+    },
     examiner_summary: { type: "string" },
     next_band_advice: { type: "string" },
   },
   required: ["under_length","criteria","key_strengths","priority_fixes",
-    "upgrade_edits","recurring_patterns","examiner_summary","next_band_advice"],
+    "upgrade_edits","recurring_patterns","misspellings","examiner_summary","next_band_advice"],
 };
 
 async function markEssay(r) {
@@ -878,7 +968,218 @@ function saveAttempt(r) {
     answer: r.answer, wordCount: r.wordCount,
     mark: r.mark, band: r.mark.band,
   });
+  ingestVault(r.mark);
   save();
+}
+
+/* ============================== SPELLING VAULT ============================== */
+/* Every misspelling the marker tags is added here with a spaced-repetition
+   schedule. Words graduate to "mastered" after 3 consecutive correct
+   drill attempts. The vault feeds the dedicated Drill Mode view.
+   Intervals: 1d -> 3d -> 7d -> 14d -> mastered (3 correct in a row at 14d). */
+const VAULT_INTERVALS = [1, 3, 7, 14];
+
+function ensureVault() {
+  if (!store.vault) store.vault = { words: {} };
+  if (!store.vault.words) store.vault.words = {};
+  return store.vault;
+}
+
+function ingestVault(mark) {
+  if (!mark || !Array.isArray(mark.misspellings)) return;
+  const v = ensureVault();
+  mark.misspellings.forEach((m) => {
+    if (!m || !m.correct) return;
+    const key = String(m.correct).trim().toLowerCase();
+    if (!key) return;
+    const wrong = String(m.wrong || "").trim().toLowerCase();
+    if (!v.words[key]) {
+      v.words[key] = {
+        correct: String(m.correct).trim(),
+        wrong_variants: [],
+        first_seen: Date.now(),
+        last_drilled: 0,
+        interval_days: 1,
+        streak: 0,
+        mastered: false,
+        contexts: [],
+        essays_seen_in: 0,
+      };
+    }
+    const entry = v.words[key];
+    if (wrong && !entry.wrong_variants.includes(wrong)) entry.wrong_variants.push(wrong);
+    if (m.context && !entry.contexts.includes(m.context)) entry.contexts.push(m.context);
+    entry.essays_seen_in += 1;
+  });
+}
+
+function vaultStats() {
+  ensureVault();
+  const all = Object.values(store.vault.words);
+  const active   = all.filter((e) => !e.mastered);
+  const mastered = all.filter((e) => e.mastered);
+  const due = active.filter((e) => Date.now() >= (e.last_drilled + e.interval_days * 86400000));
+  return { total: all.length, active: active.length, mastered: mastered.length, due: due.length };
+}
+
+function vaultDueWords(limit) {
+  ensureVault();
+  const all = Object.values(store.vault.words).filter((e) => !e.mastered);
+  const now = Date.now();
+  const sorted = all
+    .filter((e) => now >= (e.last_drilled + e.interval_days * 86400000))
+    .sort((a, b) => (a.last_drilled || 0) - (b.last_drilled || 0));
+  return limit ? sorted.slice(0, limit) : sorted;
+}
+
+function vaultActiveWords(limit) {
+  ensureVault();
+  const all = Object.values(store.vault.words).filter((e) => !e.mastered);
+  const sorted = all.sort((a, b) => (a.last_drilled || 0) - (b.last_drilled || 0));
+  return limit ? sorted.slice(0, limit) : sorted;
+}
+
+function vaultMarkResult(wordKey, correct) {
+  ensureVault();
+  const entry = store.vault.words[wordKey];
+  if (!entry) return;
+  entry.last_drilled = Date.now();
+  if (correct) {
+    entry.streak += 1;
+    const idx = VAULT_INTERVALS.indexOf(entry.interval_days);
+    if (idx >= 0 && idx < VAULT_INTERVALS.length - 1) {
+      entry.interval_days = VAULT_INTERVALS[idx + 1];
+    }
+    if (entry.streak >= 3 && entry.interval_days === VAULT_INTERVALS[VAULT_INTERVALS.length - 1]) {
+      entry.mastered = true;
+    }
+  } else {
+    entry.streak = 0;
+    entry.interval_days = VAULT_INTERVALS[0];
+  }
+  save();
+}
+
+function renderVault() {
+  ensureVault();
+  show("vault");
+  const stats = vaultStats();
+  const body = $("#vaultBody");
+
+  if (stats.total === 0) {
+    body.innerHTML = `<button class="back-btn" type="button" data-back>← Home</button>
+      <h2 class="view-title">Spelling Vault</h2>
+      <div class="result-hero">
+        <div class="result-hero-label">Personal spelling vault</div>
+        <div class="result-hero-band">📚</div>
+        <div class="result-hero-target">Words you misspelled will land here automatically after each essay is marked. You'll then drill them on a spaced-repetition schedule until they stick.</div>
+      </div>`;
+    $$("[data-back]", body).forEach((b) => (b.onclick = () => { show("home"); renderHome(); }));
+    return;
+  }
+
+  const active = vaultActiveWords();
+  const dueNow = vaultDueWords();
+
+  let html = `<button class="back-btn" type="button" data-back>← Home</button>
+    <h2 class="view-title">Spelling Vault</h2>
+    <div class="stat-row">
+      <div class="stat-card"><span class="stat-label">Words tracked</span><span class="stat-value">${stats.total}</span></div>
+      <div class="stat-card"><span class="stat-label">Active</span><span class="stat-value">${stats.active}</span></div>
+      <div class="stat-card"><span class="stat-label">Mastered</span><span class="stat-value">${stats.mastered}</span></div>
+      <div class="stat-card"><span class="stat-label">Due now</span><span class="stat-value" style="color:${stats.due > 0 ? "var(--accent)" : "var(--good)"}">${stats.due}</span></div>
+    </div>
+
+    <div class="result-actions">
+      ${stats.due > 0 ? `<button class="primary-btn" id="vaultDrillDue" type="button">Drill ${stats.due} word${stats.due === 1 ? "" : "s"} due now ▸</button>` : ""}
+      ${stats.active > 0 ? `<button class="secondary-btn" id="vaultDrillAny" type="button">Drill any ${Math.min(stats.active, 10)} active</button>` : ""}
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <div class="panel-head"><h2>Your vault</h2><span class="panel-note">${stats.active} active · ${stats.mastered} mastered</span></div>
+      ${[...active, ...Object.values(store.vault.words).filter((e) => e.mastered)].map((entry) => `<div class="vault-word ${entry.mastered ? "mastered" : ""}">
+        <div class="vault-word-correct">${esc(entry.correct)}</div>
+        <div class="vault-word-meta">
+          ${entry.mastered
+            ? `<span class="vault-mastered">Mastered ✓</span>`
+            : `<span class="vault-interval">${entry.interval_days}d interval · streak ${entry.streak}</span>`}
+          ${entry.wrong_variants.length ? `<span class="vault-variants">Wrote: ${entry.wrong_variants.map((v) => esc(v)).join(", ")}</span>` : ""}
+        </div>
+      </div>`).join("")}
+    </div>`;
+
+  body.innerHTML = html;
+  $$("[data-back]", body).forEach((b) => (b.onclick = () => { show("home"); renderHome(); }));
+  if ($("#vaultDrillDue")) $("#vaultDrillDue").onclick = () => runVaultDrill(vaultDueWords(10));
+  if ($("#vaultDrillAny")) $("#vaultDrillAny").onclick = () => runVaultDrill(vaultActiveWords(10));
+}
+
+function runVaultDrill(words) {
+  if (!words || !words.length) { toast("Nothing to drill right now."); return; }
+  show("vault");
+  const body = $("#vaultBody");
+  let html = `<button class="back-btn" type="button" id="vaultDrillBack">← Back to vault</button>
+    <h2 class="view-title">Spelling drill — ${words.length} word${words.length === 1 ? "" : "s"}</h2>
+    <p class="section-lead">For each word, type the correct spelling. Press <b>Mark all</b> at the bottom.</p>`;
+  words.forEach((entry, i) => {
+    const variant = entry.wrong_variants[entry.wrong_variants.length - 1] || "—";
+    const context = entry.contexts[entry.contexts.length - 1] || "";
+    html += `<div class="drill-card" data-vault-i="${i}" data-vault-key="${esc(entry.correct.toLowerCase())}">
+      <p class="drill-prompt"><b>${i + 1}.</b> You wrote: <span class="vault-wrong-tag">${esc(variant)}</span>
+        ${context ? `<br><span class="vault-context">in "${esc(context)}"</span>` : ""}</p>
+      <input class="drill-input" type="text" data-vault-input="${i}"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+             placeholder="Type the correct spelling">
+      <div class="drill-result" data-vault-result="${i}" hidden></div>
+    </div>`;
+  });
+  html += `<div class="result-actions">
+    <button class="secondary-btn" id="vaultDrillCancel" type="button">Back to vault</button>
+    <button class="primary-btn"   id="vaultDrillMark"   type="button">Mark all ▸</button>
+  </div>
+  <div id="vaultDrillSummary"></div>`;
+  body.innerHTML = html;
+
+  $("#vaultDrillBack").onclick   = () => renderVault();
+  $("#vaultDrillCancel").onclick = () => renderVault();
+
+  $("#vaultDrillMark").onclick = () => {
+    let score = 0;
+    words.forEach((entry, i) => {
+      const input = $(`[data-vault-input="${i}"]`);
+      const card  = $(`[data-vault-i="${i}"]`);
+      const resEl = $(`[data-vault-result="${i}"]`);
+      input.disabled = true;
+      const userAns = input.value.trim().toLowerCase();
+      const correctAns = entry.correct.trim().toLowerCase();
+      const right = userAns === correctAns;
+      vaultMarkResult(correctAns, right);
+      resEl.hidden = false;
+      resEl.className = `drill-result ${right ? "right" : "wrong"}`;
+      card.classList.add(right ? "right" : "wrong");
+      if (right) {
+        resEl.innerHTML = `<b>✓ Correct.</b>`;
+        score++;
+      } else {
+        resEl.innerHTML = `<b>✗ Not quite.</b>
+          <span class="drill-result-correct">Correct: ${esc(entry.correct)}</span>`;
+      }
+    });
+    const sum = $("#vaultDrillSummary");
+    sum.innerHTML = `<div class="result-hero" style="margin-top:16px">
+      <div class="result-hero-label">Drill score</div>
+      <div class="result-hero-band">${score}/${words.length}</div>
+      <div class="result-hero-note">Correct answers extend the interval before you see the word again. Wrong answers reset it. Three correct in a row at 14-day interval = mastered.</div>
+    </div>
+    <div class="result-actions">
+      <button class="primary-btn" id="vaultBackToVault" type="button">Back to vault</button>
+    </div>`;
+    $("#vaultBackToVault").onclick = () => renderVault();
+    $("#vaultDrillMark").disabled = true;
+    $("#vaultDrillMark").textContent = `Marked: ${score}/${words.length}`;
+  };
+
+  setTimeout(() => { const f = $('[data-vault-input="0"]'); if (f) f.focus(); }, 50);
 }
 function afterMarkAchievements(records) {
   unlock("first_mark");
@@ -1328,6 +1629,177 @@ function renderCoach() {
   show("coach");
 }
 
+/* ============================== PROMPT DECONSTRUCTION ============================== */
+/* "Plan with me" tool. Before writing, the candidate clicks a button on a
+   Task 2 picker card. Claude returns a structured breakdown of the prompt:
+   type, parts to address, required position, suggested paragraph structure,
+   and the common pitfall for this prompt type. This directly fixes the
+   single biggest reason Task Response is capped at 5: skipping a half of
+   the prompt because it was not consciously read. */
+
+const DECONSTRUCT_SCHEMA = {
+  type: "object", additionalProperties: false,
+  properties: {
+    prompt_type: { type: "string" },
+    parts: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          label: { type: "string" },
+          why_it_matters: { type: "string" },
+        },
+        required: ["label", "why_it_matters"],
+      },
+    },
+    required_position: { type: "string" },
+    suggested_structure: { type: "array", items: { type: "string" } },
+    key_phrases_to_address: { type: "array", items: { type: "string" } },
+    common_pitfall: { type: "string" },
+  },
+  required: ["prompt_type", "parts", "required_position",
+    "suggested_structure", "key_phrases_to_address", "common_pitfall"],
+};
+
+async function deconstructPrompt(task) {
+  const s = store.settings;
+  const body = {
+    model: s.model,
+    max_tokens: 1024,
+    system: [
+      "You are an IELTS Writing tutor preparing a candidate to plan an essay.",
+      "Decode the prompt for them — type, parts, position, structure — so they",
+      "do not skip a half of the question (the single most common cause of a",
+      "capped Task Response score). Be precise and concrete. Address Task 2",
+      "prompts specifically — opinion, discussion, advantages/disadvantages,",
+      "problem-solution, and two-part direct-question are the recognised types.",
+      "",
+      "For 'parts', list every distinct thing the prompt requires the candidate",
+      "to address. For 'why_it_matters', explain what happens to the band if",
+      "this part is skipped (this trains the candidate to take it seriously).",
+      "For 'suggested_structure', 4 bullet points: intro / body 1 / body 2 / conclusion,",
+      "each one sentence saying what that paragraph must contain.",
+      "For 'key_phrases_to_address', literal phrases from the prompt the essay",
+      "MUST engage with (e.g. 'governments', 'employers', 'this development').",
+      "'common_pitfall' is the single most frequent failure mode for this prompt type.",
+      "",
+      "Call the deconstruct_prompt tool. Do not write prose.",
+    ].join("\n"),
+    messages: [{ role: "user", content: `PROMPT TO DECONSTRUCT:\n\n${task.prompt}` }],
+    tools: [{
+      name: "deconstruct_prompt",
+      description: "Return a structured breakdown of an IELTS Writing Task 2 prompt.",
+      input_schema: DECONSTRUCT_SCHEMA,
+    }],
+    tool_choice: { type: "tool", name: "deconstruct_prompt" },
+  };
+  const useDevice = !!s.apiKey;
+  let res;
+  if (useDevice) {
+    res = await fetch(ANTHROPIC_DIRECT_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": s.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify(body),
+    });
+  } else {
+    try {
+      res = await fetch(s.proxyUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
+    }
+    if (res.status === 404 || res.status === 503) {
+      const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
+    }
+  }
+  if (!res.ok) throw new Error(`Plan generator failed (${res.status}).`);
+  const data = await res.json();
+  const block = (data.content || []).find((b) => b.type === "tool_use" && b.name === "deconstruct_prompt");
+  if (!block || !block.input) throw new Error("Plan generator returned no result.");
+  return block.input;
+}
+
+async function openDeconstruct(task) {
+  $("#deconstructModal").hidden = false;
+  $("#deconBody").innerHTML = markingSpinner("Reading the prompt with you…");
+  startTicker();
+  try {
+    const plan = await deconstructPrompt(task);
+    stopTicker();
+    renderDeconstruct(task, plan);
+  } catch (err) {
+    stopTicker();
+    $("#deconBody").innerHTML = `<p class="section-lead">${esc(err.message)}</p>
+      <div class="decon-actions">
+        <button class="secondary-btn" id="deconCancel" type="button">Close</button>
+        <button class="primary-btn"   id="deconRetry"  type="button">Try again</button>
+      </div>`;
+    $("#deconCancel").onclick = () => { $("#deconstructModal").hidden = true; };
+    $("#deconRetry").onclick  = () => openDeconstruct(task);
+  }
+}
+
+function renderDeconstruct(task, plan) {
+  const html = `
+    <div class="decon-prompt">${esc(task.prompt).replace(/\n\n/g, "<br><br>")}</div>
+
+    <div class="decon-section">
+      <h3>Prompt type</h3>
+      <span class="decon-pill">${esc(plan.prompt_type)}</span>
+    </div>
+
+    <div class="decon-section">
+      <h3>What the prompt asks (every part)</h3>
+      <ol class="decon-list">
+        ${plan.parts.map((p) => `<li>
+          <b>${esc(p.label)}</b>
+          <span class="decon-why">${esc(p.why_it_matters)}</span>
+        </li>`).join("")}
+      </ol>
+    </div>
+
+    <div class="decon-section">
+      <h3>Position required</h3>
+      <p style="margin:0;font-size:14px;line-height:1.5;color:var(--muted)">${esc(plan.required_position)}</p>
+    </div>
+
+    <div class="decon-section">
+      <h3>Paragraph structure to aim for</h3>
+      <ol class="decon-list">
+        ${plan.suggested_structure.map((s) => `<li>${esc(s)}</li>`).join("")}
+      </ol>
+    </div>
+
+    <div class="decon-section">
+      <h3>Phrases from the prompt your essay must engage with</h3>
+      <div>${plan.key_phrases_to_address.map((k) => `<span class="decon-key">${esc(k)}</span>`).join("")}</div>
+    </div>
+
+    <div class="decon-section">
+      <h3>The common pitfall to avoid</h3>
+      <div class="decon-pitfall">${esc(plan.common_pitfall)}</div>
+    </div>
+
+    <div class="decon-actions">
+      <button class="secondary-btn" id="deconLater" type="button">Maybe later</button>
+      <button class="primary-btn"   id="deconStart" type="button">Start writing this ▸</button>
+    </div>`;
+  $("#deconBody").innerHTML = html;
+  $("#deconLater").onclick = () => { $("#deconstructModal").hidden = true; };
+  $("#deconStart").onclick = () => {
+    $("#deconstructModal").hidden = true;
+    startExam("single", task.id);
+  };
+}
+
 /* ============================== DRILL MODE ============================== */
 /* The Coach knows the candidate's recurring patterns. Drill Mode lets her
    practise them in isolation: Claude generates 5 personalised micro-exercises
@@ -1564,6 +2036,7 @@ $("#brandHome").onclick   = () => { show("home"); renderHome(); };
 $("#navSettings").onclick = openSettings;
 $("#navHistory").onclick  = renderHistory;
 $("#navCoach").onclick    = renderCoach;
+$("#navVault").onclick    = renderVault;
 $("#editTarget").onclick  = openSettings;
 $$("[data-back]").forEach((b) => (b.onclick = () => { show("home"); renderHome(); }));
 $$("[data-start]").forEach((b) => (b.onclick = () => openPicker(b.dataset.start)));
@@ -1600,6 +2073,7 @@ $("#settingsSave").onclick = () => {
   renderHome();
 };
 $("#settingsClose").onclick = () => ($("#settingsModal").hidden = true);
+$("#deconClose").onclick    = () => ($("#deconstructModal").hidden = true);
 $("#resetProgress").onclick = () => confirmDialog(
   "This deletes all your attempts, progress and saved key from this device. Continue?",
   () => {
