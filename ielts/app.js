@@ -155,7 +155,7 @@ function infoDialog(html) {
 
 /* ============================== ROUTER ============================== */
 
-const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill", "vault"];
+const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill", "vault", "staged"];
 function show(view) {
   // hide the topbar while exam is up (CD-IELTS owns the screen)
   $("#topbar").hidden = view === "exam";
@@ -395,12 +395,28 @@ function bandSpark(values, target) {
 
 /* ============================== PICKER ============================== */
 
+let pickerSessionMode = "exam";  // "exam" (one-shot 40 min) or "practice" (staged plan-then-write)
+
 function openPicker(mode) {
   if (mode === "full") { startExam("full"); return; }
   const list = mode === "task1" ? TASK1 : TASK2;
   $("#pickerTitle").textContent = mode === "task1"
     ? "Task 1 — describe the visual"
     : "Task 2 — write the essay";
+  // Mode toggle is shown only for Task 2 (staging makes most sense there).
+  const toggle = $("#modeToggle");
+  if (mode === "task2") {
+    toggle.hidden = false;
+    $$(".mode-btn", toggle).forEach((b) => {
+      b.classList.toggle("active", b.dataset.mode === pickerSessionMode);
+      b.onclick = () => {
+        pickerSessionMode = b.dataset.mode;
+        $$(".mode-btn", toggle).forEach((x) => x.classList.toggle("active", x.dataset.mode === pickerSessionMode));
+      };
+    });
+  } else {
+    toggle.hidden = true;
+  }
   let html = `<button class="picker-card random" type="button" data-pick="__random">
     <div class="picker-thumb">⇄</div>
     <div class="picker-info">
@@ -426,7 +442,12 @@ function openPicker(mode) {
       if (e.target.closest("[data-plan]") || e.target.closest("[data-idea]")) return;
       let id = c.dataset.pick;
       if (id === "__random") id = list[Math.floor(Math.random() * list.length)].id;
-      startExam("single", id);
+      // Practice mode applies to Task 2 only.
+      if (mode === "task2" && pickerSessionMode === "practice") {
+        startStagedSession(id);
+      } else {
+        startExam("single", id);
+      }
     };
     c.onkeydown = (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); c.click(); }
@@ -460,15 +481,17 @@ const exam = {
   tasks: [], answers: [], active: 0,
   mode: "single", remaining: 0, timer: null,
   warned10: false, warned5: false, warned1: false,
+  plan: "",   // when started from staged practice mode, the candidate's plan stays visible alongside the prompt
 };
 
 function taskById(id) { return TASK1.concat(TASK2).find((t) => t.id === id); }
 function minutesFor(type) { return type === "task1" ? 20 : 40; }
 function minWordsFor(type) { return type === "task1" ? 150 : 250; }
 
-function startExam(mode, id) {
+function startExam(mode, id, opts = {}) {
   exam.mode = mode; exam.active = 0;
   exam.warned10 = exam.warned5 = exam.warned1 = false;
+  exam.plan = opts.plan || "";
   if (mode === "full") {
     exam.tasks = [
       TASK1[Math.floor(Math.random() * TASK1.length)],
@@ -477,7 +500,10 @@ function startExam(mode, id) {
     exam.remaining = 60 * 60;
   } else {
     exam.tasks = [taskById(id)];
-    exam.remaining = minutesFor(exam.tasks[0].type) * 60;
+    // Practice mode subtracts the suggested planning time so the total
+    // budget still maps onto the real-exam 40 minutes for Task 2.
+    const total = minutesFor(exam.tasks[0].type) * 60;
+    exam.remaining = opts.minutesOverride ? opts.minutesOverride * 60 : total;
   }
   exam.answers = exam.tasks.map(() => "");
   buildExamUI();
@@ -527,6 +553,13 @@ function stimulusHTML(t) {
     html += `<div class="chart-wrap"><div class="chart-title">${esc(t.title)}</div>${renderChart(t.chart, false)}</div>`;
   }
   html += `<p class="task-instruction">${esc(t.instruction)}</p>`;
+  // Practice mode: surface the candidate's plan alongside the prompt.
+  if (exam.plan && t.type === "task2") {
+    html += `<div class="staged-plan-shown">
+      <div class="staged-plan-shown-label">YOUR PLAN</div>
+      <div class="staged-plan-shown-text">${esc(exam.plan)}</div>
+    </div>`;
+  }
   return html;
 }
 
@@ -1984,6 +2017,76 @@ function renderDeconstruct(task, plan) {
     $("#deconstructModal").hidden = true;
     startExam("single", task.id);
   };
+}
+
+/* ============================== STAGED PRACTICE MODE ============================== */
+/* The candidate cannot write Task 2 until they have planned. Stage 1: type
+   a bullet plan (with help from Plan-with-me and Brainstorm-ideas as
+   optional support). Stage 2: write the full essay with the plan pinned to
+   the prompt panel so they never lose sight of it. Submit -> standard mark.
+   Total time still 40 minutes (3 of which go to planning, 37 to writing). */
+
+let stagedTaskId = null;
+
+function startStagedSession(taskId) {
+  stagedTaskId = taskId;
+  renderPlanStage();
+}
+
+function renderPlanStage() {
+  const task = taskById(stagedTaskId);
+  if (!task) { show("home"); renderHome(); return; }
+  $("#stagedBody").innerHTML = `
+    <button class="back-btn" type="button" id="stagedBack">← Back to picker</button>
+    <div class="staged-progress">
+      <div class="staged-stage active"><span class="staged-num">1</span> Plan <span class="staged-time">~3 min</span></div>
+      <div class="staged-stage"><span class="staged-num">2</span> Write <span class="staged-time">~37 min</span></div>
+    </div>
+    <h2 class="view-title">Plan first, then write</h2>
+    <p class="section-lead">Bullet-point your position and the 2-3 main ideas you'll develop. The plan stays pinned alongside the prompt while you write so you never drift. Use the Claude tools below if you're stuck.</p>
+
+    <div class="staged-prompt-box">
+      <div class="staged-prompt-label">PROMPT</div>
+      <div class="staged-prompt-text">${esc(task.prompt).replace(/\n\n/g, "<br><br>")}</div>
+    </div>
+
+    <label class="staged-textarea-label" for="stagedPlan">Your plan</label>
+    <textarea id="stagedPlan" class="staged-plan-textarea"
+      spellcheck="false" autocorrect="off" autocapitalize="off"
+      placeholder="Position: I largely agree because…
+Main idea 1: …
+Main idea 2: …
+(Optional) Counter-argument I'll concede: …
+Conclusion direction: …"></textarea>
+
+    <div class="staged-help-actions">
+      <button class="secondary-btn" id="stagedDecon" type="button">📋 Read prompt with me</button>
+      <button class="secondary-btn" id="stagedIdeas" type="button">💡 Brainstorm ideas</button>
+    </div>
+
+    <div class="result-actions">
+      <button class="secondary-btn" id="stagedCancel" type="button">Cancel</button>
+      <button class="primary-btn"   id="stagedContinue" type="button">Continue to writing ▸</button>
+    </div>`;
+  show("staged");
+
+  $("#stagedBack").onclick   = () => { stagedTaskId = null; openPicker("task2"); };
+  $("#stagedCancel").onclick = () => { stagedTaskId = null; openPicker("task2"); };
+  $("#stagedDecon").onclick  = () => openDeconstruct(task);
+  $("#stagedIdeas").onclick  = () => openIdeaBank(task);
+  $("#stagedContinue").onclick = () => {
+    const plan = $("#stagedPlan").value.trim();
+    if (plan.length < 20) {
+      toast("Write at least a brief plan before continuing — even rough bullet points are fine.");
+      return;
+    }
+    const id = stagedTaskId;
+    stagedTaskId = null;
+    // 37 minutes for writing (3 already spent planning) — keeps the 40-min Task 2 budget intact.
+    startExam("single", id, { plan: plan, minutesOverride: 37 });
+  };
+
+  setTimeout(() => { const t = $("#stagedPlan"); if (t) t.focus(); }, 50);
 }
 
 /* ============================== IDEA BANK ============================== */

@@ -101,7 +101,17 @@
   <section class="view" id="view-picker" data-view="picker" hidden>
     <button class="back-btn" type="button" data-back>← Home</button>
     <h2 class="view-title" id="pickerTitle">Choose a task</h2>
+    <div class="mode-toggle" id="modeToggle" hidden>
+      <span class="mode-toggle-label">Mode:</span>
+      <button class="mode-btn active" type="button" data-mode="exam">Exam (one shot, 40 min)</button>
+      <button class="mode-btn" type="button" data-mode="practice">Practice (plan first, then write)</button>
+    </div>
     <div class="picker-list" id="pickerList"></div>
+  </section>
+
+  <!-- ============================ STAGED PLANNING ============================ -->
+  <section class="view" id="view-staged" data-view="staged" hidden>
+    <div id="stagedBody"></div>
   </section>
 
   <!-- ============================ EXAM (CD-IELTS layout) ============================ -->
