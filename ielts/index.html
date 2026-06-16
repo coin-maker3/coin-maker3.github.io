@@ -3,75 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>IELTS Writing Lab — realistic exam practice with an AI examiner</title>
-<meta name="description" content="Practise IELTS Academic Writing Task 1 and Task 2 under real exam timing, and get strict, honest band feedback from an AI examiner trained on the official IELTS band descriptors.">
+<title>Band 7 Lab — IELTS Writing practice with a strict AI examiner</title>
+<meta name="description" content="Authentic IELTS Academic Writing practice. Real exam timing on a Computer-Delivered-style screen. Strict, calibrated AI examiner that marks against the official band descriptors and shows you the smallest edits to lift your band.">
+<meta name="theme-color" content="#0c1220">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- ======================= TOP BAR ======================= -->
-<header class="topbar">
-  <div class="brand" id="brandHome">
-    <span class="brand-mark">✦</span>
-    <span class="brand-name">Writing&nbsp;Lab</span>
-    <span class="brand-sub">IELTS</span>
-  </div>
-  <div class="topbar-right">
-    <button class="ghost-btn" id="navCoach" title="Your AI coach">🧠 Coach</button>
-    <button class="ghost-btn" id="navHistory" title="Your progress">📈 Progress</button>
-    <button class="ghost-btn" id="navSettings" title="Settings">⚙︎</button>
-  </div>
+<!-- ============================== TOP BAR ============================== -->
+<header class="topbar" id="topbar">
+  <button class="brand" id="brandHome" type="button" aria-label="Home">
+    <span class="brand-mark" aria-hidden="true">7</span>
+    <span class="brand-name">Band&nbsp;7 Lab</span>
+  </button>
+  <nav class="topnav" id="topnav">
+    <button class="ghost-btn" id="navCoach" type="button" title="Your AI coach">Coach</button>
+    <button class="ghost-btn" id="navHistory" type="button" title="Your past attempts">Progress</button>
+    <button class="ghost-btn" id="navSettings" type="button" title="Settings" hidden>Settings</button>
+  </nav>
 </header>
 
 <main id="app">
 
-  <!-- ======================= HOME / DASHBOARD ======================= -->
-  <section class="view" id="view-home">
+  <!-- ============================ HOME ============================ -->
+  <section class="view" id="view-home" data-view="home">
     <div class="hero">
-      <h1 id="greeting">Let’s get you to your target band.</h1>
-      <p class="hero-sub">Real exam timing. A strict, honest AI examiner. Watch your band climb.</p>
+      <h1 id="greeting">Practise IELTS Writing under real exam conditions.</h1>
+      <p class="hero-sub">A strict examiner. Calibrated to the official band descriptors. Honest about your current band — and exact about the smallest changes that lift it.</p>
     </div>
 
     <div class="stat-row">
       <div class="stat-card">
-        <div class="stat-label">Best overall band</div>
-        <div class="stat-value" id="statBest">—</div>
+        <span class="stat-label">Best overall band</span>
+        <span class="stat-value" id="statBest">—</span>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Target band</div>
-        <div class="stat-value" id="statTarget">7.0</div>
-        <button class="mini-link" id="editTarget">change</button>
+        <span class="stat-label">Target band</span>
+        <span class="stat-value" id="statTarget">7.0</span>
+        <button class="stat-link" id="editTarget" type="button" hidden>change</button>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Practice streak</div>
-        <div class="stat-value" id="statStreak">0<span class="unit">d</span></div>
+        <span class="stat-label">Practice streak</span>
+        <span class="stat-value" id="statStreak">0<span class="stat-unit">d</span></span>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Letters marked</div>
-        <div class="stat-value" id="statCount">0</div>
+        <span class="stat-label">Essays marked</span>
+        <span class="stat-value" id="statCount">0</span>
       </div>
     </div>
 
     <div class="focus-banner" id="focusBanner" hidden>
-      <span class="focus-icon">🎯</span>
+      <span class="focus-icon" aria-hidden="true">●</span>
       <span id="focusText"></span>
     </div>
 
     <div class="cta-grid">
-      <button class="cta-card primary" data-start="task2">
-        <span class="cta-kicker">Most weight ×2 · 40 min</span>
+      <button class="cta-card primary" type="button" data-start="task2">
+        <span class="cta-kicker">Task 2 · 40 min · 250+ words · counts double</span>
         <span class="cta-title">Practise Task 2</span>
         <span class="cta-desc">The essay. This is where bands are won or lost.</span>
       </button>
-      <button class="cta-card" data-start="task1">
-        <span class="cta-kicker">20 min · 150+ words</span>
+      <button class="cta-card" type="button" data-start="task1">
+        <span class="cta-kicker">Task 1 · 20 min · 150+ words</span>
         <span class="cta-title">Practise Task 1</span>
-        <span class="cta-desc">Describe a chart, graph, table or process.</span>
+        <span class="cta-desc">Describe a chart, graph, table, pie or process.</span>
       </button>
-      <button class="cta-card" data-start="full">
-        <span class="cta-kicker">Full test · 60 min</span>
+      <button class="cta-card" type="button" data-start="full">
+        <span class="cta-kicker">Full test · 60 min · both tasks</span>
         <span class="cta-title">Full Writing test</span>
-        <span class="cta-desc">Task 1 + Task 2, back to back, like the real thing.</span>
+        <span class="cta-desc">Task 1 + Task 2 back to back, like the real exam.</span>
       </button>
     </div>
 
@@ -80,7 +80,12 @@
         <h2>Your band over time</h2>
         <span class="panel-note" id="progressNote"></span>
       </div>
-      <div id="progressChart" class="progress-chart"></div>
+      <div class="progress-chart" id="progressChart"></div>
+    </div>
+
+    <div class="panel" id="recentPanel" hidden>
+      <div class="panel-head"><h2>Recent attempts</h2></div>
+      <div class="recent-list" id="recentList"></div>
     </div>
 
     <div class="panel">
@@ -88,105 +93,99 @@
       <div class="achievements" id="achievements"></div>
     </div>
 
-    <div class="panel" id="recentPanel" hidden>
-      <div class="panel-head"><h2>Recent attempts</h2></div>
-      <div id="recentList"></div>
-    </div>
-
     <p class="api-hint" id="apiHint"></p>
   </section>
 
-  <!-- ======================= TASK PICKER ======================= -->
-  <section class="view" id="view-picker" hidden>
-    <button class="back-btn" data-back>← Home</button>
-    <h2 id="pickerTitle">Choose a task</h2>
-    <div id="pickerList" class="picker-list"></div>
+  <!-- ============================ PICKER ============================ -->
+  <section class="view" id="view-picker" data-view="picker" hidden>
+    <button class="back-btn" type="button" data-back>← Home</button>
+    <h2 class="view-title" id="pickerTitle">Choose a task</h2>
+    <div class="picker-list" id="pickerList"></div>
   </section>
 
-  <!-- ======================= EXAM (CD-IELTS layout) ======================= -->
-  <section class="view cd-exam" id="view-exam" hidden>
-    <!-- top blue bar: Test name + phase + Hide + countdown -->
+  <!-- ============================ EXAM (CD-IELTS layout) ============================ -->
+  <section class="view cd-exam" id="view-exam" data-view="exam" hidden>
     <div class="cd-bar">
       <div class="cd-bar-left">
         <span class="cd-test-name">IELTS Academic — Writing</span>
         <span class="cd-phase" id="examPhase">Part 2</span>
       </div>
       <div class="cd-bar-right">
-        <button class="cd-bar-btn" id="examQuit" title="Quit test">Quit</button>
-        <button class="cd-bar-btn" id="examHide" title="Hide test">Hide</button>
-        <div class="cd-timer-wrap">
+        <button class="cd-bar-btn" id="examHelp" type="button" title="Help">Help</button>
+        <button class="cd-bar-btn" id="examHide" type="button" title="Hide test screen — timer keeps running">Hide</button>
+        <button class="cd-bar-btn cd-bar-btn-quit" id="examQuit" type="button" title="Quit attempt">Quit</button>
+        <div class="cd-timer-wrap" aria-live="off">
           <span class="cd-timer-label">Time remaining</span>
           <span class="cd-timer" id="examTimer">40:00</span>
         </div>
       </div>
     </div>
 
-    <!-- task tabs (only shown in Full test) + instruction strip -->
-    <div class="cd-tabs" id="stimTabs" hidden></div>
-    <div class="cd-tabs cd-tabs-hidden" id="writeTabs" hidden></div>
+    <div class="cd-tabs" id="examTabs" hidden></div>
+
     <div class="cd-task-strip">
-      <span class="cd-task-rubric" id="examFootHint">You should spend about 40 minutes on this task. Write at least 250 words.</span>
+      <span class="cd-task-rubric" id="examRubric">You should spend about 40 minutes on this task. Write at least 250 words.</span>
     </div>
 
-    <!-- split-screen body: stimulus left, answer right -->
-    <div class="cd-body" id="examBody">
-      <div class="cd-stim" id="examStimulus">
-        <div class="cd-stim-scroll" id="stimScroll"></div>
+    <div class="cd-body">
+      <div class="cd-stim">
+        <div class="cd-stim-scroll" id="examStim"></div>
       </div>
       <div class="cd-write">
-        <textarea id="answerBox" class="cd-answer"
+        <textarea
+          id="answerBox" class="cd-answer"
           spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off"
           placeholder=""></textarea>
       </div>
     </div>
 
-    <!-- bottom bar: word count left, submit right -->
     <div class="cd-foot">
-      <div class="cd-words">
+      <div class="cd-words" id="cdWords">
         <span class="cd-words-label">Words:</span>
         <span id="wordCount">0</span>
         <span class="cd-words-target" id="wordsTarget">(250 min)</span>
       </div>
-      <button class="cd-submit" id="submitBtn">Submit answer ▸</button>
+      <button class="cd-submit" id="submitBtn" type="button">Submit answer ▸</button>
     </div>
   </section>
 
-  <!-- ======================= MARKING / RESULT ======================= -->
-  <section class="view" id="view-result" hidden>
-    <button class="back-btn" data-back>← Home</button>
+  <!-- ============================ RESULT ============================ -->
+  <section class="view" id="view-result" data-view="result" hidden>
+    <button class="back-btn" type="button" data-back>← Home</button>
     <div id="resultBody"></div>
   </section>
 
-  <!-- ======================= HISTORY ======================= -->
-  <section class="view" id="view-history" hidden>
-    <button class="back-btn" data-back>← Home</button>
-    <h2>Your progress</h2>
+  <!-- ============================ HISTORY ============================ -->
+  <section class="view" id="view-history" data-view="history" hidden>
+    <button class="back-btn" type="button" data-back>← Home</button>
+    <h2 class="view-title">Your progress</h2>
     <div class="panel" id="historyChartPanel" hidden>
       <div class="panel-head"><h2>Band over time</h2></div>
-      <div id="historyChart" class="progress-chart"></div>
+      <div class="progress-chart" id="historyChart"></div>
     </div>
-    <div id="historyList"></div>
+    <div class="recent-list" id="historyList"></div>
   </section>
 
-  <!-- ======================= COACH ======================= -->
-  <section class="view" id="view-coach" hidden>
-    <button class="back-btn" data-back>← Home</button>
+  <!-- ============================ COACH ============================ -->
+  <section class="view" id="view-coach" data-view="coach" hidden>
+    <button class="back-btn" type="button" data-back>← Home</button>
     <div id="coachBody"></div>
   </section>
 
 </main>
 
-<!-- ======================= SETTINGS MODAL ======================= -->
+<!-- ============================ SETTINGS MODAL ============================ -->
 <div class="modal-backdrop" id="settingsModal" hidden>
-  <div class="modal">
+  <div class="modal" role="dialog" aria-labelledby="settingsTitle">
     <div class="modal-head">
-      <h2>Settings</h2>
-      <button class="modal-close" id="settingsClose">✕</button>
+      <h2 id="settingsTitle">Settings</h2>
+      <button class="modal-close" id="settingsClose" type="button" aria-label="Close settings">✕</button>
     </div>
     <div class="modal-body">
+
       <label class="field">
-        <span class="field-label">Your name <span class="opt">(optional)</span></span>
-        <input type="text" id="setName" placeholder="e.g. Sara">
+        <span class="field-label">Your name <span class="field-opt">(optional)</span></span>
+        <input type="text" id="setName" autocomplete="off" placeholder="e.g. Sara">
       </label>
 
       <label class="field">
@@ -197,46 +196,50 @@
         </select>
       </label>
 
-      <div class="field-group">
-        <span class="field-label">AI examiner — Anthropic API key</span>
-        <p class="field-help">
-          The examiner is the real Claude model. To mark your writing it needs an
-          Anthropic API key from
-          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.
-          The key is stored <strong>only on this device</strong> (in your browser) and is sent
-          only to Anthropic — never to us or anyone else.
-        </p>
-        <input type="password" id="setApiKey" placeholder="sk-ant-…" autocomplete="off">
-        <div class="key-status" id="keyStatus"></div>
-      </div>
-
-      <label class="field">
+      <div class="field-group" id="ownerOnlyFields" hidden>
         <span class="field-label">Examiner model</span>
         <select id="setModel">
           <option value="claude-opus-4-7">Claude Opus 4.7 — most accurate (recommended)</option>
           <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — faster &amp; cheaper</option>
           <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — cheapest</option>
         </select>
-      </label>
 
-      <button class="primary-btn full" id="settingsSave">Save</button>
-      <button class="text-btn danger" id="resetProgress">Reset all progress &amp; data</button>
+        <span class="field-label" style="margin-top:14px">Override API key (advanced)</span>
+        <p class="field-help">Normally the key lives server-side on the proxy. Paste a key here to bypass the proxy and call Anthropic directly from this browser. Leave blank for normal proxy use.</p>
+        <input type="password" id="setApiKey" autocomplete="off" placeholder="sk-ant-… (optional)">
+
+        <span class="field-label" style="margin-top:14px">Proxy URL</span>
+        <input type="text" id="setProxy" autocomplete="off">
+      </div>
+
+      <button class="primary-btn full" id="settingsSave" type="button">Save</button>
+      <button class="text-btn danger" id="resetProgress" type="button" hidden>Reset all progress &amp; data</button>
     </div>
   </div>
 </div>
 
-<!-- ======================= CONFIRM / TOAST ======================= -->
+<!-- ============================ CONFIRM MODAL ============================ -->
 <div class="modal-backdrop" id="confirmModal" hidden>
-  <div class="modal small">
+  <div class="modal small" role="dialog" aria-labelledby="confirmText">
     <div class="modal-body">
       <p id="confirmText"></p>
       <div class="confirm-actions">
-        <button class="text-btn" id="confirmNo">Cancel</button>
-        <button class="primary-btn" id="confirmYes">Yes</button>
+        <button class="secondary-btn" id="confirmNo" type="button">Cancel</button>
+        <button class="primary-btn" id="confirmYes" type="button">Yes</button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- ============================ HIDE OVERLAY ============================ -->
+<div class="cd-hide-overlay" id="cdHideOverlay" hidden>
+  <div class="cd-hide-card">
+    <h2>Test paused</h2>
+    <p>Your screen is hidden so you can step away. <b>The clock is still running.</b></p>
+    <button class="cd-submit" id="cdResume" type="button">Resume test</button>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script src="tasks.js"></script>
