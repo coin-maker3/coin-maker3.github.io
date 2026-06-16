@@ -18,7 +18,7 @@ const API_URL = "https://api.anthropic.com/v1/messages";
 const defaultStore = () => ({
   settings: {
     name: "", target: 7.0, apiKey: "", model: "claude-opus-4-7", ownerMode: false,
-    proxyUrl: "https://ielts-mark.vercel.app/api/mark",
+    proxyUrl: "https://band7-lab.web.app/api/mark",
   },
   history: [],            // {id, ts, taskId, type, title, answer, wordCount, mark|null, band|null}
   streak: { date: "", count: 0 },
@@ -35,11 +35,15 @@ function load() {
 }
 function save() { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
 
-/* Migrate stored settings from v0 (hallucinated model IDs) to current IDs. */
+/* Migrate stored settings from older versions to current values. */
 (function migrate() {
   let dirty = false;
   if (store.settings.model === "claude-opus-4-8") { store.settings.model = "claude-opus-4-7"; dirty = true; }
   if (store.settings.model === "claude-haiku-4-5") { store.settings.model = "claude-haiku-4-5-20251001"; dirty = true; }
+  // Move from the Vercel proxy to the Firebase Hosting + Cloud Function setup.
+  if (store.settings.proxyUrl === "https://ielts-mark.vercel.app/api/mark") {
+    store.settings.proxyUrl = "https://band7-lab.web.app/api/mark"; dirty = true;
+  }
   if (dirty) save();
 })();
 

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/firebase/firebase-tools/master/schema/firebase-config.json",
+  "hosting": {
+    "site": "band7-lab",
+    "public": "public",
+    "predeploy": ["node sync-public.js"],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "HANDOFF.md"],
+    "rewrites": [
+      {
+        "source": "/api/mark",
+        "function": {
+          "functionId": "markEssay",
+          "region": "europe-west2"
+        }
+      },
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|svg|map)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=300" }]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      }
+    ]
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "ielts",
+      "ignore": ["node_modules", "*.log"]
+    }
+  ]
+}

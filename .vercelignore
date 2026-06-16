@@ -1,5 +1,0 @@
-# Tell the 2ww Vercel project (Root Directory = repo root) to ignore the
-# IELTS proxy folder. The IELTS proxy is its own separate Vercel project
-# whose Root Directory is `ielts-api/`, so it doesn't read this file at all.
-# This keeps the two deploys completely isolated.
-ielts-api/

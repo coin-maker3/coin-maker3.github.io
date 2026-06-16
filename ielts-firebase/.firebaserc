@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "lds-part2-simulator"
+  },
+  "targets": {
+    "lds-part2-simulator": {
+      "hosting": {
+        "ielts": ["band7-lab"]
+      }
+    }
+  }
+}
