@@ -35,6 +35,7 @@ function defaults() {
     history: [],
     streak: { date: "", count: 0 },
     achievements: [],
+    drills: [],                        // drill attempts: {ts, pattern, score, total}
   };
 }
 let store;
@@ -127,7 +128,7 @@ function infoDialog(html) {
 
 /* ============================== ROUTER ============================== */
 
-const VIEWS = ["home", "picker", "exam", "result", "history", "coach"];
+const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill"];
 function show(view) {
   // hide the topbar while exam is up (CD-IELTS owns the screen)
   $("#topbar").hidden = view === "exam";
@@ -1235,8 +1236,10 @@ function renderCoach() {
     ps.forEach((p) => {
       const key = (p.name || "").trim().toLowerCase();
       if (!key) return;
-      if (!tally[key]) tally[key] = { name: p.name, count: 0, rule: p.rule, fix: p.fix, example: p.example };
+      if (!tally[key]) tally[key] = { name: p.name, count: 0, rule: p.rule, fix: p.fix, example: p.example, examples: [] };
       tally[key].count += 1;
+      if (p.example) tally[key].examples.push(p.example);
+      // keep the most recent rule / fix / example as authoritative
       Object.assign(tally[key], { rule: p.rule, fix: p.fix, example: p.example });
     });
   });
@@ -1274,14 +1277,31 @@ function renderCoach() {
 
   html += `<div class="result-section">
     <h3>Your language fingerprint</h3>
-    <p class="section-lead">The habits that keep showing up in your writing, most frequent first. Beat these and your band moves.</p>
-    ${patterns.map((p) => `<div class="pattern">
+    <p class="section-lead">The habits that keep showing up in your writing, most frequent first. Tap <b>Drill this pattern</b> on any of them — your AI tutor will generate 5 short personalised exercises targeted at <em>that one weakness</em>, using your own examples.</p>
+    ${patterns.map((p, idx) => `<div class="pattern" data-pattern-key="${esc(p.name.toLowerCase())}">
       <div class="pat-name">${esc(p.name)} <span class="pat-count">×${p.count}</span></div>
       ${p.rule    ? `<div class="pat-rule">${esc(p.rule)}</div>` : ""}
       ${p.example ? `<div class="pat-eg">"${esc(p.example)}"</div>` : ""}
       ${p.fix     ? `<div class="pat-fix">${esc(p.fix)}</div>` : ""}
+      <div class="pat-action">
+        <button type="button" data-drill-idx="${idx}">Drill this pattern →</button>
+      </div>
     </div>`).join("")}
   </div>`;
+
+  if (Array.isArray(store.drills) && store.drills.length) {
+    const recent = store.drills.slice(-5).reverse();
+    html += `<div class="result-section">
+      <h3>Recent drills</h3>
+      ${recent.map((d) => `<div class="attempt">
+        <div class="attempt-band">${d.score}/${d.total}</div>
+        <div class="attempt-meta">
+          <div class="attempt-title">${esc(d.pattern)}</div>
+          <div class="attempt-sub">${esc(fmtDate(d.ts))}</div>
+        </div>
+      </div>`).join("")}
+    </div>`;
+  }
 
   html += `<div class="result-actions">
     <button class="primary-btn" id="coachPractise" type="button">Practise Task 2 now →</button>
@@ -1294,7 +1314,231 @@ function renderCoach() {
     $("#coachChart").innerHTML = `<p class="section-lead">One more marked essay unlocks your trend line.</p>`;
   }
   $("#coachPractise").onclick = () => openPicker("task2");
+
+  // Wire the Drill-this-pattern buttons.
+  $$("[data-drill-idx]").forEach((btn) => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.drillIdx;
+      const p = patterns[idx];
+      if (!p) return;
+      openDrill(p);
+    };
+  });
+
   show("coach");
+}
+
+/* ============================== DRILL MODE ============================== */
+/* The Coach knows the candidate's recurring patterns. Drill Mode lets her
+   practise them in isolation: Claude generates 5 personalised micro-exercises
+   targeting THAT pattern, using HER actual misspelled/misused words. Each
+   answer is matched against the accepted-answer list and a score persists. */
+
+const DRILL_SCHEMA = {
+  type: "object", additionalProperties: false,
+  properties: {
+    exercises: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          prompt:      { type: "string" },
+          accept:      { type: "array", items: { type: "string" } },
+          explanation: { type: "string" },
+        },
+        required: ["prompt", "accept", "explanation"],
+      },
+    },
+    closing_advice: { type: "string" },
+  },
+  required: ["exercises", "closing_advice"],
+};
+
+async function generateDrill(pattern) {
+  const s = store.settings;
+  const examples = (pattern.examples || []).slice(0, 8);
+  const body = {
+    model: s.model,
+    max_tokens: 2048,
+    system: [
+      "You are a focused IELTS Writing tutor. The candidate has a specific recurring",
+      "weakness identified across their essays. Generate exactly 5 targeted micro-",
+      "exercises that test ONLY this pattern.",
+      "",
+      "Rules for each exercise:",
+      "- One sentence, or a short fill-in-the-blank, or a rewrite task.",
+      "- The pattern under test must be the dominant issue in the exercise.",
+      "- Have a clear, unambiguous correct answer (or a very small set of accepted answers).",
+      "- Where possible, use vocabulary and topics the candidate is likely to meet in",
+      "  IELTS Academic Writing Task 2 (education, environment, technology, society,",
+      "  work, health). Avoid medical / profession-specific topics — IELTS is profession-blind.",
+      "- Where the pattern involves spelling, use the candidate's actual misspelled words.",
+      "",
+      "'accept' is an array of acceptable answers — keep variants minimal but cover the",
+      "obvious alternatives (e.g. with/without trailing punctuation, common synonyms).",
+      "Each answer string MUST be lowercased and trimmed.",
+      "'explanation' is one short sentence saying why the correct answer is right.",
+      "'closing_advice' is one short paragraph summarising how to internalise this pattern.",
+      "",
+      "Call the generate_drill tool. Do not write prose.",
+    ].join("\n"),
+    messages: [{
+      role: "user",
+      content:
+        `RECURRING PATTERN: ${pattern.name}\n\n` +
+        `RULE: ${pattern.rule || "(not stated)"}\n\n` +
+        `FIX GUIDANCE: ${pattern.fix || "(not stated)"}\n\n` +
+        `EXAMPLES FROM THE CANDIDATE'S OWN ESSAYS:\n${examples.length ? examples.map(e => `  - ${e}`).join("\n") : "  (no examples logged yet)"}\n\n` +
+        `Generate exactly 5 personalised drills.`,
+    }],
+    tools: [{
+      name: "generate_drill",
+      description: "Return a personalised 5-exercise drill targeting one recurring pattern.",
+      input_schema: DRILL_SCHEMA,
+    }],
+    tool_choice: { type: "tool", name: "generate_drill" },
+  };
+
+  const useDevice = !!s.apiKey;
+  let res;
+  if (useDevice) {
+    res = await fetch(ANTHROPIC_DIRECT_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": s.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify(body),
+    });
+  } else {
+    try {
+      res = await fetch(s.proxyUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
+    }
+    if (res.status === 404 || res.status === 503) {
+      const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
+    }
+  }
+  if (!res.ok) throw new Error(`Drill generator failed (${res.status}).`);
+  const data = await res.json();
+  const block = (data.content || []).find((b) => b.type === "tool_use" && b.name === "generate_drill");
+  if (!block || !block.input || !Array.isArray(block.input.exercises) || block.input.exercises.length === 0) {
+    throw new Error("Drill generator returned no exercises.");
+  }
+  return block.input;
+}
+
+async function openDrill(pattern) {
+  show("drill");
+  $("#drillBody").innerHTML = markingSpinner(`Generating personalised drills for: ${esc(pattern.name)}…`);
+  startTicker();
+  try {
+    const spec = await generateDrill(pattern);
+    stopTicker();
+    renderDrill(pattern, spec);
+  } catch (err) {
+    stopTicker();
+    $("#drillBody").innerHTML = `<button class="back-btn" type="button" id="drillBack">← Coach</button>
+      <div class="panel">
+        <h3>Couldn't generate drill</h3>
+        <p class="section-lead">${esc(err.message)}</p>
+        <button class="primary-btn" id="drillRetry" type="button">Try again</button>
+      </div>`;
+    $("#drillBack").onclick  = () => renderCoach();
+    $("#drillRetry").onclick = () => openDrill(pattern);
+  }
+}
+
+function renderDrill(pattern, spec) {
+  let html = `<button class="back-btn" type="button" id="drillBack">← Coach</button>
+    <h2 class="view-title">Drill — ${esc(pattern.name)}</h2>
+    <div class="drill-pattern-info">
+      <div class="pat-name">${esc(pattern.name)}</div>
+      ${pattern.rule ? `<div class="pat-rule">${esc(pattern.rule)}</div>` : ""}
+      ${pattern.fix  ? `<div class="pat-fix">${esc(pattern.fix)}</div>` : ""}
+    </div>
+    <p class="section-lead">${spec.exercises.length} short exercises personalised to your essays. Type each answer, then press <b>Mark all</b> at the bottom.</p>`;
+
+  spec.exercises.forEach((ex, i) => {
+    html += `<div class="drill-card" data-drill-card="${i}">
+      <p class="drill-prompt"><b>${i + 1}.</b> ${esc(ex.prompt)}</p>
+      <input class="drill-input" type="text" data-input="${i}"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <div class="drill-result" data-result="${i}" hidden></div>
+    </div>`;
+  });
+
+  html += `<div class="result-actions">
+    <button class="secondary-btn" id="drillCancel" type="button">Back to Coach</button>
+    <button class="primary-btn"   id="drillMark"   type="button">Mark all ▸</button>
+  </div>
+  <div id="drillSummary"></div>`;
+
+  $("#drillBody").innerHTML = html;
+  $("#drillBack").onclick   = () => renderCoach();
+  $("#drillCancel").onclick = () => renderCoach();
+
+  $("#drillMark").onclick = () => {
+    let score = 0;
+    spec.exercises.forEach((ex, i) => {
+      const input = $(`[data-input="${i}"]`);
+      const userRaw = input.value.trim();
+      const userLow = userRaw.toLowerCase();
+      const accepts = (ex.accept || []).map((a) => String(a).toLowerCase().trim());
+      const right = accepts.includes(userLow);
+      const resultEl = $(`[data-result="${i}"]`);
+      const card = $(`[data-drill-card="${i}"]`);
+      input.disabled = true;
+      resultEl.hidden = false;
+      resultEl.className = `drill-result ${right ? "right" : "wrong"}`;
+      card.classList.add(right ? "right" : "wrong");
+      if (right) {
+        resultEl.innerHTML = `<b>✓ Correct.</b> ${esc(ex.explanation || "")}`;
+        score++;
+      } else {
+        const expected = accepts[0] || "(no expected answer logged)";
+        resultEl.innerHTML = `<b>✗ Not quite.</b> ${esc(ex.explanation || "")}
+          <span class="drill-result-correct">Accepted answer: ${esc(expected)}</span>`;
+      }
+    });
+
+    if (!Array.isArray(store.drills)) store.drills = [];
+    store.drills.push({
+      ts: Date.now(),
+      pattern: pattern.name,
+      score: score, total: spec.exercises.length,
+    });
+    save();
+
+    const sum = $("#drillSummary");
+    const pct = Math.round(100 * score / spec.exercises.length);
+    sum.innerHTML = `<div class="result-hero" style="margin-top:16px">
+      <div class="result-hero-label">Drill score</div>
+      <div class="result-hero-band">${score}/${spec.exercises.length}</div>
+      <div class="result-hero-target">${pct >= 80 ? `<b class="hit">Strong — keep this pattern under control in your next essay.</b>` : pct >= 50 ? `<b class="miss">Half-way — try another drill or write a fresh essay.</b>` : `<b class="miss">Pattern still active — drill again before your next essay.</b>`}</div>
+      <div class="result-hero-note">${esc(spec.closing_advice || "")}</div>
+    </div>
+    <div class="result-actions">
+      <button class="secondary-btn" id="drillAgain" type="button">Drill this pattern again</button>
+      <button class="primary-btn"   id="drillToCoach" type="button">Back to Coach</button>
+    </div>`;
+
+    $("#drillAgain").onclick   = () => openDrill(pattern);
+    $("#drillToCoach").onclick = () => renderCoach();
+
+    $("#drillMark").disabled = true;
+    $("#drillMark").textContent = `Marked: ${score}/${spec.exercises.length}`;
+  };
+
+  // focus first input for fast typing
+  setTimeout(() => { const first = $(`[data-input="0"]`); if (first) first.focus(); }, 50);
 }
 
 /* ============================== SETTINGS ============================== */
