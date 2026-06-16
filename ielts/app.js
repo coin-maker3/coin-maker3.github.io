@@ -167,10 +167,13 @@ function show(view) {
 
 function applyOwnerUI() {
   const owner = !!store.settings.ownerMode;
-  $("#navSettings").hidden     = !owner;
-  $("#editTarget").hidden      = !owner;
+  // Settings is visible to everyone — Saja can change her name + target
+  // and reset her own progress. The owner-only fields (API key, model,
+  // proxy URL) stay hidden for non-owner sessions.
+  $("#navSettings").hidden     = false;
+  $("#editTarget").hidden      = false;
   $("#ownerOnlyFields").hidden = !owner;
-  $("#resetProgress").hidden   = !owner;
+  $("#resetProgress").hidden   = false;
   // Vault button is shown once the candidate has any tracked spellings.
   const v = vaultStats();
   $("#navVault").hidden = v.total === 0;
@@ -2044,34 +2047,83 @@ const MODULE_MARK_SCHEMA = {
 function moduleState(id) {
   if (!store.modules) store.modules = {};
   if (!store.modules[id]) {
-    store.modules[id] = { attempts: 0, correct: 0, mastered: false, last_score: 0, last_attempt: 0 };
+    store.modules[id] = {
+      attempts: 0, correct: 0, mastered: false,
+      last_score: 0, last_attempt: 0,
+      passed_prompt_indexes: [],   // which try-it prompt indexes have been passed (genuine generalisation)
+    };
   }
+  // Backfill for older stored modules.
+  if (!Array.isArray(store.modules[id].passed_prompt_indexes)) store.modules[id].passed_prompt_indexes = [];
   return store.modules[id];
+}
+
+/* Pick the next try-it prompt: prefer one the candidate has not yet
+   passed (so 3 correct = 3 different scenarios = real generalisation).
+   If they've passed every prompt, pick a random one for refresher. */
+function pickNextTryIt(module) {
+  const prompts = Array.isArray(module.try_it_prompts) && module.try_it_prompts.length
+    ? module.try_it_prompts
+    : (module.try_it_prompt ? [module.try_it_prompt] : []);
+  if (!prompts.length) return { index: 0, text: "", total: 0 };
+  const state = moduleState(module.id);
+  const allIdxs = prompts.map((_, i) => i);
+  const unpassed = allIdxs.filter((i) => !state.passed_prompt_indexes.includes(i));
+  const pool = unpassed.length > 0 ? unpassed : allIdxs;
+  const idx = pool[Math.floor(Math.random() * pool.length)];
+  return { index: idx, text: prompts[idx], total: prompts.length };
 }
 
 function renderLearn() {
   show("learn");
   const body = $("#learnBody");
 
-  const cards = MODULES.map((m) => {
+  const foundation = MODULES.filter((m) => m.tier === "foundation");
+  const polish     = MODULES.filter((m) => m.tier === "polish");
+
+  const cardFor = (m) => {
     const state = moduleState(m.id);
     const progress = state.mastered
       ? `<span class="module-badge mastered">Mastered ✓</span>`
-      : `<span class="module-badge">${state.correct}/${m.mastery_target} correct</span>`;
+      : `<span class="module-badge">${state.correct}/${m.mastery_target} scenarios</span>`;
+    const tierTag = m.tier === "foundation"
+      ? `<span class="module-tier-badge foundation">Pre-exam gate</span>`
+      : `<span class="module-tier-badge polish">Polish</span>`;
     return `<div class="module-card ${state.mastered ? "mastered" : ""}" data-module-id="${esc(m.id)}" tabindex="0" role="button">
       <div class="module-card-head">
         <div class="module-card-title">${esc(m.title)}</div>
         ${progress}
       </div>
       <div class="module-card-short">${esc(m.short)}</div>
-      <div class="module-card-blocks">Lifts: <b>${esc(m.blocks)}</b></div>
+      <div class="module-card-meta">${tierTag}<span>Lifts: <b>${esc(m.blocks)}</b></span></div>
     </div>`;
-  }).join("");
+  };
+
+  const foundationMastered = foundation.filter((m) => moduleState(m.id).mastered).length;
+  const allFoundationDone  = foundationMastered === foundation.length;
 
   body.innerHTML = `<button class="back-btn" type="button" data-back>← Home</button>
     <h2 class="view-title">Master the skills</h2>
-    <p class="section-lead">Each module isolates one micro-skill. Read the concept, see good vs bad examples, then write your own. Claude marks it strictly on that one skill. Three passes = mastered. This is how you actually get from 4.5 to 7 — one skill at a time, not by writing the same essay over and over.</p>
-    <div class="module-list">${cards}</div>`;
+    <p class="section-lead">Each module isolates ONE micro-skill. Read the concept, see good vs bad examples, write your own. The marker is strict on that one skill. Master ${MODULES[0].mastery_target} different scenarios per module — that's real generalisation, not the same task three times.</p>
+
+    <div class="module-section">
+      <div class="module-section-head">
+        <h3>Pre-exam gates — get these right before timed practice</h3>
+        <span class="module-section-progress">${foundationMastered} of ${foundation.length} mastered</span>
+      </div>
+      <p class="module-section-lead">${allFoundationDone
+        ? "All foundation skills mastered. You're ready to focus on polish and timed practice."
+        : "These are mechanical / structural skills. They have nothing to do with how good your English is — but skipping any of them caps your band. Master all foundation modules before serious exam practice."}</p>
+      <div class="module-list">${foundation.map(cardFor).join("")}</div>
+    </div>
+
+    <div class="module-section">
+      <div class="module-section-head">
+        <h3>Polish — lifts you from 6.5 toward 7+</h3>
+      </div>
+      <p class="module-section-lead">Once the foundations are solid, these refinements move your score from "good enough" to "band 7".</p>
+      <div class="module-list">${polish.map(cardFor).join("")}</div>
+    </div>`;
 
   $$("[data-back]", body).forEach((b) => (b.onclick = () => { show("home"); renderHome(); }));
   $$(".module-card", body).forEach((c) => {
@@ -2127,10 +2179,15 @@ function startModuleTryIt(id) {
   show("module");
   const body = $("#moduleBody");
 
+  const state = moduleState(id);
+  const next = pickNextTryIt(m);
+  const passedCount = state.passed_prompt_indexes.length;
+
   body.innerHTML = `<button class="back-btn" type="button" id="modTryBack">← Back to concept</button>
     <h2 class="view-title">${esc(m.title)} — try it</h2>
+    <p class="section-lead">Scenario ${passedCount + 1} of ${m.mastery_target} you need to pass. ${next.total > 1 ? `Each try-it picks a different scenario, so mastery means you can do this skill across <b>${m.mastery_target} different prompts</b> — not the same one three times.` : ""}</p>
 
-    <div class="module-tryit-prompt">${esc(m.try_it_prompt).replace(/\n/g, "<br>")}</div>
+    <div class="module-tryit-prompt" data-prompt-idx="${next.index}">${esc(next.text).replace(/\n/g, "<br>")}</div>
 
     <label class="staged-textarea-label" for="modTryText">Your submission</label>
     <textarea id="modTryText" class="staged-plan-textarea" style="min-height:140px"
@@ -2150,19 +2207,22 @@ function startModuleTryIt(id) {
     body.innerHTML = markingSpinner("Marking your attempt on this one skill…");
     startTicker();
     try {
-      const mark = await markModule(m, text);
+      const mark = await markModule(m, text, next.text);
       stopTicker();
-      // Update state
-      const state = moduleState(id);
-      state.attempts += 1;
-      state.last_attempt = Date.now();
-      state.last_score = mark.score;
+      const st = moduleState(id);
+      st.attempts += 1;
+      st.last_attempt = Date.now();
+      st.last_score = mark.score;
       if (mark.pass) {
-        state.correct += 1;
-        if (state.correct >= m.mastery_target) state.mastered = true;
+        // Only count if it's a NEW prompt scenario (so mastery = generalising).
+        if (!st.passed_prompt_indexes.includes(next.index)) {
+          st.passed_prompt_indexes.push(next.index);
+        }
+        st.correct = st.passed_prompt_indexes.length;
+        if (st.correct >= m.mastery_target) st.mastered = true;
       }
       save();
-      renderModuleResult(id, mark, text);
+      renderModuleResult(id, mark, text, next.index);
     } catch (err) {
       stopTicker();
       body.innerHTML = `<div class="panel">
@@ -2181,7 +2241,7 @@ function startModuleTryIt(id) {
   setTimeout(() => { const t = $("#modTryText"); if (t) t.focus(); }, 50);
 }
 
-function renderModuleResult(id, mark, submission) {
+function renderModuleResult(id, mark, submission, scenarioIdx) {
   const m = MODULES.find((x) => x.id === id);
   if (!m) { renderLearn(); return; }
   const state = moduleState(id);
@@ -2189,14 +2249,17 @@ function renderModuleResult(id, mark, submission) {
   const body = $("#moduleBody");
 
   const passCls = mark.pass ? "pass" : "fail";
-  const passLbl = mark.pass ? "✓ Pass" : "Not yet — keep working";
+  const passLbl = mark.pass ? "✓ Pass — scenario cleared" : "Not yet — keep working";
   const scoreLabel = ["", "Below band 5", "Band 5", "Band 6", "Band 6.5", "Band 7+"][mark.score] || `Score ${mark.score}/5`;
+  const totalScenarios = Array.isArray(m.try_it_prompts) ? m.try_it_prompts.length : 1;
+  const newScenario = mark.pass && typeof scenarioIdx === "number" && !state.passed_prompt_indexes.slice(0, -1).includes(scenarioIdx);
 
   body.innerHTML = `<button class="back-btn" type="button" id="modResBack">← Back to module</button>
     <div class="module-result-hero ${passCls}">
       <div class="module-result-label">${esc(m.title)}</div>
       <div class="module-result-pass">${passLbl}</div>
-      <div class="module-result-score">${esc(scoreLabel)} · ${state.correct}/${m.mastery_target} correct${state.mastered ? " — MASTERED ✓" : ""}</div>
+      <div class="module-result-score">${esc(scoreLabel)} · ${state.correct}/${m.mastery_target} scenarios passed${state.mastered ? " — MASTERED ✓" : ""}</div>
+      ${totalScenarios > 1 ? `<div class="result-hero-note">${state.mastered ? `You've cleared this skill across ${state.correct} different scenarios. Genuine generalisation.` : `${m.mastery_target - state.correct} more new scenario${m.mastery_target - state.correct === 1 ? "" : "s"} to pass for mastery (out of ${totalScenarios} available).`}</div>` : ""}
     </div>
 
     <div class="result-section">
@@ -2234,8 +2297,9 @@ function renderModuleResult(id, mark, submission) {
   $("#modResLearn").onclick = () => renderLearn();
 }
 
-async function markModule(module, submission) {
+async function markModule(module, submission, scenarioPrompt) {
   const s = store.settings;
+  const ctx = scenarioPrompt || (Array.isArray(module.try_it_prompts) ? module.try_it_prompts[0] : module.try_it_prompt) || "";
   const body = {
     model: s.model,
     max_tokens: 1024,
@@ -2261,7 +2325,7 @@ async function markModule(module, submission) {
       role: "user",
       content:
         `SKILL TO MARK: ${module.skill_description}\n\n` +
-        `THE TRY-IT PROMPT (context only):\n${module.try_it_prompt}\n\n` +
+        `THE TRY-IT PROMPT (context only):\n${ctx}\n\n` +
         `CANDIDATE'S SUBMISSION:\n"""\n${submission}\n"""\n\n` +
         `Mark on the skill above only.`,
     }],
@@ -2838,15 +2902,15 @@ $("#settingsClose").onclick = () => ($("#settingsModal").hidden = true);
 $("#deconClose").onclick    = () => ($("#deconstructModal").hidden = true);
 $("#ideaClose").onclick     = () => ($("#ideaModal").hidden = true);
 $("#resetProgress").onclick = () => confirmDialog(
-  "This deletes all your attempts, progress and saved key from this device. Continue?",
+  "Full reset: this wipes your essay history, spelling vault, mastered modules, drill scores, streak and milestones. Settings (your name, target band, examiner config) stay. Continue?",
   () => {
-    const owner = store.settings.ownerMode;
+    const keepSettings = { ...store.settings };
     store = defaults();
-    store.settings.ownerMode = owner; // keep owner mode so the owner doesn't lose access
+    store.settings = keepSettings;
     save();
     $("#settingsModal").hidden = true;
     show("home"); renderHome();
-    toast("All data cleared");
+    toast("Full reset done — clean slate.");
   }
 );
 

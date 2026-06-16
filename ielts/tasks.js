@@ -923,6 +923,7 @@ const BAND_DESCRIPTORS = {
 const MODULES = [
   {
     id: "mod_intro",
+    tier: "foundation",
     title: "Master the Introduction",
     short: "Open every essay strong",
     blocks: "Task Response",
@@ -949,16 +950,20 @@ const MODULES = [
         why: "Copies the prompt almost verbatim. 'Will discuss' is empty filler with no actual position. The examiner discounts this opening.",
       },
     ],
-    try_it_prompt:
-      "Write an introduction (2–3 sentences) for this Task 2 prompt:\n\n" +
-      "\"Many people now work from home rather than commute to an office. " +
-      "Do the advantages of this development outweigh the disadvantages?\"",
+    try_it_prompts: [
+      "Write an introduction (2–3 sentences) for this Task 2 prompt:\n\n\"Many people now work from home rather than commute to an office. Do the advantages of this development outweigh the disadvantages?\"",
+      "Write an introduction (2–3 sentences) for this Task 2 prompt:\n\n\"Some people believe primary schools should teach a second language. To what extent do you agree or disagree?\"",
+      "Write an introduction (2–3 sentences) for this Task 2 prompt:\n\n\"In many cities, traffic congestion is becoming a serious problem. What are the causes, and what could be done to solve it?\"",
+      "Write an introduction (2–3 sentences) for this Task 2 prompt:\n\n\"Some governments invest heavily in the arts. Others argue that public money should focus on essential services. Discuss both views and give your opinion.\"",
+      "Write an introduction (2–3 sentences) for this Task 2 prompt:\n\n\"Most people now get their news online rather than from newspapers or television. Why is this trend happening, and is it positive or negative?\"",
+    ],
     skill_description:
       "writing a strong IELTS Task 2 introduction that (1) paraphrases the prompt in different words from the original, (2) states a clear position on the question, and (3) optionally previews the structure. Penalise: copying the prompt verbatim, using empty 'this essay will discuss' filler, no clear position, more than 3 sentences.",
     mastery_target: 3,
   },
   {
     id: "mod_topic_sentence",
+    tier: "polish",
     title: "Master the Topic Sentence",
     short: "Open every body paragraph with a clear claim",
     blocks: "Coherence & Cohesion",
@@ -986,16 +991,20 @@ const MODULES = [
         why: "A statement of fact with no claim. The reader has no idea which advantage the paragraph will defend.",
       },
     ],
-    try_it_prompt:
-      "Write a TOPIC SENTENCE (one sentence only) that could open a body paragraph defending this claim:\n\n" +
-      "\"Governments should tax sugary drinks to reduce obesity.\"\n\n" +
-      "The claim your topic sentence should defend: a tax on sugary drinks would shift consumer behaviour towards healthier alternatives.",
+    try_it_prompts: [
+      "Write a TOPIC SENTENCE (one sentence only) that could open a body paragraph defending this claim:\n\nA tax on sugary drinks would shift consumer behaviour towards healthier alternatives.",
+      "Write a TOPIC SENTENCE (one sentence only) that could open a body paragraph defending this claim:\n\nRemote work reduces office overhead that employers can redirect into salaries.",
+      "Write a TOPIC SENTENCE (one sentence only) that could open a body paragraph defending this claim:\n\nMandatory community service in schools builds civic responsibility in teenagers.",
+      "Write a TOPIC SENTENCE (one sentence only) that could open a body paragraph defending this claim:\n\nFree university tuition is unsustainable without major reforms to public funding.",
+      "Write a TOPIC SENTENCE (one sentence only) that could open a body paragraph defending this claim:\n\nLearning a second language at primary school produces lasting cognitive benefits.",
+    ],
     skill_description:
       "writing a single clear topic sentence to open a body paragraph. It must make a SPECIFIC CLAIM (not a fact, not a question), be defensible in 4–5 sentences, and let the reader predict where the paragraph is going. Penalise: vague openers like 'There are many advantages', empty connectors like 'In addition, more', anything that does not commit to a specific claim.",
     mastery_target: 3,
   },
   {
     id: "mod_development",
+    tier: "foundation",
     title: "Master Idea Development",
     short: "Develop every claim with reason → example → consequence",
     blocks: "Task Response · Coherence & Cohesion",
@@ -1024,15 +1033,20 @@ const MODULES = [
         why: "Four sentences with zero specific content. No reason, no example, no consequence. Examiner caps Task Response at 5.",
       },
     ],
-    try_it_prompt:
-      "Write a 4-sentence body paragraph (claim → reason → example → consequence) defending this claim:\n\n" +
-      "\"Compulsory community service in schools builds civic responsibility.\"",
+    try_it_prompts: [
+      "Write a 4-sentence body paragraph (claim → reason → example → consequence) defending this claim:\n\nCompulsory community service in schools builds civic responsibility.",
+      "Write a 4-sentence body paragraph (claim → reason → example → consequence) defending this claim:\n\nPublic transport investment is the most effective way to reduce urban congestion.",
+      "Write a 4-sentence body paragraph (claim → reason → example → consequence) defending this claim:\n\nWorking from home benefits employers more than it benefits employees.",
+      "Write a 4-sentence body paragraph (claim → reason → example → consequence) defending this claim:\n\nA tax on fast food would meaningfully reduce obesity rates.",
+      "Write a 4-sentence body paragraph (claim → reason → example → consequence) defending this claim:\n\nGlobalisation has improved access to information for ordinary citizens.",
+    ],
     skill_description:
       "developing a single body paragraph as a chain: CLAIM → REASON → SPECIFIC REAL-WORLD EXAMPLE → CONSEQUENCE. About 4–6 sentences, 80–110 words. Penalise: missing any of the four links, vague non-examples like 'in some countries' or 'many people think', restating the claim as the consequence, paragraphs under 60 words, paragraphs over 130 words.",
     mastery_target: 3,
   },
   {
     id: "mod_linking",
+    tier: "polish",
     title: "Master Linking Words",
     short: "Connect ideas without monotony",
     blocks: "Coherence & Cohesion",
@@ -1061,16 +1075,20 @@ const MODULES = [
         why: "Two front-of-sentence connectors stacked ('Secondly, on the other hand'), and 'some bad things' is empty. Marks down for over-use AND vagueness.",
       },
     ],
-    try_it_prompt:
-      "Rewrite this clunky paragraph opener as ONE sentence using an embedded connector:\n\n" +
-      "\"Firstly, online learning has many advantages. Secondly, on the other hand, traditional classrooms also have advantages.\"\n\n" +
-      "Aim for a single sentence that signals the contrast without using 'on the other hand' at the front.",
+    try_it_prompts: [
+      "Rewrite this clunky paragraph opener as ONE sentence using an embedded connector. Aim for a single sentence that signals the contrast without 'on the other hand' at the front:\n\n\"Firstly, online learning has many advantages. Secondly, on the other hand, traditional classrooms also have advantages.\"",
+      "Rewrite this paragraph opener as ONE sentence using an embedded connector for contrast:\n\n\"On the one hand, social media connects people. On the other hand, it can also isolate them.\"",
+      "Rewrite this paragraph opener as ONE sentence that signals a CAUSAL relationship (not a generic 'because' at the front):\n\n\"Public transport reduces traffic. Because of this, in addition, it also reduces pollution.\"",
+      "Rewrite this paragraph opener as ONE sentence using a CONCESSIVE connector ('although', 'while', 'despite') instead of two front connectors:\n\n\"Firstly, working from home saves time. Secondly, however, it can be lonely.\"",
+      "Rewrite this paragraph opener as ONE sentence that links the same two ideas WITHOUT 'firstly / secondly' anywhere:\n\n\"Firstly, education improves earnings. Secondly, it also improves health outcomes.\"",
+    ],
     skill_description:
       "varied, sometimes-embedded cohesive devices that connect ideas without monotony. Replace front-of-sentence 'Firstly / Secondly / On the other hand' patterns with embedded connectors ('while', 'although', 'whereas', 'despite') or fresher alternatives ('The most compelling reason is', 'A further factor is', 'On balance'). Penalise: any answer that still uses front-of-sentence 'Firstly / Secondly / On the other hand', any answer that just deletes the connector without replacing the function.",
     mastery_target: 3,
   },
   {
     id: "mod_conclusion",
+    tier: "foundation",
     title: "Master the Conclusion",
     short: "Close with conviction, not repetition",
     blocks: "Task Response",
@@ -1097,16 +1115,20 @@ const MODULES = [
         why: "Three near-empty sentences. No summary of reasons. 'I agree' adds nothing. Marker treats this as band 5.",
       },
     ],
-    try_it_prompt:
-      "Write a CONCLUSION (2–3 sentences) for an essay arguing:\n\n" +
-      "\"Working from home benefits both employees and employers more than it disadvantages them.\"\n\n" +
-      "Assume the essay made two arguments: (1) it saves time/money for both sides, (2) it widens access to skilled work for parents and people with disabilities.",
+    try_it_prompts: [
+      "Write a CONCLUSION (2–3 sentences) for an essay arguing:\n\n\"Working from home benefits both employees and employers more than it disadvantages them.\"\n\nThe essay made two arguments: (1) it saves time/money for both sides, (2) it widens access to skilled work for parents and people with disabilities.",
+      "Write a CONCLUSION (2–3 sentences) for an essay arguing:\n\n\"Schools should teach financial literacy as a core subject.\"\n\nThe essay made two arguments: (1) it reduces personal debt in young adults, (2) it strengthens household economies over time.",
+      "Write a CONCLUSION (2–3 sentences) for an essay arguing:\n\n\"Mandatory community service in schools is beneficial.\"\n\nThe essay made two arguments: (1) it builds empathy and responsibility, (2) it gives every student fair exposure to social issues.",
+      "Write a CONCLUSION (2–3 sentences) for an essay arguing:\n\n\"Public transport, not new roads, is the answer to urban congestion.\"\n\nThe essay made two arguments: (1) filled trains and buses physically remove cars, (2) supply-side transit investment only works if driving is also made less attractive.",
+      "Write a CONCLUSION (2–3 sentences) for an essay arguing:\n\n\"The disadvantages of mass tourism now slightly outweigh its benefits.\"\n\nThe essay made two arguments: (1) cumulative damage to iconic sites and local communities is severe, (2) economic gains are real but increasingly concentrated.",
+    ],
     skill_description:
       "writing a 2–3 sentence band-7 IELTS Task 2 conclusion that restates the position in different words, briefly summarises the two main reasons, and optionally adds a short recommendation. Penalise: openings that just say 'In conclusion, X is important', conclusions that introduce new arguments, conclusions over 70 words, or under 30 words.",
     mastery_target: 3,
   },
   {
     id: "mod_articles",
+    tier: "foundation",
     title: "Master Articles & Inflections",
     short: "Fix the grammar errors examiners notice instantly",
     blocks: "Grammatical Range & Accuracy",
@@ -1133,9 +1155,13 @@ const MODULES = [
         why: "'I am agree' (stative-verb error), missing 'the' before government/lead/role, 'every households' (every needs singular). Three errors flagged in one sentence.",
       },
     ],
-    try_it_prompt:
-      "Rewrite this sentence correctly — fix the article, plural and stative-verb errors:\n\n" +
-      "\"I am agree that university should provide free education for every students because economic argument is clear.\"",
+    try_it_prompts: [
+      "Rewrite this sentence correctly — fix the article, plural and stative-verb errors:\n\n\"I am agree that university should provide free education for every students because economic argument is clear.\"",
+      "Rewrite this sentence correctly — fix the article, plural and stative-verb errors:\n\n\"Every government must take lead on climate, although individuals also have role to play in every households.\"",
+      "Rewrite this sentence correctly — fix the article, plural and stative-verb errors:\n\n\"I am think that public transport is best solution for every cities and every town.\"",
+      "Rewrite this sentence correctly — fix the article, plural and stative-verb errors:\n\n\"Government should reduce taxes on every small business so that economy can grow in every regions.\"",
+      "Rewrite this sentence correctly — fix the article, plural and stative-verb errors:\n\n\"I am agree that schools must teach children to respect every cultures and every tradition.\"",
+    ],
     skill_description:
       "correct use of articles (a/an/the), plural agreement (every/each/one + SINGULAR), and stative verbs (no 'am/is/are' before agree/think/know/believe). Mark strictly: if any of these three error types remains in the candidate's submission, it does NOT pass. Penalise: missing articles before singular countable nouns, 'every/each + plural', 'I am agree/think/know'.",
     mastery_target: 3,
