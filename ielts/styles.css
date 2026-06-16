@@ -367,6 +367,69 @@ button{font-family:inherit; cursor:pointer; color:inherit}
   font-size:14px; line-height:1.5; color:var(--text);
 }
 
+/* ---- module walkthrough (the "we do" stage) -------------------------- */
+.walkthrough{
+  background:var(--panel-2); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:18px;
+}
+.walkthrough-scenario{
+  background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--brand-2);
+  border-radius:8px; padding:12px 14px; margin-bottom:16px;
+}
+.walkthrough-scenario-label{
+  font-size:11px; color:var(--brand-2); letter-spacing:.4px;
+  font-weight:700; margin-bottom:4px;
+}
+.walkthrough-scenario div:last-child{font-size:14px; line-height:1.5; color:var(--text)}
+.walkthrough-step{
+  display:flex; gap:14px;
+  padding:12px 0; border-bottom:1px dashed var(--line);
+}
+.walkthrough-step:last-of-type{border-bottom:none}
+.walkthrough-step-num{
+  width:28px; height:28px; border-radius:50%;
+  background:var(--brand); color:#fff; font-weight:800;
+  flex:none; display:flex; align-items:center; justify-content:center; font-size:13px;
+}
+.walkthrough-step-body{flex:1}
+.walkthrough-step-label{font-weight:700; font-size:14px; color:var(--text); margin-bottom:4px}
+.walkthrough-step-thinking{
+  font-size:13px; color:var(--muted); line-height:1.6;
+  font-style:italic;
+}
+.walkthrough-final{
+  background:linear-gradient(160deg, rgba(62,207,142,.10), transparent);
+  border:1px solid #2f5b48; border-radius:8px;
+  padding:12px 14px; margin-top:14px;
+}
+.walkthrough-final-label{font-size:11px; color:var(--good); letter-spacing:.4px; font-weight:700; margin-bottom:6px}
+.walkthrough-final-text{
+  font-family:var(--serif); font-size:15px; line-height:1.65; color:var(--text);
+}
+
+/* ---- expandable hints on try-it -------------------------------------- */
+.hints-section{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;
+}
+.hints-label{font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600}
+.hint-item{margin-bottom:6px}
+.hint-item summary{
+  cursor:pointer; font-size:13px; padding:8px 12px;
+  background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+  color:var(--brand-2); font-weight:600; list-style:none;
+  display:flex; align-items:center; gap:8px;
+}
+.hint-item summary::-webkit-details-marker{display:none}
+.hint-item summary::before{content:"+"; font-weight:800; color:var(--brand-2); width:14px; display:inline-block; text-align:center}
+.hint-item[open] summary::before{content:"−"; color:#fff}
+.hint-item[open] summary{background:var(--brand); color:#fff; border-color:var(--brand)}
+.hint-text{
+  padding:10px 12px; font-size:13px; color:var(--muted); line-height:1.55;
+  background:var(--panel-2); border:1px solid var(--line); border-top:none;
+  border-radius:0 0 8px 8px; margin-top:-1px;
+}
+
 .module-result-hero{
   background:linear-gradient(160deg, #233460, #161d30);
   border:1px solid #34487a; border-radius:var(--radius);
@@ -380,11 +443,11 @@ button{font-family:inherit; cursor:pointer; color:inherit}
 .module-result-hero.fail .module-result-pass{color:var(--accent)}
 .module-result-score{font-size:14px; color:var(--muted); margin-top:8px}
 
-/* ---- topbar primary nav --------------------------------------------- */
-.ghost-btn.primary-nav{
+/* ---- topbar active state -------------------------------------------- */
+.ghost-btn.active{
   background:var(--brand); color:#fff; border-color:var(--brand); font-weight:700;
 }
-.ghost-btn.primary-nav:hover{background:#4a7bf0; color:#fff}
+.ghost-btn.active:hover{background:#4a7bf0; color:#fff}
 
 /* ---- mode toggle + staged practice ---------------------------------- */
 .mode-toggle{

@@ -156,10 +156,24 @@ function infoDialog(html) {
 /* ============================== ROUTER ============================== */
 
 const VIEWS = ["home", "picker", "exam", "result", "history", "coach", "drill", "vault", "staged", "learn", "module"];
+const NAV_FOR_VIEW = {
+  learn:  "navLearn",
+  module: "navLearn",
+  coach:  "navCoach",
+  drill:  "navCoach",
+  history:"navHistory",
+  vault:  "navVault",
+};
 function show(view) {
   // hide the topbar while exam is up (CD-IELTS owns the screen)
   $("#topbar").hidden = view === "exam";
   VIEWS.forEach((v) => { $("#view-" + v).hidden = v !== view; });
+  // Topbar highlight: only the nav button matching the active view gets the
+  // brand colour. Previously the Learn button was always highlighted because
+  // it had a permanent .primary-nav class.
+  $$(".topnav .ghost-btn").forEach((b) => b.classList.remove("active"));
+  const navId = NAV_FOR_VIEW[view];
+  if (navId) { const b = document.getElementById(navId); if (b) b.classList.add("active"); }
   window.scrollTo(0, 0);
 }
 
@@ -2165,8 +2179,30 @@ function openModule(id) {
       </div>`).join("")}
     </div>
 
+    ${m.walkthrough ? `<div class="result-section">
+      <h3>Walk through one with me</h3>
+      <p class="section-lead">Before you try it yourself, here's exactly how I'd think about this. Step by step, out loud.</p>
+      <div class="walkthrough">
+        <div class="walkthrough-scenario">
+          <div class="walkthrough-scenario-label">THE PROMPT WE'LL DO TOGETHER</div>
+          <div>${esc(m.walkthrough.scenario)}</div>
+        </div>
+        ${m.walkthrough.steps.map((step, i) => `<div class="walkthrough-step">
+          <div class="walkthrough-step-num">${i + 1}</div>
+          <div class="walkthrough-step-body">
+            <div class="walkthrough-step-label">${esc(step.label)}</div>
+            <div class="walkthrough-step-thinking">${esc(step.thinking)}</div>
+          </div>
+        </div>`).join("")}
+        <div class="walkthrough-final">
+          <div class="walkthrough-final-label">PUTTING IT TOGETHER — THE FINAL RESULT</div>
+          <div class="walkthrough-final-text">${esc(m.walkthrough.final_text)}</div>
+        </div>
+      </div>
+    </div>` : ""}
+
     <div class="result-actions">
-      <button class="primary-btn" id="modTryIt" type="button">Try it yourself ▸</button>
+      <button class="primary-btn" id="modTryIt" type="button">Now try it yourself ▸</button>
     </div>`;
 
   $("#modBack").onclick   = () => renderLearn();
@@ -2188,6 +2224,14 @@ function startModuleTryIt(id) {
     <p class="section-lead">Scenario ${passedCount + 1} of ${m.mastery_target} you need to pass. ${next.total > 1 ? `Each try-it picks a different scenario, so mastery means you can do this skill across <b>${m.mastery_target} different prompts</b> — not the same one three times.` : ""}</p>
 
     <div class="module-tryit-prompt" data-prompt-idx="${next.index}">${esc(next.text).replace(/\n/g, "<br>")}</div>
+
+    ${Array.isArray(m.hints) && m.hints.length ? `<div class="hints-section">
+      <div class="hints-label">Stuck? Tap a hint to expand it. You can use as many as you need.</div>
+      ${m.hints.map((h) => `<details class="hint-item">
+        <summary>${esc(h.label)}</summary>
+        <div class="hint-text">${esc(h.text)}</div>
+      </details>`).join("")}
+    </div>` : ""}
 
     <label class="staged-textarea-label" for="modTryText">Your submission</label>
     <textarea id="modTryText" class="staged-plan-textarea" style="min-height:140px"

@@ -944,10 +944,66 @@ const MODULES = [
         why: "Paraphrases 'universities' → 'higher education', 'free' → 'funded by the state'. States a clear nuanced position. Hints at the body's structure.",
       },
       {
+        kind: "good",
+        prompt: "In many countries, traffic congestion has become a serious problem. What are the causes, and what could be done to solve it?",
+        text: "Congestion in major cities has worsened steadily over the last two decades, slowing daily commutes and inflating commercial costs. This essay will trace the problem to rising private car ownership and weak public transport, and will argue that the most effective response combines investment in transit with smarter road pricing.",
+        why: "Paraphrases 'traffic congestion' → 'congestion in major cities', 'serious problem' → 'worsened steadily, slowing commutes'. Commits to specific causes + solution before the body starts.",
+      },
+      {
         kind: "bad",
         prompt: "Some people believe universities should be free for all students. To what extent do you agree or disagree?",
         text: "Some people believe universities should be free for all students. This essay will discuss this topic and give my opinion.",
         why: "Copies the prompt almost verbatim. 'Will discuss' is empty filler with no actual position. The examiner discounts this opening.",
+      },
+      {
+        kind: "bad",
+        prompt: "In many countries, traffic congestion has become a serious problem. What are the causes, and what could be done to solve it?",
+        text: "Nowadays, traffic congestion has become a very serious problem in many countries around the world. In this essay, I am going to discuss the causes of this problem and also some solutions that the governments and individuals can do to solve it, as it is very important for our cities and for our environment too.",
+        why: "Two sentences, 50+ words wasted. 'Nowadays' / 'very serious' / 'around the world' are empty padding. The whole second sentence is filler. Examiner reads it as Band 5 — wordy and circular.",
+      },
+    ],
+    walkthrough: {
+      scenario: "Many people now work from home rather than commute to an office. Do the advantages of this development outweigh the disadvantages?",
+      steps: [
+        {
+          label: "Read the prompt twice. Decode it.",
+          thinking: "Question type: 'Do advantages outweigh disadvantages?' — I MUST take a side, not list both equally. Topic: working from home (not 'technology generally', not 'office life generally').",
+        },
+        {
+          label: "Identify the keywords to paraphrase.",
+          thinking: "Key nouns/verbs: 'work from home' / 'commute' / 'office'. Brainstorm synonyms: work from home → remote working / flexible working / working from one's residence. Commute to an office → travel to a traditional workplace / make the daily journey to an office.",
+        },
+        {
+          label: "Decide your position BEFORE writing.",
+          thinking: "I'll argue advantages clearly outweigh, with one concession for the social cost. That's a band-7 nuanced position — not 'I 100% agree' (too simple) and not 'both sides have merit' (no position).",
+        },
+        {
+          label: "Write sentence 1 — paraphrased opener.",
+          thinking: "Pick one paraphrase and use it cleanly. Don't pile up synonyms. Result: 'Remote working has expanded dramatically in recent years, replacing the daily commute for many employees in knowledge-based industries.'",
+        },
+        {
+          label: "Write sentence 2 — state your position.",
+          thinking: "Make the position concrete. Don't write 'this essay will discuss'. Write what you actually think. Result: 'While there are genuine social costs to consider, in my view the gains in flexibility, time and cost clearly outweigh them.'",
+        },
+      ],
+      final_text: "Remote working has expanded dramatically in recent years, replacing the daily commute for many employees in knowledge-based industries. While there are genuine social costs to consider, in my view the gains in flexibility, time and cost clearly outweigh them.",
+    },
+    hints: [
+      {
+        label: "How do I open without copying the prompt?",
+        text: "Find 2–3 key nouns/verbs in the prompt. Brainstorm one synonym for each. Use ONE synonym per word in your first sentence — don't pile them up. 'Universities should be free' → 'higher education should be funded by the state'. 'Work from home' → 'remote working'. Avoid 'Nowadays', 'In today's world', 'It is a fact that' — all empty padding.",
+      },
+      {
+        label: "What position should I take?",
+        text: "Don't sit on the fence. Pick one of: (a) I largely agree, (b) I largely disagree, (c) I agree with X but not Y, (d) both sides have merit but X is more important. Write the position in ONE clear sentence using 'In my view…' or 'I believe…'.",
+      },
+      {
+        label: "Do I need to preview the structure?",
+        text: "Optional but adds polish. If you're confident in your 2 body paragraphs, hint at them: 'I will argue that X and Y outweigh Z.' If you're not sure of your body yet, skip the preview entirely — a strong 2-sentence intro is better than a wandering 3-sentence one.",
+      },
+      {
+        label: "How long should it be?",
+        text: "50–70 words. 2–3 sentences. Any shorter and you've not paraphrased properly. Any longer and you're eating into your body paragraph time — the body is where Task Response is actually built.",
       },
     ],
     try_it_prompts: [
