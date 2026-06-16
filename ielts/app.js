@@ -107,9 +107,22 @@ function toast(msg) {
 
 function confirmDialog(text, onYes) {
   $("#confirmText").textContent = text;
+  $("#confirmNo").hidden = false;
+  $("#confirmYes").textContent = "Yes";
   $("#confirmModal").hidden = false;
   $("#confirmYes").onclick = () => { $("#confirmModal").hidden = true; onYes(); };
   $("#confirmNo").onclick  = () => { $("#confirmModal").hidden = true; };
+}
+function infoDialog(html) {
+  $("#confirmText").innerHTML = html;
+  $("#confirmNo").hidden = true;
+  $("#confirmYes").textContent = "Close";
+  $("#confirmModal").hidden = false;
+  $("#confirmYes").onclick = () => {
+    $("#confirmModal").hidden = true;
+    $("#confirmNo").hidden = false;
+    $("#confirmYes").textContent = "Yes";
+  };
 }
 
 /* ============================== ROUTER ============================== */
@@ -338,7 +351,11 @@ const thumbFor = (t) => renderChart(t.chart, true);
 
 /* ============================== EXAM ============================== */
 
-const exam = { tasks: [], answers: [], active: 0, mode: "single", remaining: 0, timer: null };
+const exam = {
+  tasks: [], answers: [], active: 0,
+  mode: "single", remaining: 0, timer: null,
+  warned10: false, warned5: false, warned1: false,
+};
 
 function taskById(id) { return TASK1.concat(TASK2).find((t) => t.id === id); }
 function minutesFor(type) { return type === "task1" ? 20 : 40; }
@@ -346,6 +363,7 @@ function minWordsFor(type) { return type === "task1" ? 150 : 250; }
 
 function startExam(mode, id) {
   exam.mode = mode; exam.active = 0;
+  exam.warned10 = exam.warned5 = exam.warned1 = false;
   if (mode === "full") {
     exam.tasks = [
       TASK1[Math.floor(Math.random() * TASK1.length)],
@@ -434,6 +452,10 @@ function updateTimer() {
   el.textContent = `${m}:${String(s).padStart(2, "0")}`;
   el.classList.toggle("warn",   exam.remaining <= 300 && exam.remaining > 60);
   el.classList.toggle("danger", exam.remaining <= 60);
+  // Real CD-IELTS pops a notice at 10 / 5 / 1 minute remaining.
+  if (exam.remaining === 600 && !exam.warned10) { exam.warned10 = true; toast("10 minutes remaining."); }
+  if (exam.remaining === 300 && !exam.warned5)  { exam.warned5  = true; toast("5 minutes remaining."); }
+  if (exam.remaining === 60  && !exam.warned1)  { exam.warned1  = true; toast("1 minute remaining."); }
 }
 function stopTimer() { if (exam.timer) clearInterval(exam.timer); exam.timer = null; }
 
@@ -1306,10 +1328,17 @@ $("#examQuit").onclick = () => confirmDialog(
   "Quit this attempt? Your writing won't be saved.",
   () => { stopTimer(); show("home"); renderHome(); }
 );
-$("#examHelp").onclick = () => confirmDialog(
-  "Real CD-IELTS Writing exam:\n\n• Spend ~20 min on Task 1 (150+ words) and ~40 min on Task 2 (250+ words).\n• Task 2 carries double the weight.\n• Spell-check is OFF (same as the real exam).\n• Hide pauses the screen but the clock keeps running.\n• Submit when finished — your answer is then marked against the official band descriptors.\n\nClose this dialog to return to your essay.",
-  () => {}
-);
+$("#examHelp").onclick = () => infoDialog(`
+  <h3 style="margin:0 0 10px;font-size:16px;color:var(--text)">IELTS Writing exam</h3>
+  <p style="margin:0 0 8px;font-size:13px;line-height:1.55;color:var(--muted)">
+    <b style="color:var(--text)">Task 1</b> — describe a chart, graph, table or process. 150+ words in about 20 minutes.<br>
+    <b style="color:var(--text)">Task 2</b> — write an essay in response to the prompt. 250+ words in about 40 minutes. <i>Task 2 counts twice.</i>
+  </p>
+  <p style="margin:0;font-size:13px;line-height:1.55;color:var(--muted)">
+    Spell-check is off — same as the real exam.<br>
+    Hide pauses the screen, but the clock keeps running.<br>
+    Submit when finished — you'll get a band against the official descriptors.
+  </p>`);
 $("#examHide").onclick = showHideOverlay;
 $("#cdResume").onclick = hideHideOverlay;
 $("#submitBtn").onclick = () => doSubmit(false);

@@ -254,6 +254,243 @@ const TASK1 = [
       "The projected 2030 figures invert this hierarchy. Renewables are expected to rise sharply to 50%, becoming the single biggest source of electricity, while coal is forecast to fall to only 15% — a third of its earlier share. Natural gas and nuclear are also projected to decline modestly, to 20% and 15% respectively. If the projections are accurate, fossil fuels and nuclear together will account for only half of generation, where they once produced 90%.",
   },
   {
+    id: "t1-uk-renewables-line",
+    type: "task1",
+    chartKind: "line",
+    title: "Electricity from renewables, UK, 2000–2020",
+    prompt:
+      "The line graph below shows the percentage of total electricity in the " +
+      "United Kingdom generated from three renewable sources between 2000 " +
+      "and 2020.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "line",
+      yLabel: "% of total electricity",
+      xLabels: ["2000","2005","2010","2015","2020"],
+      yMax: 30,
+      series: [
+        { name: "Wind",   color: "#2563eb", values: [0.5, 1.5, 3, 12, 24] },
+        { name: "Solar",  color: "#f59e0b", values: [0, 0, 0.1, 2, 4] },
+        { name: "Hydro",  color: "#059669", values: [1.5, 1.5, 1.6, 1.7, 1.8] },
+      ],
+    },
+    dataFacts:
+      "Line graph, % of UK electricity from renewables, 2000-2020.\n" +
+      "Wind: rose from 0.5% (2000) to 24% (2020), the strongest growth, slow at first then sharp acceleration after 2010.\n" +
+      "Solar: effectively zero until ~2010, then rose to 4% by 2020.\n" +
+      "Hydro: almost flat across the period, 1.5% -> 1.8%.\n" +
+      "Overall: wind became overwhelmingly the dominant renewable; solar emerged as a meaningful contributor; hydro stagnated.",
+    modelAnswer:
+      "The line graph illustrates the share of total UK electricity generated from wind, solar and hydropower over a twenty-year period from 2000 to 2020.\n\n" +
+      "Overall, wind power expanded dramatically to become the leading renewable source, while solar emerged from nothing to contribute meaningfully by the end of the period. Hydroelectric generation, by contrast, remained almost unchanged throughout.\n\n" +
+      "In 2000, renewables accounted for only a tiny fraction of electricity, with hydropower providing 1.5%, wind 0.5% and solar virtually nothing. Over the following decade growth was modest: wind reached just 3% by 2010 and solar was still negligible at 0.1%, while hydro held steady.\n\n" +
+      "The picture changed sharply after 2010. Wind generation accelerated, climbing to 12% by 2015 and then to 24% by 2020 — almost a fiftyfold increase over the period. Solar followed a similar but smaller trajectory, rising to 2% by 2015 and 4% by 2020. Hydro continued to plateau at under 2% throughout. By 2020, almost a third of British electricity came from these three renewables combined.",
+  },
+  {
+    id: "t1-cars-by-income-bar",
+    type: "task1",
+    chartKind: "bar",
+    title: "Car ownership by household income, 2022",
+    prompt:
+      "The bar chart below shows the percentage of households that owned no " +
+      "car, one car, or two or more cars, in three household-income bands in " +
+      "one country in 2022.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "bar",
+      yLabel: "% of households",
+      yMax: 80,
+      categories: ["Low income", "Middle income", "High income"],
+      series: [
+        { name: "No car",     color: "#dc2626", values: [55, 18, 5] },
+        { name: "One car",    color: "#2563eb", values: [38, 52, 30] },
+        { name: "2+ cars",    color: "#059669", values: [7, 30, 65] },
+      ],
+    },
+    dataFacts:
+      "Grouped bar chart, % of households by car ownership, three income bands, 2022.\n" +
+      "Low income: 55% own no car (biggest single figure), 38% one car, 7% two or more.\n" +
+      "Middle income: 18% no car, 52% one car (the dominant pattern), 30% two or more.\n" +
+      "High income: 5% no car, 30% one car, 65% two or more cars (the dominant pattern).\n" +
+      "Overall: clear monotonic relationship — more income, more cars. The single-car group peaks in the middle band; the no-car and 2+ groups sit at opposite extremes.",
+    modelAnswer:
+      "The bar chart compares car-ownership patterns across three household-income bands in one country in 2022.\n\n" +
+      "Overall, there is a clear positive relationship between income and the number of cars owned: households with no car cluster in the lowest income band, while multi-car households dominate at the top.\n\n" +
+      "Among low-income households, the majority (55%) did not own a car at all, with a further 38% owning a single vehicle. Just 7% had two or more cars — by far the smallest figure in that group. The picture shifted markedly for middle-income households, where the single-car pattern dominated at 52%. Within this group only 18% were car-less, while almost a third had multiple vehicles.\n\n" +
+      "Among high-income households the pattern was reversed: nearly two-thirds (65%) owned two or more cars, 30% owned a single car, and only 5% had no car. Strikingly, the proportion of two-car households climbed from 7% to 65% across the three income bands — a near tenfold increase that highlights how strongly car ownership tracks income.",
+  },
+  {
+    id: "t1-employment-table",
+    type: "task1",
+    chartKind: "table",
+    title: "Employment by sector, four countries, 2020",
+    prompt:
+      "The table below shows the percentage of the labour force employed in " +
+      "agriculture, industry and services in four countries in 2020.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "table",
+      columns: ["Country", "Agriculture (%)", "Industry (%)", "Services (%)"],
+      rows: [
+        ["Country W", "2",  "18", "80"],
+        ["Country X", "8",  "25", "67"],
+        ["Country Y", "30", "22", "48"],
+        ["Country Z", "55", "15", "30"],
+      ],
+    },
+    dataFacts:
+      "Table, % of labour force by sector, four countries, 2020.\n" +
+      "Country W: services 80% (dominant), industry 18%, agriculture 2% (smallest). Pattern typical of advanced economies.\n" +
+      "Country X: services 67%, industry 25%, agriculture 8%.\n" +
+      "Country Y: agriculture 30%, industry 22%, services 48% — mixed-economy pattern.\n" +
+      "Country Z: agriculture 55% (dominant), services 30%, industry 15%. Developing-economy pattern.\n" +
+      "Overall: as you move from W to Z, the share in agriculture rises and the share in services falls. Services dominate in W and X; agriculture dominates in Z. Industry stays roughly between 15% and 25% in every country.",
+    modelAnswer:
+      "The table compares the proportion of the labour force employed in agriculture, industry and services in four countries (W, X, Y and Z) in 2020.\n\n" +
+      "Overall, the four countries display strikingly different economic profiles: services dominate the workforce in W and X, whereas agriculture is by far the largest sector in Z. Industry remains within a relatively narrow band across all four.\n\n" +
+      "In Country W, services accounted for 80% of jobs, with only 18% in industry and a tiny 2% in agriculture, suggesting a highly developed post-industrial economy. Country X followed a similar pattern at 67% services, 25% industry and 8% agriculture, though its industrial sector was somewhat larger.\n\n" +
+      "Country Y showed a much more balanced distribution: 48% in services, 30% in agriculture and 22% in industry. Country Z, by contrast, was dominated by agriculture at 55%, with services at 30% and industry only 15% — a pattern typical of a still-developing economy. The clearest single trend, moving from W to Z, is the rise of agriculture from 2% to 55% and the corresponding decline of services from 80% to 30%.",
+  },
+  {
+    id: "t1-coffee-process",
+    type: "task1",
+    chartKind: "process",
+    title: "How instant coffee is produced",
+    prompt:
+      "The diagram below shows the stages involved in the production of " +
+      "instant (soluble) coffee from coffee cherries to packaged product.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "process",
+      steps: [
+        "Coffee cherries picked from trees",
+        "Beans extracted and washed",
+        "Dried in the sun for several days",
+        "Roasted in industrial ovens",
+        "Ground into fine particles",
+        "Brewed with hot water under high pressure",
+        "Brewed liquid is freeze-dried into crystals",
+        "Crystals packaged into jars and sealed",
+      ],
+      cyclic: false,
+    },
+    dataFacts:
+      "Process diagram, linear, 8 stages, manufacture of instant coffee.\n" +
+      "1 Cherries picked. 2 Beans extracted and washed. 3 Sun-dried. 4 Roasted. 5 Ground. 6 Brewed with hot water under pressure. 7 Brewed liquid freeze-dried into crystals. 8 Crystals packaged into jars.\n" +
+      "Linear (not cyclical). Inputs: raw cherries. Output: sealed jars of soluble coffee.\n" +
+      "Key transitions: raw cherry -> roasted bean (steps 1-4), bean -> brewed liquid (steps 5-6), liquid -> dry crystal -> packaged (steps 7-8).",
+    modelAnswer:
+      "The diagram illustrates the eight stages involved in producing instant coffee, beginning with the harvesting of fresh coffee cherries and ending with sealed jars ready for sale. Overall, the process is linear and can be divided into three broad phases: preparing the beans, extracting the liquid coffee, and converting it into a dry, soluble form.\n\n" +
+      "At the first stage, ripe coffee cherries are picked from the trees, and the beans inside are removed and washed thoroughly. The cleaned beans are then laid out in the sun and dried for several days to reduce their moisture content. Once dry, the beans are roasted in large industrial ovens and subsequently ground into fine particles.\n\n" +
+      "In the next phase, the ground coffee is brewed with hot water under high pressure, producing a concentrated liquid. This brewed liquid is then freeze-dried, a process that removes the water and leaves behind small soluble crystals.\n\n" +
+      "In the final stage, the crystals are packaged into glass jars, sealed and prepared for distribution. The product can subsequently be reconstituted into a drink by adding hot water at home.",
+  },
+  {
+    id: "t1-uni-funding-pie",
+    type: "task1",
+    chartKind: "pie",
+    title: "Sources of university funding, 1990 vs 2020",
+    prompt:
+      "The two pie charts below show the main sources of funding for " +
+      "universities in one country in 1990 and in 2020.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "pie",
+      charts: [
+        { title: "1990", slices: [
+          { name: "Government grants", value: 70, color: "#2563eb" },
+          { name: "Tuition fees",      value: 10, color: "#dc2626" },
+          { name: "Research contracts",value: 15, color: "#059669" },
+          { name: "Donations",         value:  5, color: "#f59e0b" },
+        ]},
+        { title: "2020", slices: [
+          { name: "Government grants", value: 25, color: "#2563eb" },
+          { name: "Tuition fees",      value: 50, color: "#dc2626" },
+          { name: "Research contracts",value: 18, color: "#059669" },
+          { name: "Donations",         value:  7, color: "#f59e0b" },
+        ]},
+      ],
+    },
+    dataFacts:
+      "Two pie charts, % of university funding by source, 1990 vs 2020.\n" +
+      "1990: Government grants 70% (dominant), Research contracts 15%, Tuition fees 10%, Donations 5%.\n" +
+      "2020: Tuition fees 50% (largest), Government grants 25%, Research contracts 18%, Donations 7%.\n" +
+      "Changes: Government grants fell sharply from 70% to 25% (-45 pts). Tuition fees rose dramatically from 10% to 50% (+40 pts). Research contracts and donations both grew slightly.\n" +
+      "Overall: a fundamental shift from public to private funding. Universities went from being mainly state-funded to being mainly fee-funded.",
+    modelAnswer:
+      "The two pie charts compare the main sources of university funding in one country in 1990 and in 2020.\n\n" +
+      "Overall, the most striking change was a fundamental shift from public to private funding: government grants, which once dominated, were largely replaced by tuition fees as the principal source of income.\n\n" +
+      "In 1990, government grants made up 70% of total funding, dwarfing all other sources. Research contracts contributed a further 15%, while tuition fees and donations were comparatively minor, at 10% and 5% respectively.\n\n" +
+      "By 2020 the picture had reversed. Tuition fees had become the single largest source at 50% of total funding, while government grants had fallen sharply to just 25% — barely a third of their earlier share. Research contracts inched up to 18% and donations to 7%, but the dominant story was the rebalancing between the two largest categories. Universities had effectively moved from being mainly state-funded institutions to being primarily fee-funded ones over the three decades.",
+  },
+  {
+    id: "t1-population-cities-line",
+    type: "task1",
+    chartKind: "line",
+    title: "Population of four cities, 1980–2020",
+    prompt:
+      "The line graph below shows the population (in millions) of four " +
+      "cities around the world between 1980 and 2020.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "line",
+      yLabel: "Population (millions)",
+      xLabels: ["1980","1990","2000","2010","2020"],
+      yMax: 25,
+      series: [
+        { name: "Tokyo",       color: "#2563eb", values: [16, 17, 18, 19, 19] },
+        { name: "São Paulo",   color: "#dc2626", values: [12, 15, 17, 19, 22] },
+        { name: "Lagos",       color: "#059669", values: [3, 5, 8, 12, 18] },
+        { name: "London",      color: "#f59e0b", values: [7, 7, 7, 8, 9] },
+      ],
+    },
+    dataFacts:
+      "Line graph, population in millions, four cities, 1980-2020.\n" +
+      "Tokyo: started highest at 16m (1980), modest growth to 19m by 2020. Plateaued in last decade.\n" +
+      "São Paulo: 12m (1980) -> 22m (2020), the highest figure by the end. Steady growth.\n" +
+      "Lagos: 3m (1980) -> 18m (2020), the most dramatic growth, six-fold rise, accelerating.\n" +
+      "London: nearly flat at 7m through 2000, then modest rise to 9m by 2020. The smallest population throughout.\n" +
+      "Overall: developing-world megacities (Lagos, São Paulo) grew far faster than developed-world capitals (Tokyo, London). By 2020 São Paulo was largest; Lagos had overtaken Tokyo.",
+    modelAnswer:
+      "The line graph illustrates how the populations of four major world cities — Tokyo, São Paulo, Lagos and London — changed over the four decades from 1980 to 2020.\n\n" +
+      "Overall, the two developing-world cities, Lagos and São Paulo, experienced by far the greatest growth, while the two developed-world cities, Tokyo and London, grew much more slowly. By the end of the period the ranking of city sizes had changed significantly.\n\n" +
+      "In 1980, Tokyo was clearly the largest of the four at 16 million, followed by São Paulo at 12 million, London at 7 million and Lagos at just 3 million. Over the following two decades, Tokyo grew modestly to 18 million and London barely changed, while São Paulo climbed steadily to 17 million.\n\n" +
+      "The contrast became sharper after 2000. São Paulo continued to expand rapidly, reaching 22 million by 2020 to become the largest of the four. Lagos exploded from 8 million in 2000 to 18 million in 2020, overtaking Tokyo, which had plateaued at 19 million. London edged up to 9 million but remained by far the smallest, illustrating how urban growth has shifted decisively towards the developing world.",
+  },
+  {
+    id: "t1-tourists-bar",
+    type: "task1",
+    chartKind: "bar",
+    title: "International tourist arrivals at four destinations, 2000 vs 2020",
+    prompt:
+      "The bar chart below compares the number of international tourist " +
+      "arrivals (in millions) at four well-known destinations in 2000 and " +
+      "in 2020.",
+    instruction: TASK1_INSTRUCTION,
+    chart: {
+      kind: "bar",
+      yLabel: "International arrivals (millions)",
+      yMax: 100,
+      categories: ["France","Spain","Thailand","Egypt"],
+      series: [
+        { name: "2000", color: "#2563eb", values: [77, 47, 10, 5] },
+        { name: "2020", color: "#f59e0b", values: [40, 19, 7, 4] },
+      ],
+    },
+    dataFacts:
+      "Grouped bar chart, international arrivals in millions, 4 destinations, 2000 vs 2020.\n" +
+      "France: 77m (2000) -> 40m (2020), biggest absolute fall (-37m). Still the highest figure in both years.\n" +
+      "Spain: 47m -> 19m (-28m fall, roughly halved).\n" +
+      "Thailand: 10m -> 7m (small fall).\n" +
+      "Egypt: 5m -> 4m (small fall).\n" +
+      "Overall: all four destinations lost visitors over the period — likely reflecting the 2020 pandemic disruption. France and Spain saw very large absolute falls but remained the most-visited; Thailand and Egypt fell less in absolute terms but proportionally also lost a third or so. Rank order unchanged.",
+    modelAnswer:
+      "The bar chart compares the number of international tourist arrivals at four destinations — France, Spain, Thailand and Egypt — in 2000 and 2020.\n\n" +
+      "Overall, every destination received fewer international visitors in 2020 than in 2000, but the absolute scale of the decline was far greater in Europe than in Asia or Africa. The relative ranking of the four countries was unchanged across the period.\n\n" +
+      "France attracted by far the largest number of tourists in both years, although its figure fell sharply from 77 million in 2000 to 40 million in 2020 — a drop of nearly 50%. Spain, the second-most-visited destination, followed a similar pattern, declining from 47 million to 19 million over the same period.\n\n" +
+      "The two smaller destinations also saw declines but on a much smaller absolute scale. Thailand's arrivals slipped from 10 million to 7 million, and Egypt's from 5 million to 4 million. Although the headline drops in France and Spain are visually dominant, in proportional terms all four destinations lost roughly a third to a half of their visitors, suggesting a broad and uneven contraction in global tourism by the end of the period.",
+  },
+  {
     id: "t1-housing-pie",
     type: "task1",
     chartKind: "pie",
@@ -449,6 +686,154 @@ const TASK2 = [
       "Several factors lie behind the problem. The first is structural: automation and the offshoring of routine work have hollowed out the entry-level jobs that once gave young people their first foothold in the labour market. The second is educational: while university participation has expanded rapidly, the skills many graduates leave with often do not match what employers actually need, particularly in technical and digital fields. A third factor is the rise of insecure, gig-style contracts, which leave young workers without the training, pensions and progression that previous generations could take for granted.\n\n" +
       "There are clear steps that policymakers and businesses could take to ease this situation. Governments could invest more heavily in vocational training and high-quality apprenticeships, giving young people credible alternatives to often-expensive university degrees. They could also use tax incentives and labour-law reform to encourage employers to offer secure contracts and proper training for new entrants. For their part, employers should treat early-career talent as a long-term investment rather than disposable labour, providing structured mentorship, transparent progression and fair entry-level pay.\n\n" +
       "In conclusion, young people's difficulty in finding good jobs stems from a combination of automation, mismatched education and the spread of insecure work. By rebuilding the bridge between education and employment, and by restoring stability to entry-level roles, governments and employers can give the next generation a genuine chance to flourish.",
+  },
+  {
+    id: "t2-children-internet",
+    type: "task2",
+    qType: "Opinion (agree / disagree)",
+    title: "Children's unsupervised internet access",
+    prompt:
+      "Some people believe that children under the age of twelve should not " +
+      "be allowed to access the internet without an adult present.\n\n" +
+      "To what extent do you agree or disagree?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "It is sometimes argued that children under the age of twelve should always be accompanied by an adult when going online. I largely agree with this view, because of the genuine risks young children face on the internet and their limited ability to assess them.\n\n" +
+      "The main reason for supervising young users is exposure to harmful content. Search results, video platforms and social networks routinely surface violent, sexual or extremist material that even motivated parental controls do not fully filter. A child of seven or eight lacks the cognitive maturity to interpret such content critically, and a single bad encounter can cause lasting distress. An adult presence dramatically reduces this risk.\n\n" +
+      "A second concern is exploitation. Predators target unsupervised children through chat features in games and apps, often pretending to be peers. Twelve is a reasonable upper threshold for routine supervision because it broadly aligns with the start of secondary education, when children begin to develop the social judgement needed to recognise these threats themselves.\n\n" +
+      "Some object that constant supervision stifles independence and digital literacy. There is force in this argument, but it does not justify leaving very young children entirely alone online. A workable compromise is structured, supervised use — children watching a video alongside a parent, or completing a homework search with an adult nearby — which teaches digital skills without the obvious dangers.\n\n" +
+      "In conclusion, although blanket supervision has minor drawbacks, the protection it offers from harmful content and exploitation clearly outweighs them. I therefore agree that children under twelve should not generally use the internet without an adult present.",
+  },
+  {
+    id: "t2-zoos",
+    type: "task2",
+    qType: "Discussion (both views + opinion)",
+    title: "Zoos: cruelty or conservation?",
+    prompt:
+      "Some people believe that zoos are cruel and that wild animals should " +
+      "not be kept in captivity. Others argue that zoos play an important " +
+      "role in conservation and public education.\n\n" +
+      "Discuss both views and give your own opinion.",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "Opinions on zoos are sharply divided. While critics view them as fundamentally cruel, defenders point to their value in protecting endangered species and educating the public. Both sides have merit, but in my view a well-run modern zoo does more good than harm.\n\n" +
+      "Those who oppose zoos argue that confining wild animals to enclosures, however spacious, denies them a natural existence. Large predators in particular suffer from restricted movement and abnormal behaviours such as pacing or self-harm. Critics also note that many older zoos exist primarily as commercial attractions, with welfare standards driven by profit rather than animal needs.\n\n" +
+      "On the other hand, the defence of modern zoos rests on two strong arguments. First, accredited zoos run sophisticated breeding programmes that have rescued species — the Arabian oryx and the California condor among them — from near-extinction. Second, zoos give millions of urban families their only realistic chance to see and learn about wildlife. This exposure builds the public sympathy and political pressure needed to fund habitat protection in the wild.\n\n" +
+      "In my opinion, the issue is not zoos in principle but zoos in practice. Roadside menageries that exist purely for spectacle should be closed, but properly accredited institutions — with large enclosures, qualified veterinary care and a clear conservation mission — make a genuine contribution that the wild simply cannot guarantee.\n\n" +
+      "In conclusion, while the cruelty argument applies to badly-run facilities, modern conservation zoos play an essential role in protecting wildlife and educating the public, and on balance I believe such institutions should be supported.",
+  },
+  {
+    id: "t2-mass-tourism",
+    type: "task2",
+    qType: "Advantages / disadvantages",
+    title: "Mass tourism",
+    prompt:
+      "Increasing numbers of tourists now visit famous cultural and natural " +
+      "sites around the world.\n\n" +
+      "Do the advantages of this trend outweigh the disadvantages?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "The number of people travelling internationally to visit famous cultural landmarks and natural wonders has risen dramatically in recent decades. Although this mass tourism brings real benefits, I believe its disadvantages now slightly outweigh them.\n\n" +
+      "On the positive side, tourism is an enormous source of income for the host country. Hotels, restaurants, transport and craft industries together support millions of jobs, often in regions with few alternatives. Tourism also funds the maintenance of cultural sites: many ancient monuments would simply fall into disrepair without the revenue brought in by visitors. Less tangibly, exposure to other cultures can foster international understanding and reduce prejudice.\n\n" +
+      "However, the disadvantages have grown sharper as visitor numbers have soared. Iconic sites such as Venice, Machu Picchu or Mount Everest are now physically damaged by the sheer volume of footfall, and their fragile ecosystems and historic structures cannot easily recover. Local residents in popular cities increasingly find themselves priced out of housing by short-term rentals, while their neighbourhoods are reshaped to serve visitors rather than communities. Mass tourism also generates significant carbon emissions, particularly from air travel.\n\n" +
+      "Defenders of the status quo argue that these problems can be managed through visitor caps, tourist taxes and better infrastructure. I agree that such measures help, but the pace at which tourism is growing has so far outstripped the will of authorities to enforce them.\n\n" +
+      "In conclusion, while tourism brings genuine economic and cultural benefits, the cumulative damage to sites, communities and the environment is now too serious to ignore. On balance, the disadvantages of mass tourism appear to outweigh its advantages.",
+  },
+  {
+    id: "t2-bilingual-primary",
+    type: "task2",
+    qType: "Opinion (agree / disagree)",
+    title: "Second language from primary school",
+    prompt:
+      "Some people believe that all children should begin learning a second " +
+      "language at primary school, while others think foreign-language " +
+      "study should be left until secondary school.\n\n" +
+      "Discuss both views and give your own opinion.",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "There is a long-running debate about when foreign-language learning should begin. Some maintain it should start as soon as children enter primary school, while others argue that secondary school is early enough. Both positions have merit, but I personally favour the earlier start.\n\n" +
+      "Supporters of delaying language study until secondary school point out that primary-age children already have a great deal to absorb — reading, writing, numeracy and basic social skills — and adding another language risks overloading them. They also argue that secondary-school students learn languages more efficiently because they can already analyse grammar consciously and apply explicit study techniques.\n\n" +
+      "The case for starting earlier, however, rests on well-established evidence that young children acquire languages with a fluency and accent that older learners rarely match. Their brains are still in a critical period for phonological learning, and they absorb new vocabulary almost effortlessly through play, song and conversation. Beginning at six or seven, even with only a few hours per week, lays a foundation that pays compounding returns throughout secondary school.\n\n" +
+      "In my view, the secondary-school argument confuses depth with breadth. Younger children may not analyse a language formally, but they internalise it in a way that is extremely hard to reproduce later. The risk of overload can be mitigated by teaching languages through games, stories and simple conversation rather than formal grammar drills.\n\n" +
+      "In conclusion, although delaying language study has some practical appeal, the developmental advantages of an early start are too significant to ignore. I therefore believe primary schools should introduce a second language as standard.",
+  },
+  {
+    id: "t2-elderly-care",
+    type: "task2",
+    qType: "Discussion (both views + opinion)",
+    title: "Elderly care",
+    prompt:
+      "Some people believe that elderly relatives should live with their " +
+      "families and be cared for at home. Others think that they are better " +
+      "looked after in professional care homes.\n\n" +
+      "Discuss both views and give your own opinion.",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "As populations age, families across the world are facing difficult decisions about how to care for elderly relatives. Some believe older people should remain in the family home, while others argue that professional care homes provide better support. I think both options have a place, but a hybrid approach is usually the strongest.\n\n" +
+      "Those who favour home care point to the emotional and cultural benefits. Living among children and grandchildren preserves the elderly person's sense of identity, maintains their relationships and avoids the loneliness that can settle in institutional settings. There are also practical savings, since professional care is often costly, and many cultures regard supporting older relatives as a fundamental duty.\n\n" +
+      "On the other hand, advocates of professional care homes highlight the realities of modern life. Few adult children can take time away from full-time work to provide round-the-clock care, especially when a relative has dementia or a serious medical condition. Trained staff can administer medication safely, manage emergencies and offer specialist services that families simply cannot provide at home. Good care homes also encourage social activity among peers, which can lift mood and slow cognitive decline.\n\n" +
+      "In my view, the right answer depends on the elderly person's health. Where someone is broadly independent, home life with regular family contact is clearly preferable. Once medical needs become complex, however, a high-quality care home is often safer and more comfortable for everyone, including the relative.\n\n" +
+      "In conclusion, while home care is the ideal in principle, professional care becomes essential as needs grow. Families should not feel guilty about combining the two as circumstances change.",
+  },
+  {
+    id: "t2-public-transport",
+    type: "task2",
+    qType: "Problem / causes & solutions",
+    title: "Inadequate public transport",
+    prompt:
+      "In many cities, public transport is inadequate and most people rely " +
+      "on private cars.\n\n" +
+      "What are the causes of this problem and what measures could improve " +
+      "public transport?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "In a great many cities, buses and trains are unreliable, slow or simply absent, leaving residents little option but to drive. This essay will examine the causes of inadequate public transport before suggesting ways it could be improved.\n\n" +
+      "Several factors lie behind the problem. The first is decades of underinvestment: when fuel was cheap and city planners assumed car ownership would keep rising, governments built motorways instead of metros. The second is the political economy of road-building, which produces visible, ribbon-cutting projects, whereas slow, complicated rail or bus upgrades attract less attention from voters. A third cause is sprawling urban design — when homes, workplaces and shops are spread thinly across a large area, no transit network can serve them efficiently.\n\n" +
+      "Several measures could turn the situation around. Most importantly, governments should commit to sustained, multi-decade investment in efficient mass transit: dedicated bus lanes that bypass traffic, modern metros in larger cities and reliable suburban rail. To make these systems genuinely attractive, fares must be affordable and services frequent, ideally turn-up-and-go rather than rigidly timetabled. In parallel, congestion charges or workplace parking levies make driving less appealing, encouraging the shift in behaviour that infrastructure alone cannot deliver.\n\n" +
+      "In the longer term, cities should also be redesigned around denser, mixed-use neighbourhoods in which walking and cycling can replace many short car journeys altogether, reducing the burden on public transport itself.\n\n" +
+      "In conclusion, inadequate public transport reflects past neglect and poor planning rather than any inevitable preference for cars. With sustained investment, smarter pricing and better urban design, cities can offer their residents a real alternative to driving.",
+  },
+  {
+    id: "t2-women-stem",
+    type: "task2",
+    qType: "Two-part (direct) question",
+    title: "Women in science and engineering",
+    prompt:
+      "In most countries, women are still significantly under-represented in " +
+      "science and engineering professions.\n\n" +
+      "Why is this the case, and what measures could be taken to address it?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "Despite decades of progress, women remain a clear minority in most science and engineering professions. This essay will examine the principal reasons for this imbalance and consider what could be done to correct it.\n\n" +
+      "Several factors explain the under-representation. The most fundamental is cultural: girls are still routinely steered, sometimes subtly, towards subjects considered more 'feminine', and many lose interest in science around adolescence. Once they reach university, a shortage of female role models reinforces the impression that these are male fields. A second factor is the workplace itself: long-hours cultures, limited part-time options and inadequate parental leave all push women out at the point when they would otherwise be moving into senior technical roles.\n\n" +
+      "A range of measures could shift the picture. In schools, gender-neutral careers advice and high-visibility female scientists in the curriculum would broaden girls' sense of what is possible. Universities should also expand outreach programmes and ensure their teaching environments are genuinely welcoming, with zero tolerance for harassment. Within industry, structural changes matter most: properly paid parental leave for both parents, transparent promotion criteria and flexible working would remove much of the penalty that women currently pay for combining a technical career with family life.\n\n" +
+      "Targeted scholarships and mentoring schemes can also accelerate change, although these should be framed as redressing an existing imbalance rather than as favours that can be withdrawn.\n\n" +
+      "In conclusion, the gender gap in science and engineering reflects cultural conditioning, weak role models and unfriendly workplaces. Tackling all three — in schools, universities and companies — is the only way to build professions that draw on the full talent available.",
+  },
+  {
+    id: "t2-news-online",
+    type: "task2",
+    qType: "Advantages / disadvantages",
+    title: "Online news",
+    prompt:
+      "Most people now get their news online rather than from newspapers, " +
+      "television or radio.\n\n" +
+      "Do the advantages of this development outweigh the disadvantages?",
+    instruction: TASK2_INSTRUCTION,
+    dataFacts: "",
+    modelAnswer:
+      "The way people get their news has shifted dramatically in the last twenty years, with online sources now overtaking newspapers, television and radio in most countries. Although this change has obvious drawbacks, I believe its advantages remain marginally greater.\n\n" +
+      "The most striking benefit is speed and breadth. Major events are reported within minutes of happening, and readers can choose from a far wider range of perspectives than any single national broadcaster could provide. Online news is also more participatory: comments, social-media sharing and citizen journalism let ordinary people contribute reports, photographs and on-the-ground accounts that traditional media would have missed. For many, online news is also more affordable, since a great deal of high-quality reporting is free or cheap to access.\n\n" +
+      "The disadvantages, however, are real and growing. The same speed that brings stories to readers also amplifies misinformation, as unverified claims spread before fact-checkers can respond. Algorithmic personalisation tends to surface emotionally engaging content, which often means outrage and polarisation rather than careful reporting. The economic pressure on online publications has hollowed out investigative journalism, and many local newspapers — once the backbone of accountability — have closed.\n\n" +
+      "Set against these problems, the gains in immediacy, diversity and accessibility are substantial, but only if readers actively cultivate good habits: subscribing to a few trusted publications, cross-checking surprising claims and engaging beyond their algorithmic bubble.\n\n" +
+      "In conclusion, while the shift to online news has weakened careful journalism and accelerated misinformation, it has also democratised access to information on a scale never previously possible. On balance, its advantages just outweigh its disadvantages, provided readers behave responsibly.",
   },
   {
     id: "t2-arts-funding",
