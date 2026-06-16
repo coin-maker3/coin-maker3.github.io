@@ -186,6 +186,11 @@ button{font-family:inherit; cursor:pointer; color:inherit}
   color:var(--muted); padding:6px 10px; font-size:12px;
 }
 .attempt-view:hover{color:var(--text); border-color:var(--brand)}
+.attempt-delete{
+  background:none; border:1px solid #6e3333; border-radius:8px;
+  color:#d98a8a; padding:5px 9px; font-size:12px; margin-left:6px;
+}
+.attempt-delete:hover{background:rgba(255,107,107,.10); color:#ffb0b0}
 
 /* ---- achievements ------------------------------------------------------- */
 .achievements{
@@ -246,6 +251,33 @@ button{font-family:inherit; cursor:pointer; color:inherit}
 .picker-plan-btn:hover{background:rgba(91,140,255,.08); border-color:var(--brand)}
 .picker-card{cursor:pointer}
 .picker-card:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
+.picker-helpers{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px}
+
+/* ---- idea bank ------------------------------------------------------- */
+.idea-position{
+  background:var(--panel-2); border:1px solid var(--line);
+  border-left:3px solid var(--brand-2);
+  border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:8px;
+}
+.idea-stance{font-weight:700; font-size:14px; color:var(--text)}
+.idea-why{font-size:13px; color:var(--muted); margin-top:3px}
+
+.idea-arg{
+  background:var(--panel-2); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:8px;
+}
+.idea-arg-support{border-left:3px solid var(--good)}
+.idea-arg-counter{border-left:3px solid var(--accent)}
+.idea-arg-head{font-weight:600; font-size:14px}
+.idea-arg-eg{font-size:13px; color:var(--brand-2); margin-top:4px; font-style:italic}
+.idea-arg-tag{font-size:12px; color:var(--muted); margin-top:6px; padding-top:6px; border-top:1px dashed var(--line)}
+
+.idea-thesis{
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:8px;
+  font-family:var(--serif); font-size:14px; line-height:1.5;
+  color:var(--text);
+}
 
 /* =========================================================================
    CD-IELTS exam screen (light theme, scoped under .cd-exam)
@@ -477,6 +509,38 @@ button{font-family:inherit; cursor:pointer; color:inherit}
 .result-hero-target .hit{color:var(--good); font-weight:700}
 .result-hero-target .miss{color:var(--accent); font-weight:700}
 .result-hero-note{font-size:12px; color:var(--faint); margin-top:10px; max-width:50ch; margin-left:auto; margin-right:auto}
+
+.compare-banner{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  background:linear-gradient(90deg, rgba(91,140,255,.12), rgba(132,186,255,.04));
+  border:1px solid #34487a; border-radius:var(--radius);
+  padding:14px 18px; margin-bottom:16px;
+}
+.compare-banner-text{display:flex; flex-direction:column; gap:2px}
+.compare-banner-text b{font-size:14px}
+.compare-banner-text b.up{color:var(--good)}
+.compare-banner-text b.down{color:var(--accent)}
+.compare-banner-text span{font-size:13px; color:var(--muted)}
+
+.compare-table{
+  width:100%; border-collapse:collapse; margin-bottom:18px;
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-sm);
+  overflow:hidden;
+}
+.compare-table th, .compare-table td{
+  padding:9px 12px; border-bottom:1px solid var(--line);
+  font-size:14px; text-align:left;
+}
+.compare-table th{background:var(--panel-2); color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.4px}
+.compare-table td.up{color:var(--good); font-weight:700}
+.compare-table td.down{color:var(--accent); font-weight:700}
+
+.compare-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px}
+.compare-col{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px}
+.compare-col-current{border-color:#34487a; background:linear-gradient(160deg, #1a2543, #131a2c)}
+.compare-col h3{margin:0 0 4px; font-size:14px; color:var(--brand-2)}
+.compare-sub{font-size:12px; color:var(--muted); margin-bottom:10px}
+.compare-col .your-answer{font-size:14px; line-height:1.65; padding:12px}
 
 .delta-banner{
   display:flex; align-items:center; gap:14px;
@@ -794,6 +858,7 @@ button{font-family:inherit; cursor:pointer; color:inherit}
   .stat-row{grid-template-columns:repeat(2,1fr)}
   .cta-grid{grid-template-columns:1fr}
   .crit-grid{grid-template-columns:1fr}
+  .compare-grid{grid-template-columns:1fr}
 
   .cd-body{grid-template-columns:1fr; grid-template-rows:38vh 1fr}
   .cd-stim{border-right:none; border-bottom:1px solid var(--cd-line)}

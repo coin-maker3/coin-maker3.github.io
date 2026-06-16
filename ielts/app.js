@@ -106,6 +106,33 @@ function toast(msg) {
   toastT = setTimeout(() => (t.hidden = true), 2600);
 }
 
+/* postWithRetry — wrap a JSON POST in one transparent retry on 5xx or
+   network failures, with 1.5s backoff. Handles Anthropic transient blips
+   and the Firebase Cloud Function's cold start (which can occasionally
+   exceed the client's timeout perception even though the request succeeds
+   server-side). Anything 4xx is returned as-is — no retry. */
+async function postWithRetry(url, opts) {
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url, opts);
+      if (res.status >= 500 && res.status < 600 && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < 1) {
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+      throw lastErr;
+    }
+  }
+  throw lastErr || new Error("network");
+}
+
 function confirmDialog(text, onYes) {
   $("#confirmText").textContent = text;
   $("#confirmNo").hidden = false;
@@ -226,9 +253,10 @@ function renderRecent() {
   if (!store.history.length) { panel.hidden = true; return; }
   panel.hidden = false;
   list.innerHTML = store.history.slice(-4).reverse().map(attemptRow).join("");
-  bindAttemptRows(list);
+  bindAttemptRows(list, renderHome);
 }
 function attemptRow(h) {
+  const owner = !!store.settings.ownerMode;
   return `<div class="attempt" data-id="${esc(h.id)}">
     <div class="attempt-band">${fmtBand(h.band)}</div>
     <div class="attempt-meta">
@@ -236,20 +264,70 @@ function attemptRow(h) {
       <div class="attempt-sub">${h.type === "task1" ? "Task 1" : "Task 2"} · ${esc(fmtDate(h.ts))} · ${h.wordCount} words</div>
     </div>
     ${h.mark ? `<button class="attempt-view" type="button">View</button>` : `<span class="attempt-sub">not marked</span>`}
+    ${owner ? `<button class="attempt-delete" type="button" title="Delete this attempt (owner only)">✕</button>` : ""}
   </div>`;
 }
-function bindAttemptRows(root) {
+function bindAttemptRows(root, refresh) {
   $$(".attempt", root).forEach((row) => {
-    const btn = $(".attempt-view", row);
-    if (!btn) return;
-    btn.onclick = () => {
-      const h = store.history.find((x) => x.id === row.dataset.id);
-      if (h && h.mark) {
-        renderResult([{ task: taskById(h.taskId), answer: h.answer, wordCount: h.wordCount, mark: h.mark }]);
-        show("result");
-      }
-    };
+    const view = $(".attempt-view", row);
+    if (view) {
+      view.onclick = (e) => {
+        e.stopPropagation();
+        const h = store.history.find((x) => x.id === row.dataset.id);
+        if (h && h.mark) {
+          renderResult([{ task: taskById(h.taskId), answer: h.answer, wordCount: h.wordCount, mark: h.mark }]);
+          show("result");
+        }
+      };
+    }
+    const del = $(".attempt-delete", row);
+    if (del) {
+      del.onclick = (e) => {
+        e.stopPropagation();
+        confirmDialog(
+          "Delete this attempt? It will be removed from history, the Coach's pattern aggregation, and the spelling vault.",
+          () => {
+            deleteAttempt(row.dataset.id);
+            toast("Attempt deleted — Saja's progression is clean.");
+            if (typeof refresh === "function") refresh();
+          }
+        );
+      };
+    }
   });
+}
+
+/* Owner-only: delete a single attempt and back the vault out cleanly so
+   the Coach + trajectory + vault never see Ali's testing entries. */
+function deleteAttempt(id) {
+  const idx = store.history.findIndex((h) => h.id === id);
+  if (idx < 0) return;
+  const deleted = store.history[idx];
+  store.history.splice(idx, 1);
+  // Vault cleanup: for each misspelling in the deleted mark, recompute
+  // whether the word still appears in any remaining marked attempt.
+  if (deleted && deleted.mark && Array.isArray(deleted.mark.misspellings) && store.vault && store.vault.words) {
+    const stillNeeded = new Set();
+    store.history.forEach((h) => {
+      const ms = h.mark && h.mark.misspellings;
+      if (!ms) return;
+      ms.forEach((m) => {
+        const k = String(m.correct || "").trim().toLowerCase();
+        if (k) stillNeeded.add(k);
+      });
+    });
+    deleted.mark.misspellings.forEach((m) => {
+      const k = String(m.correct || "").trim().toLowerCase();
+      if (!k) return;
+      if (!stillNeeded.has(k)) {
+        delete store.vault.words[k];
+      } else {
+        const entry = store.vault.words[k];
+        if (entry && entry.essays_seen_in > 0) entry.essays_seen_in -= 1;
+      }
+    });
+  }
+  save();
 }
 
 const ACHIEVEMENTS = [
@@ -336,13 +414,16 @@ function openPicker(mode) {
       <div class="picker-kicker">${esc(t.qType || t.chartKind || "")}</div>
       <div class="picker-title">${esc(t.title)}</div>
       <div class="picker-desc">${esc(promptPreview(t.prompt))}</div>
-      ${mode === "task2" ? `<button class="picker-plan-btn" type="button" data-plan="${esc(t.id)}">📋 Plan with me first</button>` : ""}
+      ${mode === "task2" ? `<div class="picker-helpers">
+        <button class="picker-plan-btn" type="button" data-plan="${esc(t.id)}">📋 Plan with me</button>
+        <button class="picker-plan-btn" type="button" data-idea="${esc(t.id)}">💡 Brainstorm ideas</button>
+      </div>` : ""}
     </div>
   </div>`).join("");
   $("#pickerList").innerHTML = html;
   $$("#pickerList .picker-card").forEach((c) => {
     c.onclick = (e) => {
-      if (e.target.closest("[data-plan]")) return;
+      if (e.target.closest("[data-plan]") || e.target.closest("[data-idea]")) return;
       let id = c.dataset.pick;
       if (id === "__random") id = list[Math.floor(Math.random() * list.length)].id;
       startExam("single", id);
@@ -356,6 +437,13 @@ function openPicker(mode) {
       e.stopPropagation();
       const task = list.find((t) => t.id === b.dataset.plan);
       if (task) openDeconstruct(task);
+    };
+  });
+  $$("#pickerList [data-idea]").forEach((b) => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const task = list.find((t) => t.id === b.dataset.idea);
+      if (task) openIdeaBank(task);
     };
   });
   show("picker");
@@ -863,30 +951,30 @@ async function markEssay(r) {
   };
   const useDevice = !!s.apiKey;
   let res;
-  if (useDevice) {
-    res = await fetch(ANTHROPIC_DIRECT_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": s.apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify(body),
-    });
-  } else {
-    try {
-      res = await fetch(s.proxyUrl, {
+  try {
+    if (useDevice) {
+      res = await postWithRetry(ANTHROPIC_DIRECT_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": s.apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify(body),
+      });
+    } else {
+      res = await postWithRetry(s.proxyUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-    } catch {
-      const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
     }
-    if (res.status === 404 || res.status === 503) {
-      const e = new Error("The marker is not configured on this device."); e.code = "NEEDS_KEY"; throw e;
-    }
+  } catch {
+    const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
+  }
+  if (res.status === 404 || res.status === 503) {
+    const e = new Error("The marker is not configured on this device."); e.code = "NEEDS_KEY"; throw e;
   }
   if (!res.ok) {
     let msg = `Marking request failed (${res.status}).`;
@@ -1268,6 +1356,16 @@ function renderResult(records) {
     ? `Task 1: ${fmtBand(records.find(r=>r.task.type==="task1").mark.band)} · Task 2: ${fmtBand(records.find(r=>r.task.type==="task2").mark.band)} (Task 2 counts double)`
     : "";
 
+  // Find a previous attempt of the same prompt (for same-prompt diff feature)
+  let comparable = null;
+  if (single) {
+    const r = records[0];
+    const others = store.history
+      .filter((h) => h.taskId === r.task.id && h.mark && h.answer !== r.answer)
+      .sort((a, b) => b.ts - a.ts);
+    if (others.length > 0) comparable = others[0];
+  }
+
   let html = `<div class="result-hero">
     <div class="result-hero-label">${single ? "Estimated band" : "Overall Writing band"}</div>
     <div class="result-hero-band">${fmtBand(headBand)}</div>
@@ -1277,6 +1375,20 @@ function renderResult(records) {
     ${subBands ? `<div class="result-hero-note">${esc(subBands)}</div>` : ""}
     <div class="result-hero-note">AI estimate against the official IELTS band descriptors. Real exams are marked by certified humans and can differ by ~0.5 band.</div>
   </div>`;
+
+  if (comparable) {
+    const cBand   = records[0].mark.band;
+    const delta   = round05(cBand - comparable.band);
+    const arrow   = delta > 0 ? "▲" : delta < 0 ? "▼" : "→";
+    const cls     = delta > 0 ? "up" : delta < 0 ? "down" : "";
+    html += `<div class="compare-banner">
+      <div class="compare-banner-text">
+        <b class="${cls}">${arrow} You've written this prompt before</b>
+        <span>Previous: Band ${fmtBand(comparable.band)} → now: Band ${fmtBand(cBand)}</span>
+      </div>
+      <button class="secondary-btn" id="compareBtn" type="button">Compare side-by-side ▸</button>
+    </div>`;
+  }
 
   records.forEach((r, i) => {
     if (!single) html += `<h2 class="view-title">${i === 0 ? "Task 1" : "Task 2"} — ${esc(r.task.title)}</h2>`;
@@ -1291,8 +1403,84 @@ function renderResult(records) {
   $("#resultBody").innerHTML = html;
   bindModelToggle();
   bindIterateActions(records);
+  if (comparable) {
+    $("#compareBtn").onclick = () => renderCompare(records[0], comparable);
+  }
   $("#againBtn").onclick = () => openPicker(records[0].task.type);
   $("#homeBtn").onclick  = () => { show("home"); renderHome(); };
+}
+
+function renderCompare(current, previous) {
+  const cBand = current.mark.band;
+  const pBand = previous.band;
+  const delta = round05(cBand - pBand);
+  const arrow = delta > 0 ? "▲" : delta < 0 ? "▼" : "→";
+  const cls   = delta > 0 ? "up" : delta < 0 ? "down" : "";
+  const sub   = delta > 0
+    ? `Up ${delta.toFixed(1)} band on the same prompt — that's measurable improvement.`
+    : delta === 0
+    ? "Same band — look at the side-by-side and check what carried over from last time."
+    : "Band dropped — compare the texts and find the structural difference.";
+
+  // Build criteria comparison: previous's per-criterion bands vs current's
+  const order = [
+    ["task",                       current.task.type === "task1" ? "Task Achievement" : "Task Response"],
+    ["coherence_cohesion",         "Coherence & Cohesion"],
+    ["lexical_resource",           "Lexical Resource"],
+    ["grammatical_range_accuracy", "Grammatical Range & Accuracy"],
+  ];
+  const cm = current.mark.criteria, pm = previous.mark.criteria;
+  const critRows = order.map(([k, n]) => {
+    const pv = pm && pm[k] ? pm[k].band : "—";
+    const cv = cm && cm[k] ? cm[k].band : "—";
+    const d = (typeof pv === "number" && typeof cv === "number") ? cv - pv : null;
+    const dStr = d === null ? "" : d > 0 ? `▲ +${d}` : d < 0 ? `▼ ${d}` : "→";
+    const dCls = d === null ? "" : d > 0 ? "up" : d < 0 ? "down" : "";
+    return `<tr>
+      <td>${esc(n)}</td>
+      <td style="text-align:center">${pv}</td>
+      <td style="text-align:center">${cv}</td>
+      <td style="text-align:center" class="${dCls}">${dStr}</td>
+    </tr>`;
+  }).join("");
+
+  $("#resultBody").innerHTML = `<button class="back-btn" type="button" id="cmpBack">← Back to current result</button>
+    <h2 class="view-title">${esc(current.task.title)} — side-by-side</h2>
+
+    <div class="delta-banner">
+      <b class="${cls}">${arrow} Band ${fmtBand(pBand)} → ${fmtBand(cBand)}</b>
+      <span class="delta-sub">${esc(sub)}</span>
+    </div>
+
+    <table class="compare-table">
+      <thead><tr><th>Criterion</th><th>Previous</th><th>Now</th><th>Δ</th></tr></thead>
+      <tbody>${critRows}</tbody>
+    </table>
+
+    <div class="compare-grid">
+      <div class="compare-col">
+        <h3>Previous attempt — Band ${fmtBand(pBand)}</h3>
+        <div class="compare-sub">${esc(fmtDate(previous.ts))} · ${previous.wordCount} words</div>
+        <div class="your-answer">${esc(previous.answer)}</div>
+      </div>
+      <div class="compare-col compare-col-current">
+        <h3>This attempt — Band ${fmtBand(cBand)}</h3>
+        <div class="compare-sub">just now · ${current.wordCount} words</div>
+        <div class="your-answer">${esc(current.answer)}</div>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <button class="secondary-btn" id="cmpResult" type="button">Back to current result</button>
+      <button class="primary-btn"   id="cmpHome"   type="button">Back to dashboard</button>
+    </div>`;
+
+  const backToResult = () => {
+    renderResult([current]);
+  };
+  $("#cmpBack").onclick   = backToResult;
+  $("#cmpResult").onclick = backToResult;
+  $("#cmpHome").onclick   = () => { show("home"); renderHome(); };
 }
 
 function reportHTML(r) {
@@ -1510,7 +1698,7 @@ function renderHistory() {
     list.innerHTML = `<p style="color:var(--muted)">No attempts yet. Your band history will appear here.</p>`;
   } else {
     list.innerHTML = store.history.slice().reverse().map(attemptRow).join("");
-    bindAttemptRows(list);
+    bindAttemptRows(list, renderHistory);
   }
   show("history");
 }
@@ -1695,30 +1883,28 @@ async function deconstructPrompt(task) {
   };
   const useDevice = !!s.apiKey;
   let res;
-  if (useDevice) {
-    res = await fetch(ANTHROPIC_DIRECT_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": s.apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify(body),
-    });
-  } else {
-    try {
-      res = await fetch(s.proxyUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    } catch {
-      const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
-    }
-    if (res.status === 404 || res.status === 503) {
-      const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
-    }
+  try {
+    res = useDevice
+      ? await postWithRetry(ANTHROPIC_DIRECT_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": s.apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify(body),
+        })
+      : await postWithRetry(s.proxyUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+  } catch {
+    const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
+  }
+  if (res.status === 404 || res.status === 503) {
+    const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
   }
   if (!res.ok) throw new Error(`Plan generator failed (${res.status}).`);
   const data = await res.json();
@@ -1800,6 +1986,193 @@ function renderDeconstruct(task, plan) {
   };
 }
 
+/* ============================== IDEA BANK ============================== */
+/* "Brainstorm ideas." Before writing, Claude returns a structured idea bank
+   for the prompt: candidate positions (with rationale), 4-5 supporting
+   arguments (each with a real-world example), 3 counter-arguments (each
+   with a brief how-to-concede line), and 2-3 sample thesis statements.
+   Solves the "no ideas at this moment" problem the user named explicitly. */
+
+const IDEA_BANK_SCHEMA = {
+  type: "object", additionalProperties: false,
+  properties: {
+    candidate_positions: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          stance: { type: "string" },
+          why_take_this: { type: "string" },
+        },
+        required: ["stance", "why_take_this"],
+      },
+    },
+    supporting_arguments: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          argument:          { type: "string" },
+          example:           { type: "string" },
+          best_for_position: { type: "string" },
+        },
+        required: ["argument", "example", "best_for_position"],
+      },
+    },
+    counter_arguments: {
+      type: "array",
+      items: {
+        type: "object", additionalProperties: false,
+        properties: {
+          argument:               { type: "string" },
+          example:                { type: "string" },
+          how_to_concede_or_rebut:{ type: "string" },
+        },
+        required: ["argument", "example", "how_to_concede_or_rebut"],
+      },
+    },
+    sample_thesis_statements: { type: "array", items: { type: "string" } },
+  },
+  required: ["candidate_positions", "supporting_arguments",
+    "counter_arguments", "sample_thesis_statements"],
+};
+
+async function generateIdeaBank(task) {
+  const s = store.settings;
+  const body = {
+    model: s.model,
+    max_tokens: 2048,
+    system: [
+      "You are an IELTS Writing tutor preparing a candidate to write a Task 2 essay.",
+      "Many candidates have the LANGUAGE but not the IDEAS at the moment of writing.",
+      "Generate a structured idea bank for this prompt so the candidate can pick a",
+      "stance and have arguments + concrete examples ready.",
+      "",
+      "Rules:",
+      "- 2 or 3 'candidate_positions' covering the realistic stances on this prompt",
+      "  (e.g. agree, disagree, both-sides-with-tilt). Each has a one-sentence",
+      "  rationale for why a candidate might choose it.",
+      "- 4 to 6 'supporting_arguments'. Each has a clear argument + a concrete real-world",
+      "  example (a country/city/policy/study/historical event/named programme). Tag",
+      "  which candidate position it best supports.",
+      "- 3 'counter_arguments' the candidate should be aware of, each with a brief",
+      "  example AND a one-line tactic for how to concede or rebut without weakening",
+      "  their own position.",
+      "- 2 to 3 'sample_thesis_statements' — full sentences a band-7+ candidate might",
+      "  open with, each clearly committing to one of the candidate_positions.",
+      "- All ideas must be IELTS-appropriate (general academic register, not technical/",
+      "  professional). Avoid medical / niche-profession content — IELTS is profession-blind.",
+      "",
+      "Call the generate_idea_bank tool. Do not write prose.",
+    ].join("\n"),
+    messages: [{ role: "user", content: `TASK 2 PROMPT:\n\n${task.prompt}` }],
+    tools: [{
+      name: "generate_idea_bank",
+      description: "Return a structured idea bank for a Task 2 prompt.",
+      input_schema: IDEA_BANK_SCHEMA,
+    }],
+    tool_choice: { type: "tool", name: "generate_idea_bank" },
+  };
+
+  const useDevice = !!s.apiKey;
+  let res;
+  try {
+    res = useDevice
+      ? await postWithRetry(ANTHROPIC_DIRECT_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": s.apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify(body),
+        })
+      : await postWithRetry(s.proxyUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+  } catch {
+    const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
+  }
+  if (res.status === 404 || res.status === 503) {
+    const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
+  }
+  if (!res.ok) throw new Error(`Idea generator failed (${res.status}).`);
+  const data = await res.json();
+  const block = (data.content || []).find((b) => b.type === "tool_use" && b.name === "generate_idea_bank");
+  if (!block || !block.input) throw new Error("Idea generator returned no result.");
+  return block.input;
+}
+
+async function openIdeaBank(task) {
+  $("#ideaModal").hidden = false;
+  $("#ideaBody").innerHTML = markingSpinner("Brainstorming ideas with you…");
+  startTicker();
+  try {
+    const bank = await generateIdeaBank(task);
+    stopTicker();
+    renderIdeaBank(task, bank);
+  } catch (err) {
+    stopTicker();
+    $("#ideaBody").innerHTML = `<p class="section-lead">${esc(err.message)}</p>
+      <div class="decon-actions">
+        <button class="secondary-btn" id="ideaCancel" type="button">Close</button>
+        <button class="primary-btn"   id="ideaRetry"  type="button">Try again</button>
+      </div>`;
+    $("#ideaCancel").onclick = () => { $("#ideaModal").hidden = true; };
+    $("#ideaRetry").onclick  = () => openIdeaBank(task);
+  }
+}
+
+function renderIdeaBank(task, bank) {
+  const html = `
+    <div class="decon-prompt">${esc(task.prompt).replace(/\n\n/g, "<br><br>")}</div>
+
+    <div class="decon-section">
+      <h3>Positions you could take</h3>
+      ${bank.candidate_positions.map((p) => `<div class="idea-position">
+        <div class="idea-stance">${esc(p.stance)}</div>
+        <div class="idea-why">${esc(p.why_take_this)}</div>
+      </div>`).join("")}
+    </div>
+
+    <div class="decon-section">
+      <h3>Supporting arguments + real examples</h3>
+      ${bank.supporting_arguments.map((a) => `<div class="idea-arg idea-arg-support">
+        <div class="idea-arg-head">${esc(a.argument)}</div>
+        <div class="idea-arg-eg">e.g. ${esc(a.example)}</div>
+        <div class="idea-arg-tag">Best for: ${esc(a.best_for_position)}</div>
+      </div>`).join("")}
+    </div>
+
+    <div class="decon-section">
+      <h3>Counter-arguments + how to handle</h3>
+      ${bank.counter_arguments.map((c) => `<div class="idea-arg idea-arg-counter">
+        <div class="idea-arg-head">${esc(c.argument)}</div>
+        <div class="idea-arg-eg">e.g. ${esc(c.example)}</div>
+        <div class="idea-arg-tag">How to concede/rebut: ${esc(c.how_to_concede_or_rebut)}</div>
+      </div>`).join("")}
+    </div>
+
+    <div class="decon-section">
+      <h3>Sample thesis statements</h3>
+      ${bank.sample_thesis_statements.map((t) => `<div class="idea-thesis">${esc(t)}</div>`).join("")}
+    </div>
+
+    <div class="decon-actions">
+      <button class="secondary-btn" id="ideaLater" type="button">Maybe later</button>
+      <button class="primary-btn"   id="ideaStart" type="button">Start writing this ▸</button>
+    </div>`;
+  $("#ideaBody").innerHTML = html;
+  $("#ideaLater").onclick = () => { $("#ideaModal").hidden = true; };
+  $("#ideaStart").onclick = () => {
+    $("#ideaModal").hidden = true;
+    startExam("single", task.id);
+  };
+}
+
 /* ============================== DRILL MODE ============================== */
 /* The Coach knows the candidate's recurring patterns. Drill Mode lets her
    practise them in isolation: Claude generates 5 personalised micro-exercises
@@ -1873,30 +2246,28 @@ async function generateDrill(pattern) {
 
   const useDevice = !!s.apiKey;
   let res;
-  if (useDevice) {
-    res = await fetch(ANTHROPIC_DIRECT_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": s.apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify(body),
-    });
-  } else {
-    try {
-      res = await fetch(s.proxyUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    } catch {
-      const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
-    }
-    if (res.status === 404 || res.status === 503) {
-      const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
-    }
+  try {
+    res = useDevice
+      ? await postWithRetry(ANTHROPIC_DIRECT_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": s.apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify(body),
+        })
+      : await postWithRetry(s.proxyUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+  } catch {
+    const e = new Error("Cannot reach the marker."); e.code = "NEEDS_KEY"; throw e;
+  }
+  if (res.status === 404 || res.status === 503) {
+    const e = new Error("Marker is not configured."); e.code = "NEEDS_KEY"; throw e;
   }
   if (!res.ok) throw new Error(`Drill generator failed (${res.status}).`);
   const data = await res.json();
@@ -2074,6 +2445,7 @@ $("#settingsSave").onclick = () => {
 };
 $("#settingsClose").onclick = () => ($("#settingsModal").hidden = true);
 $("#deconClose").onclick    = () => ($("#deconstructModal").hidden = true);
+$("#ideaClose").onclick     = () => ($("#ideaModal").hidden = true);
 $("#resetProgress").onclick = () => confirmDialog(
   "This deletes all your attempts, progress and saved key from this device. Continue?",
   () => {
@@ -2086,6 +2458,36 @@ $("#resetProgress").onclick = () => confirmDialog(
     toast("All data cleared");
   }
 );
+
+/* ============================== CD-IELTS RULES ============================== */
+/* When the exam screen is active, mimic the real CD-IELTS browser environment:
+   - Disable F5 / Ctrl+R (reload) — accidental refresh would wipe the attempt.
+   - Disable Ctrl+P (print) and Ctrl+F (browser find) — neither is available
+     in the real test.
+   - Disable right-click context menu inside the exam screen (no spell-check
+     workaround, no "Inspect element" to peek at structure).
+   - Allow Cut / Copy / Paste / Undo / Redo (Ctrl+X/C/V/Z/Y) — the real exam does.
+   - Warn before navigating away while the timer is running. */
+function isExamActive() {
+  const el = document.getElementById("view-exam");
+  return el && !el.hidden && exam.timer;
+}
+document.addEventListener("keydown", (e) => {
+  if (!isExamActive()) return;
+  const k = (e.key || "").toLowerCase();
+  if (k === "f5") { e.preventDefault(); toast("Refresh is disabled during the exam."); return; }
+  if (e.ctrlKey || e.metaKey) {
+    if (k === "r") { e.preventDefault(); toast("Refresh is disabled during the exam."); return; }
+    if (k === "p") { e.preventDefault(); toast("Print is disabled during the exam."); return; }
+    if (k === "f") { e.preventDefault(); toast("Browser find is disabled during the exam."); return; }
+  }
+}, true);
+document.getElementById("view-exam").addEventListener("contextmenu", (e) => {
+  if (isExamActive()) e.preventDefault();
+});
+window.addEventListener("beforeunload", (e) => {
+  if (isExamActive()) { e.preventDefault(); e.returnValue = ""; }
+});
 
 // first render
 renderHome();
