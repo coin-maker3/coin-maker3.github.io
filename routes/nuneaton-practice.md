@@ -1,57 +1,162 @@
-# Nuneaton — driving test practice routes
+# Nuneaton — 8 practice test routes (for Saja)
 
 **Test centre:** 54 Vernons Lane, Stockingford, Nuneaton, **CV10 8AA**
 
-Open a link below on your phone → it opens Google Maps with the full loop →
-tap **Start** for voice turn-by-turn. Each route starts and ends at the test
-centre. Google routes the legal driving path between the stops, so just follow
-the voice.
+These are the 8 route patterns the Nuneaton centre is known to use (from
+instructor knowledge + dashcam footage). Each link below opens **Google Maps**
+with the full loop — tap **Start** for voice turn-by-turn. Every route starts and
+ends at the test centre.
 
-> These cover the roads Nuneaton examiners commonly use (from public route
-> descriptions) — great real-world practice. They are **not** "the secret exam
-> route" (no such official thing exists since 2010); the examiner will vary it.
-
----
-
-## Route 1 — Quieter warm-up (residential + junctions, ~25–30 min)
-
-Good first drive: parked-car awareness, junctions, mini-roundabouts, a couple of
-A-roads to and from the estates.
-
-**Stops:** Vernons Lane → Hinckley Road → Higham Lane → Northumberland Avenue →
-Rutland Avenue → Radnor Drive → Coton Road → back to centre
-
-🔗 **[Open Route 1 in Google Maps](https://www.google.com/maps/dir/54+Vernons+Lane,+Nuneaton+CV10+8AA/Hinckley+Road,+Nuneaton/Higham+Lane,+Nuneaton/Northumberland+Avenue,+Nuneaton/Rutland+Avenue,+Nuneaton/Radnor+Drive,+Nuneaton/Coton+Road,+Nuneaton/54+Vernons+Lane,+Nuneaton+CV10+8AA)**
+> **How to use:** the link drops the key roads in order; Google fills the legal
+> driving path between them, so just follow the voice. The exact turn list under
+> each route matches the instructor sequence — keep it handy if the examiner
+> follows it closely. Drive each a few times, at different times/days.
+>
+> ⚠️ These are best-known reconstructions, not an official DVSA route (none exists
+> since 2010) — verify on the road and always obey signs over any instruction here.
 
 ---
 
-## Route 2 — Full mock (busy roads, town centre, A444, ~35–45 min)
+## Route 1 — The A444 / St Davids Way Loop
 
-The real-pressure drive: the A444, Weddington Road speed changes, the town
-one-way system and the bigger roundabouts.
+Multi-lane roundabout discipline on fast-feeling connector roads.
 
-**Stops:** Vernons Lane → Queens Road → Coton Road (A444) → Bond Gate (town
-one-way) → Newtown Road → Weddington Road → Higham Lane → back to centre
+🔗 **[Open Route 1 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Earls%20Road/Queens%20Road/Roanne%20Ringway/College%20Street/Coventry%20Road/St%20Davids%20Way/Walsingham%20Drive/Sutherland%20Drive/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
-🔗 **[Open Route 2 in Google Maps](https://www.google.com/maps/dir/54+Vernons+Lane,+Nuneaton+CV10+8AA/Queens+Road,+Nuneaton/Coton+Road,+Nuneaton/Bond+Gate,+Nuneaton/Newtown+Road,+Nuneaton/Weddington+Road,+Nuneaton/Higham+Lane,+Nuneaton/54+Vernons+Lane,+Nuneaton+CV10+8AA)**
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
+- Left at Manor Court Rd roundabout onto Queens Rd
+- Right onto Roanne Ringway (traffic lights)
+- Right at Coton Rd, Right at Shepperton Hill, Left at College St roundabouts
+- Right onto Coventry Rd
+- Ahead at mini-roundabout, then Right at St Davids Way roundabout
+- Left onto Walsingham Drive, Right onto A444, Left onto Sutherland Drive
+- Return to Vernons Lane
 
 ---
 
-## Tips for these routes
+## Route 2 — The Town Centre One-Way System
 
-- **Roundabouts are the big one in Nuneaton** — practise lane choice and signal
-  timing at the Bull Ring/College Street and Coton Road/Vicarage Street ones.
-- **Weddington Road** has changing speed limits — watch the signs.
-- The **town one-way system** (Bond Gate / Church Street) needs early lane
-  positioning — Google will tell you the lane.
-- Drive each route **a few times, at different times of day** (including a
-  weekend) to see different traffic.
-- Try **Independent driving**: pick a destination (e.g. "Nuneaton Railway
-  Station") and follow Google's signs without stop-by-stop help — that mimics the
-  test's independent-driving section.
+Nuneaton one-way traffic system and tight residential loops.
 
-## Apple Maps / Waze
+🔗 **[Open Route 2 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Croft%20Road/Merevale%20Avenue/Heath%20End%20Road/Coventry%20Road/Avenue%20Road/Church%20Street/Newtown%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
-These links are Google Maps (best for multi-stop loops + voice). Waze doesn't do
-multi-stop loops well — for Waze/Apple Maps just navigate to one stop at a time,
-or use the in-app RouteReady version once it's live.
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
+- Ahead at Manor Court Rd onto Croft Rd
+- Estate loop: Left Merevale Ave, Left Bentley Rd, Right Merevale Rd, Left Croft Rd
+- Left at The Raywoods, Left onto Orkney Close, Left onto Heath End Rd
+- Right at Bullring mini-roundabout into College Rd, Right at A444 (2nd exit)
+- Ahead at mini-roundabout onto Coventry Rd, Right onto Avenue Rd
+- Left at Highfield Rd into Attleborough Rd into Church St
+- Return via one-way system (Bond Gate, Bond St, Newtown Rd) to Roanne Ringway, then Vernons Lane
+
+---
+
+## Route 3 — The Gipsy Lane / Marston Lane Loop
+
+East Nuneaton — major roundabouts plus quieter residential streets.
+
+🔗 **[Open Route 3 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Croft%20Road/College%20Street/St%20Davids%20Way/Coventry%20Road/Gipsy%20Lane/Marston%20Lane/Northbourne%20Drive/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
+- Ahead at Manor Court Rd, Left onto Croft Rd
+- Left at Greenmoore Rd roundabout into Bullring, Right at College St roundabout
+- Right at A444 (2nd roundabout), Left at St Davids Way, Right at Walsingham Drive, Left back onto A444
+- Left onto Sutherland Drive, Right onto Nuneaton Rd/Coventry Rd
+- Left at Gipsy Lane roundabout, Right onto Marston Lane, Right onto Northbourne Drive, Right at mini-roundabout onto Marston Lane
+- Return to Vernons Lane
+
+---
+
+## Route 4 — The Weddington & Higham Lane Sweep
+
+North Nuneaton — clearance control through older residential estates.
+
+🔗 **[Open Route 4 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Midland%20Road/Tuttle%20Hill/Mancetter%20Road/Weddington%20Road/Shanklin%20Drive/Leicester%20Road/Newtown%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Left at Manor Court Rd
+- Left at Midland Rd (traffic lights), Ahead onto Tuttle Hill, Right onto Mancetter Rd
+- Estate loop: Left Berrington Rd, Left back onto Mancetter Rd, Left Weddington Rd, Left Bramdene Ave, Left Weddington Rd, Right Kingsbridge Rd, Left Shanklin Drive
+- Return: Right onto Old Hinckley Rd, Right at Leicester Rd lights, Right at Bond Gate, Left at Bond St, ahead through Newtown Rd roundabouts to Roanne Ringway
+
+---
+
+## Route 5 — Eastboro Way
+
+Fast-flowing route to the outskirts toward Hinckley.
+
+🔗 **[Open Route 5 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/St%20Nicolas%20Park%20Drive/Coniston%20Way/Wallingford%20Avenue/Hinckley%20Road/Eastboro%20Way/Avenue%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd
+- East Nuneaton estate: Left St Nicholas Park Drive, Left Coniston Way, Left Pallett Drive, Right Wallingford Ave, Right Milby Drive, Left Pallett Drive, Left St Nicolas Park Drive
+- Right at Hinckley Rd roundabout onto Eastboro Way
+- Flows down Eastboro Way toward Avenue Rd and back via Roanne Ringway
+
+---
+
+## Route 6 — The Heath End Road & Arbury Focus
+
+Meeting traffic in narrow spaces; closely-spaced mini-roundabouts.
+
+🔗 **[Open Route 6 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Queens%20Road/Tomkinson%20Road/Haunchwood%20Road/Westbury%20Road/Arbury%20Road/Heath%20End%20Road/Radnor%20Drive/Dorlecote%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
+- Ahead at Manor Court Rd mini-roundabout onto Queens Rd, Right onto Tomkinson Rd, Ahead into Haunchwood Rd
+- Left onto Westbury Rd, Right at Arbury Rd mini-roundabout, Right onto Heath End Rd
+- Estate loop: Right Radnor Drive, Left at end, Right at end, Right Charnwood Ave, Right Atholl Crescent, Right at end
+- Right at Heath End Rd mini-roundabout, Right at Bull Ring/College St, Right at A444 (2nd exit)
+- Right at B4113 Coventry Rd mini-roundabout, Right onto Donnithorne Ave, Right onto Dorlecote Rd
+- Return to Vernons Lane
+
+---
+
+## Route 7 — Town Centre & St Nicolas Park
+
+High-traffic town-centre driving mixed with quiet suburban navigation.
+
+🔗 **[Open Route 7 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Queens%20Road/Roanne%20Ringway/Leicester%20Road/Weddington%20Road/Higham%20Lane/St%20Nicolas%20Park%20Drive/Hinckley%20Road/Avenue%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Left at Manor Court Rd roundabout onto Queens Rd
+- Right onto Roanne Ringway, Ahead at Vicarage St roundabout, Right at Back St lights
+- Follow Bond St/Regent St round into Leicester Rd
+- Right after bridge onto Weddington Rd, Left at Shanklin Drive/Brookdale Rd mini-roundabout, Right at Higham Lane mini-roundabout
+- Return: Right onto St Nicolas Park Drive, Left Windermere Ave, Left St Nicolas Park Rd, Right at Hinckley Rd roundabout onto Eastboro Way, Left onto Avenue Rd
+
+---
+
+## Route 8 — Sutherland Drive Variation
+
+Like Route 1, but loops back tightly through Reynolds Road.
+
+🔗 **[Open Route 8 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Croft%20Road/Greenmoore%20Road/College%20Street/St%20Davids%20Way/Walsingham%20Drive/Sutherland%20Drive/Reynolds%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Ahead at Manor Court Rd roundabout onto Croft Rd
+- Left onto Greenmoore Rd, Left at Greenmoore Rd roundabout into Bullring
+- Right at College St roundabout, Right at 2nd A444 roundabout, Left at St Davids Way, Right at Walsingham Drive
+- Left onto A444, 1st Left onto Sutherland Drive, 2nd Left onto Reynolds Rd, Left onto Sutherland Drive
+- Return to Vernons Lane
+
+---
+
+## Saving them in Google My Maps (optional)
+
+To keep all 8 in one place on her account:
+1. Go to **google.com/mymaps** → *Create a new map*.
+2. *Add directions* (the little arrow icon) → set start/end to **Vernons Lane,
+   CV10 8AA** and add the stops listed above.
+3. Name each layer "Route 1–8". They'll sync to her phone's My Maps.
+
+## Next: the real filmed routes
+The channel you mentioned — *"NUNEATON Driving Test Routes – Real Test Route –
+Full Commentary (1 of 10)"* — is a perfect source. Run the extractor locally:
+```
+node build-centre.mjs nuneaton --urls nuneaton-videos.txt
+```
+and Gemini will turn those 10 videos into in-app routes automatically.
