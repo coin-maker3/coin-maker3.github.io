@@ -27,12 +27,16 @@
 <!-- ───────────── HOME: test-centre picker ───────────── -->
 <section class="screen" id="screen-home">
   <div class="hero">
-    <h2>Practise the real test routes</h2>
-    <p>Free voice sat-nav guidance around your local DVSA test centre. No subscription — ever.</p>
+    <h2>Practise around your test centre</h2>
+    <p>Enter your address — we'll find your nearest DVSA centres and the roads to practise on. Free voice sat-nav, no subscription.</p>
   </div>
 
   <div class="search">
-    <input id="centreSearch" type="search" placeholder="Search test centre or town…" autocomplete="off">
+    <input id="addrInput" type="search" placeholder="Enter your postcode or address…" autocomplete="off" inputmode="search">
+    <div class="search-row">
+      <button class="primary-btn slim" id="findBtn">Find my centres</button>
+      <button class="ghost-btn slim" id="geoBtn">📍 Use my location</button>
+    </div>
   </div>
 
   <!-- Ad slot: browse screen only. Never shown during live navigation. -->

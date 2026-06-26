@@ -13,6 +13,7 @@
   let activeCentre = null;
   let activeRoute = null;      // {name, geometry:[[lat,lng]], steps:[...], distance, duration, notes}
   let muted = false;
+  let userLoc = null;          // [lat, lng] once we know where the user is
 
   /* ───────────────────────── screen router ───────────────────────── */
   function show(name, push = true) {
@@ -112,26 +113,97 @@
     }
   }
 
-  /* ───────────────────────── HOME: centres ───────────────────────── */
-  function renderCentres(filter = "") {
-    const f = filter.trim().toLowerCase();
+  /* ───────────────────────── HOME: find nearest centres ───────────────────────── */
+  const miles = (m) => (m / 1609.34).toFixed(1) + " mi";
+
+  // Geocode an address/postcode via the free OpenStreetMap Nominatim service.
+  // (Fine for low traffic; self-host or use a paid geocoder before scaling.)
+  async function geocode(query) {
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gb&q="
+      + encodeURIComponent(query);
+    const res = await fetch(url, { headers: { "Accept-Language": "en-GB" } });
+    if (!res.ok) throw new Error("geocode failed");
+    const j = await res.json();
+    if (!j.length) throw new Error("not found");
+    return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
+  }
+
+  function renderCentres() {
     const list = $("centreList"); list.innerHTML = "";
-    const matches = TEST_CENTRES.filter((c) =>
-      !f || c.name.toLowerCase().includes(f) || c.town.toLowerCase().includes(f) ||
-      c.region.toLowerCase().includes(f));
-    if (!matches.length) { list.innerHTML = `<p class="sub">No test centres match “${filter}”.</p>`; return; }
-    matches.forEach((c) => {
+    let centres = TEST_CENTRES.slice();
+    if (userLoc) {
+      centres.forEach((c) => (c._dist = haversine(userLoc, [c.lat, c.lng])));
+      centres.sort((a, b) => a._dist - b._dist);
+      centres = centres.slice(0, 8); // nearest 8
+    }
+    centres.forEach((c) => {
       const el = document.createElement("div");
       el.className = "card";
       el.innerHTML = `<div class="c-main">
           <div class="c-title">${c.name}</div>
-          <div class="c-sub">${c.region} · ${c.routes.length} route${c.routes.length > 1 ? "s" : ""}</div>
-        </div><div class="chev">›</div>`;
+          <div class="c-sub">${c.town} · ${c.region}</div>
+        </div>${userLoc ? `<span class="dist-badge">${miles(c._dist)}</span>` : `<div class="chev">›</div>`}`;
       el.addEventListener("click", () => openCentre(c));
       list.appendChild(el);
     });
   }
-  $("centreSearch").addEventListener("input", (e) => renderCentres(e.target.value));
+
+  async function findNearest(query) {
+    try {
+      $("findBtn").textContent = "Finding…"; $("findBtn").disabled = true;
+      userLoc = await geocode(query);
+      renderCentres();
+      toast("Showing your nearest test centres");
+    } catch (e) {
+      toast("Couldn’t find that address — try a postcode.");
+    } finally {
+      $("findBtn").textContent = "Find my centres"; $("findBtn").disabled = false;
+    }
+  }
+
+  $("findBtn").addEventListener("click", () => {
+    const q = $("addrInput").value.trim();
+    if (q) findNearest(q); else toast("Enter a postcode or address first.");
+  });
+  $("addrInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("findBtn").click(); });
+  $("geoBtn").addEventListener("click", () => {
+    if (!("geolocation" in navigator)) { toast("Location not supported."); return; }
+    $("geoBtn").textContent = "Locating…";
+    navigator.geolocation.getCurrentPosition(
+      (p) => { userLoc = [p.coords.latitude, p.coords.longitude]; renderCentres();
+               $("geoBtn").textContent = "📍 Use my location"; toast("Showing centres near you"); },
+      () => { $("geoBtn").textContent = "📍 Use my location"; toast("Couldn’t get your location."); },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+
+  /* ───────────── auto-generate practice routes on roads around a centre ───────────── */
+  // Deterministic loops at increasing radius — no proprietary route data involved.
+  function loopWaypoints(lat, lng, r, n, seed) {
+    const lngScale = 1 / Math.cos((lat * Math.PI) / 180); // keep loops roughly circular on the map
+    const pts = [[lat, lng]];
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * 2 * Math.PI + seed * 0.9;
+      const rad = r * (0.65 + 0.35 * ((Math.sin(seed * 3.1 + i * 1.7) + 1) / 2));
+      pts.push([lat + rad * Math.cos(ang), lng + rad * Math.sin(ang) * lngScale]);
+    }
+    pts.push([lat, lng]);
+    return pts;
+  }
+  function generateRoutes(centre) {
+    const specs = [
+      { name: "Local roads",     difficulty: "Easy",   r: 0.011, n: 5 },
+      { name: "Town circuit",    difficulty: "Medium", r: 0.020, n: 6 },
+      { name: "Extended route",  difficulty: "Hard",   r: 0.030, n: 7 }
+    ];
+    return specs.map((s, i) => ({
+      id: centre.id + "-gen" + i,
+      name: s.name,
+      difficulty: s.difficulty,
+      notes: `Practice loop on the public roads around ${centre.name}.`,
+      waypoints: loopWaypoints(centre.lat, centre.lng, s.r, s.n, i)
+    }));
+  }
 
   /* ───────────────────────── ROUTE LIST ───────────────────────── */
   function openCentre(c) {
@@ -141,7 +213,7 @@
     const list = $("routeList"); list.innerHTML = "";
 
     const saved = getSavedRoutes(c.id);
-    const all = c.routes.map((r) => ({ ...r, saved: false }))
+    const all = generateRoutes(c).map((r) => ({ ...r, saved: false }))
       .concat(saved.map((r) => ({ ...r, saved: true })));
 
     all.forEach((r) => {

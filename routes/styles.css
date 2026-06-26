@@ -38,6 +38,9 @@ body{
   font-size:15px; outline:none;
 }
 .search{margin-bottom:14px}
+.search-row{display:flex; gap:10px; margin-top:10px}
+.primary-btn.slim,.ghost-btn.slim{width:auto; flex:1; margin:0; padding:12px}
+.dist-badge{font-size:12px; color:var(--accent); font-weight:600; white-space:nowrap}
 
 /* cards */
 .card-list{display:flex; flex-direction:column; gap:10px}
