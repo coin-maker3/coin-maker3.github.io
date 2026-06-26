@@ -1,52 +1,70 @@
-# RouteReady extractor — YouTube → route (Gemini)
+# RouteReady extractor — YouTube → map routes (Gemini)
 
-Turns a **public YouTube dashcam video** of a driving-test route into a RouteReady
-route. Run it locally with your own Gemini API key; commit the output and the
-app picks it up automatically.
-
-## Pipeline
+**Point it at a test centre. It finds the real route videos on YouTube, has
+Gemini *watch* each one, and builds every route onto the app's map.**
 
 ```
-YouTube URL
-   │  Gemini watches the video → ordered manoeuvres + road names (structured JSON)
-   ▼
-Geocode each road near the centre  (OpenStreetMap Nominatim, ~1 req/sec)
-   │  drops roads it can't place within 15 km of the centre
-   ▼
-OSRM snaps the waypoints to real roads → geometry + turn-by-turn steps
-   ▼
-routes/community/<id>.json   +   community/manifest.json   (flagged verified:false)
+centre ──▶ yt-dlp finds route videos ──▶ Gemini watches each (reads road signs)
+       ──▶ geocode roads near the centre ──▶ OSRM snaps to real roads
+       ──▶ routes/community/<id>.json (map-ready, flagged UNVERIFIED)
 ```
 
-## Setup & run
+The app already loads `community/manifest.json` and shows these under the
+matching centre, badged **"Community · unverified ⚠️"**.
+
+## Setup (on your machine)
 
 ```bash
 cd routes/tools
-npm install
-export GEMINI_API_KEY=your_key_here          # uses your key/quota
-# optional: export GEMINI_MODEL=gemini-2.5-flash
-
-node extract-route.mjs "<youtubeUrl>" "<centreId>" --name "Optional name"
-# centreId must match an id in ../data.js, e.g. cardiff-llanishen
+npm install                 # installs @google/genai
+pipx install yt-dlp         # or: brew install yt-dlp  /  pip install yt-dlp
+export GEMINI_API_KEY=your_key
+# optional: export GEMINI_MODEL=gemini-2.5-flash   (default; use ...-pro for tricky footage)
 ```
 
-The app loads `community/manifest.json` at runtime and shows these routes under
-the matching centre, badged **"Community · unverified"** with a ⚠️.
+## Do a whole centre (the main command)
 
-## Important — accuracy & safety
+```bash
+node build-centre.mjs cardiff-llanishen --count 15
+```
+Finds the top 15 "Cardiff (Llanishen) driving test route" videos, watches each,
+and builds every usable one. Process-isolated — one bad video won't stop the run.
 
-- Output is **always `verified:false`**. Video-derived turns are a *draft*, not
-  gospel. A human must **drive the route** to confirm it before it's trusted —
-  this is deliberately the opposite of competitors whose unverified routes send
-  people down dead ends and into illegal turns.
-- Gemini reads road names off signs; where signs aren't visible those roads are
-  skipped, so coverage is partial. Treat results as a starting point.
+Use your own curated list instead of auto-search (recommended for quality):
+```bash
+node find-videos.mjs cardiff-llanishen 25 > urls.txt   # then prune urls.txt by hand
+node build-centre.mjs cardiff-llanishen --urls urls.txt
+```
+
+## One video at a time
+
+```bash
+node extract-route.mjs "https://youtu.be/VIDEO_ID" cardiff-llanishen --name "Llanishen Route 1"
+```
+
+## Direct URL vs `--download`
+
+- **Default:** Gemini fetches the YouTube URL itself — simplest, no download.
+- **`--download`:** `yt-dlp` grabs a 360p copy and uploads it via the Files API —
+  more robust if direct-URL ingestion hits limits/quirks at volume. Slower.
+
+## Accuracy & safety (read this)
+
+- Output is **always `verified:false`**. Gemini reads signs off the footage; where
+  signs aren't visible those roads are skipped, so coverage is partial and the
+  route is a **draft**. A human must **drive it to confirm** before it's trusted.
+  This is deliberately the opposite of competitors whose unverified routes send
+  people into dead ends and illegal turns.
+- Gemini also sets `isDrivingTest=false` for non-route videos, which are skipped.
 
 ## Legal
 
-- A **route** (which public roads, in what order) is a *fact* and not
-  copyrightable. We extract that fact and re-express it as our own data.
-- We **never** download, copy, or republish the source video — we only store the
-  URL as attribution.
-- **Do not bulk-scrape** YouTube (it breaks their Terms of Service). Curate
-  individual videos by hand. Bulk automation is out of scope for this tool.
+- A **route** (which public roads, in what order) is a *fact* — not copyrightable.
+  We extract that fact and re-express it as our own data, storing only the source
+  URL as attribution. We never copy or republish the video itself.
+- `--download` saves a temporary 360p copy **only** long enough to upload to
+  Gemini, then deletes it.
+- Keep volumes sane and curate sources. Hammering YouTube/Nominatim/OSRM with
+  thousands of automated requests breaks their terms and gets you rate-limited —
+  these public endpoints aren't built for bulk harvesting. Self-host OSRM/geocoding
+  and use the YouTube Data API if you ever scale up.

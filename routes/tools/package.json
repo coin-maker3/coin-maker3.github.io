@@ -4,9 +4,15 @@
   "private": true,
   "type": "module",
   "description": "Extract a driving-test practice route from a public YouTube dashcam video using Gemini, geocode it, snap it to roads with OSRM, and save it for the RouteReady app.",
-  "bin": { "extract-route": "./extract-route.mjs" },
+  "bin": {
+    "extract-route": "./extract-route.mjs",
+    "find-videos": "./find-videos.mjs",
+    "build-centre": "./build-centre.mjs"
+  },
   "scripts": {
-    "extract": "node extract-route.mjs"
+    "extract": "node extract-route.mjs",
+    "find": "node find-videos.mjs",
+    "build": "node build-centre.mjs"
   },
   "engines": { "node": ">=18" },
   "dependencies": {
