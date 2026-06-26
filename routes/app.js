@@ -255,19 +255,49 @@
     const all = generateRoutes(c).map((r) => ({ ...r, saved: false }))
       .concat(saved.map((r) => ({ ...r, saved: true })));
 
-    all.forEach((r) => {
-      const el = document.createElement("div");
-      el.className = "card";
-      el.innerHTML = `<div class="c-main">
-          <div class="c-title">${r.name} ${r.saved ? "📍" : ""}</div>
-          <div class="c-sub">${r.notes || "Your recorded route"}</div>
-        </div>
-        <span class="pill ${r.difficulty || "Easy"}">${r.difficulty || "Saved"}</span>`;
-      el.addEventListener("click", () => openRoute(c, r));
-      list.appendChild(el);
+    all.forEach((r) => list.appendChild(routeCard(c, r)));
+
+    // Community routes (e.g. built from public videos by the extractor tool)
+    // load asynchronously and append, clearly badged as unverified.
+    getCommunityRoutes(c.id).then((rs) => {
+      if ($("centreTitle").textContent !== c.name) return; // user navigated away
+      rs.forEach((r) => list.appendChild(routeCard(c, { ...r, community: true })));
     });
+
     show("routes");
     renderAds();
+  }
+
+  function routeCard(c, r) {
+    const el = document.createElement("div");
+    el.className = "card";
+    const badge = r.community ? "Community" : (r.difficulty || (r.saved ? "Saved" : "Easy"));
+    const icon = r.community ? "⚠️ " : (r.saved ? "📍 " : "");
+    const sub = r.community
+      ? "Rebuilt from a video — unverified. Drive with care."
+      : (r.notes || "Your recorded route");
+    el.innerHTML = `<div class="c-main">
+        <div class="c-title">${icon}${r.name}</div>
+        <div class="c-sub">${sub}</div>
+      </div>
+      <span class="pill ${r.community ? "Community" : (r.difficulty || "Easy")}">${badge}</span>`;
+    el.addEventListener("click", () => openRoute(c, r));
+    return el;
+  }
+
+  // fetch + cache the community-route manifest, return routes for this centre
+  let communityManifest = null;
+  async function getCommunityRoutes(centreId) {
+    try {
+      if (!communityManifest) {
+        const res = await fetch("community/manifest.json", { cache: "no-cache" });
+        communityManifest = res.ok ? await res.json() : [];
+      }
+      const mine = communityManifest.filter((m) => m.centreId === centreId);
+      const routes = await Promise.all(mine.map((m) =>
+        fetch("community/" + m.file).then((r) => (r.ok ? r.json() : null)).catch(() => null)));
+      return routes.filter(Boolean);
+    } catch (e) { return []; }
   }
 
   /* ───────────────────────── MAP PREVIEW ───────────────────────── */

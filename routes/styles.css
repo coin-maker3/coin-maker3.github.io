@@ -62,6 +62,7 @@ body{
 .pill.Easy{background:rgba(39,215,150,.15); color:var(--accent2)}
 .pill.Medium{background:rgba(255,177,61,.15); color:var(--warn)}
 .pill.Hard{background:rgba(255,93,93,.15); color:var(--danger)}
+.pill.Community{background:rgba(124,196,255,.15); color:#7cc4ff}
 
 .sub{color:var(--muted); font-size:13px}
 
