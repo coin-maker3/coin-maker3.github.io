@@ -1,8 +1,9 @@
-# Nuneaton — 8 practice test routes (for Saja)
+# Nuneaton — 10 practice test routes (for Saja)
 
 **Test centre:** 54 Vernons Lane, Stockingford, Nuneaton, **CV10 8AA**
 
-These are the 8 route patterns the Nuneaton centre is known to use (from
+These are the 10 route patterns the Nuneaton centre is known to use — the local
+"Drive Wizard" 10-part series (from
 instructor knowledge + dashcam footage). Each link below opens **Google Maps**
 with the full loop — tap **Start** for voice turn-by-turn. Every route starts and
 ends at the test centre.
@@ -144,6 +145,56 @@ Like Route 1, but loops back tightly through Reynolds Road.
 - Return to Vernons Lane
 
 ---
+
+## Route 9 — The Variation Loop
+
+Transitions: tight Camp Hill/Stockingford residential streets → A444 → town centre.
+
+🔗 **[Open Route 9 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Barpool%20Road/Tomkinson%20Road/Northumberland%20Avenue/Croft%20Road/Heath%20End%20Road/College%20Street/Coventry%20Road/St%20Davids%20Way/Walsingham%20Drive/Coton%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left Beaumont Rd, Left Barpool Rd, Right Tomkinson Rd, Left Northumberland Ave, Left Rutland Ave, Left Northumberland Ave, Left Croft Rd
+- Mini-roundabout Right onto The Raywoods, Right Brodrick Way, Left Fair Isle Drive, Left Oldany Way, Right The Raywoods
+- Left onto Heath End Rd, Right onto Bullring/College St, Ahead onto College St, Right onto Coventry Rd
+- 2nd roundabout Right onto St Davids Way, Left Walsingham Drive, Left onto A444, Left onto A444 (Nuneaton direction), Ahead at 2nd roundabout onto Chilvers Hill
+- Town centre: Ahead onto Coton Rd, Right onto Vicarage St, Left onto Church St, follow one-way via Bond St to Newtown Rd
+- Return: Ahead at 2nd roundabout onto Roanne Ringway, Right onto Queens Rd, Right onto Beaumont Rd back to Vernons Lane
+
+---
+
+## Route 10 — The Northern / Higham Lane Variation
+
+North Nuneaton flow — Weddington and St Nicolas Park areas, lots of speed-limit transitions.
+
+🔗 **[Open Route 10 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Midland%20Road/Tuttle%20Hill/Mancetter%20Road/Weddington%20Road/Shanklin%20Drive/Higham%20Lane/St%20Nicolas%20Park%20Drive/Hinckley%20Road/Eastboro%20Way/Avenue%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+
+**Turn-by-turn:**
+- Left Beaumont Rd, Right Countess Rd, Right Earls Rd, Left Manor Court Rd, Left Midland Rd (traffic lights)
+- Ahead Tuttle Hill, Right Mancetter Rd, Left Berrington Rd, Left Mancetter Rd, Left Weddington Rd
+- Right onto Kingsbridge Rd, Left Shanklin Drive, Ahead Brookdale Rd, Right onto Higham Lane
+- Right St Nicolas Park Drive, Left Windermere Ave, Ahead, Right at end onto St Nicolas Park Rd, Left onto Hinckley Rd
+- Right onto Eastboro Way, Ahead through 3rd roundabout onto Avenue Rd, Left onto Caldwell Rd, Left onto Avenue Rd
+- Final stretch: Right onto Coton Rd, Left onto Vicarage St, Right onto Church St, Right at Bond Gate lights, Left onto Bond St, ahead through Newtown Rd roundabouts, Right onto Roanne Ringway
+- Finish: Left onto Queens Rd, mini-roundabout right onto Beaumont Rd, back to Vernons Lane
+
+---
+
+## 🎯 What to focus on (especially routes 9 & 10)
+
+Routes 9 and 10 are *variation* loops — examiners mix segments from the other
+routes to keep candidates on their toes, and they exist to test **Independent
+Driving with a sat nav**. The thing they're really watching is **transitions**:
+
+- **Speed-limit changes** — e.g. dropping from **40 mph on the A444** straight
+  into a **20/30 mph residential estate** (Weddington, Camp Hill) right after a
+  high-pressure roundabout. Practise easing off early and settling to the new
+  limit without hesitation.
+- **Quiet estate → fast dual carriageway** joins — confident, decisive merging.
+- **Multi-roundabout sequences** — lane choice and signalling when roundabouts
+  come one after another (the A444 gyratory, Bull Ring/College St).
+
+Tip: for the independent-driving feel, set the Google Maps destination and let it
+guide by **signs** rather than reading every turn aloud to her.
 
 ## Saving them in Google My Maps (optional)
 
