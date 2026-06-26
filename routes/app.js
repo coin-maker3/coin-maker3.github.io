@@ -251,6 +251,10 @@
     $("centreSub").textContent = `${c.town} · ${c.region}`;
     const list = $("routeList"); list.innerHTML = "";
 
+    // Curated real test routes for this centre (shown first), if any.
+    const curated = (window.CURATED && window.CURATED[c.id]) || [];
+    curated.forEach((r) => list.appendChild(routeCard(c, { ...r, curated: true })));
+
     const saved = getSavedRoutes(c.id);
     const all = generateRoutes(c).map((r) => ({ ...r, saved: false }))
       .concat(saved.map((r) => ({ ...r, saved: true })));
@@ -271,16 +275,23 @@
   function routeCard(c, r) {
     const el = document.createElement("div");
     el.className = "card";
-    const badge = r.community ? "Community" : (r.difficulty || (r.saved ? "Saved" : "Easy"));
-    const icon = r.community ? "⚠️ " : (r.saved ? "📍 " : "");
-    const sub = r.community
-      ? "Rebuilt from a video — unverified. Drive with care."
-      : (r.notes || "Your recorded route");
+    let badge, pillClass, icon, sub;
+    if (r.curated) {
+      badge = "Test route"; pillClass = "Curated"; icon = "🧭 ";
+      sub = r.blurb || "Practice test route";
+    } else if (r.community) {
+      badge = "Community"; pillClass = "Community"; icon = "⚠️ ";
+      sub = "Rebuilt from a video — unverified. Drive with care.";
+    } else {
+      badge = r.difficulty || (r.saved ? "Saved" : "Easy");
+      pillClass = r.difficulty || "Easy"; icon = r.saved ? "📍 " : "";
+      sub = r.notes || "Your recorded route";
+    }
     el.innerHTML = `<div class="c-main">
         <div class="c-title">${icon}${r.name}</div>
         <div class="c-sub">${sub}</div>
       </div>
-      <span class="pill ${r.community ? "Community" : (r.difficulty || "Easy")}">${badge}</span>`;
+      <span class="pill ${pillClass}">${badge}</span>`;
     el.addEventListener("click", () => openRoute(c, r));
     return el;
   }
@@ -300,13 +311,39 @@
     } catch (e) { return []; }
   }
 
+  /* ── geocode a curated route's road names → coordinate waypoints (cached) ── */
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function curatedWaypoints(route, centre, onProgress) {
+    const pts = [[centre.lat, centre.lng]];
+    for (let i = 0; i < route.waypoints.length; i++) {
+      const road = route.waypoints[i];
+      const key = "rr_geo_" + road.toLowerCase() + "|" + centre.id;
+      const cached = localStorage.getItem(key);
+      let pt = null;
+      if (cached !== null) {
+        pt = JSON.parse(cached); // may be a [lat,lng] or null (cached miss)
+      } else {
+        try {
+          const g = await geocode(`${road}, ${centre.town}, UK`);
+          pt = g && haversine([centre.lat, centre.lng], g) < 15000 ? g : null;
+        } catch (e) { pt = null; }
+        try { localStorage.setItem(key, JSON.stringify(pt)); } catch (e) {}
+        await sleep(1100); // respect Nominatim's ~1 req/sec
+        if (onProgress) onProgress(i + 1, route.waypoints.length);
+      }
+      if (pt) pts.push(pt);
+    }
+    pts.push([centre.lat, centre.lng]);
+    return pts;
+  }
+
   /* ───────────────────────── MAP PREVIEW ───────────────────────── */
   let previewMap;
   async function openRoute(centre, route) {
     show("map");
     $("routeName").textContent = route.name;
     $("routeStats").textContent = "Loading…";
-    $("routeNotes").textContent = route.notes || "";
+    $("routeNotes").textContent = route.blurb || route.notes || "";
 
     if (!previewMap) {
       previewMap = L.map("map", { zoomControl: true });
@@ -317,12 +354,18 @@
     try {
       let data;
       if (route.geometry) {
-        // user-recorded route already has geometry
+        // recorded/community route already has geometry
         data = { geometry: route.geometry, steps: route.steps || [], distance: route.distance, duration: route.duration };
+      } else if (route.curated) {
+        $("routeStats").textContent = "Building route on the map…";
+        const wps = await curatedWaypoints(route, centre,
+          (n, t) => { $("routeStats").textContent = `Locating roads… ${n}/${t}`; });
+        if (wps.length < 4) throw new Error("could not locate enough roads");
+        data = await fetchRoute(wps);
       } else {
         data = await fetchRoute(route.waypoints);
       }
-      activeRoute = { ...data, name: route.name, notes: route.notes };
+      activeRoute = { ...data, name: route.name, notes: route.blurb || route.notes };
       drawRoute(previewMap, data);
       $("routeStats").textContent = `${fmtKm(data.distance)} · ${fmtMin(data.duration)} · ${data.steps.length} steps`;
     } catch (e) {

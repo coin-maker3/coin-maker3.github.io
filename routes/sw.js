@@ -1,7 +1,7 @@
 /* RouteReady service worker — offline shell caching */
-const CACHE = "routeready-v2";
+const CACHE = "routeready-v3";
 const ASSETS = [
-  "./", "./index.html", "./styles.css", "./app.js", "./data.js",
+  "./", "./index.html", "./styles.css", "./app.js", "./data.js", "./curated.js",
   "./manifest.webmanifest", "./icon.svg"
 ];
 
