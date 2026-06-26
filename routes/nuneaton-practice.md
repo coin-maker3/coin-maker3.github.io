@@ -22,7 +22,7 @@ ends at the test centre.
 
 Multi-lane roundabout discipline on fast-feeling connector roads.
 
-🔗 **[Open Route 1 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Earls%20Road/Queens%20Road/Roanne%20Ringway/College%20Street/Coventry%20Road/St%20Davids%20Way/Walsingham%20Drive/Sutherland%20Drive/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 1 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Earls%20Road%2C%20Nuneaton%2C%20UK/Queens%20Road%2C%20Nuneaton%2C%20UK/Roanne%20Ringway%2C%20Nuneaton%2C%20UK/College%20Street%2C%20Nuneaton%2C%20UK/Coventry%20Road%2C%20Nuneaton%2C%20UK/St%20Davids%20Way%2C%20Nuneaton%2C%20UK/Walsingham%20Drive%2C%20Nuneaton%2C%20UK/Sutherland%20Drive%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
@@ -40,7 +40,7 @@ Multi-lane roundabout discipline on fast-feeling connector roads.
 
 Nuneaton one-way traffic system and tight residential loops.
 
-🔗 **[Open Route 2 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Croft%20Road/Merevale%20Avenue/Heath%20End%20Road/Coventry%20Road/Avenue%20Road/Church%20Street/Newtown%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 2 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Croft%20Road%2C%20Nuneaton%2C%20UK/Merevale%20Avenue%2C%20Nuneaton%2C%20UK/Heath%20End%20Road%2C%20Nuneaton%2C%20UK/Coventry%20Road%2C%20Nuneaton%2C%20UK/Avenue%20Road%2C%20Nuneaton%2C%20UK/Church%20Street%2C%20Nuneaton%2C%20UK/Newtown%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
@@ -58,7 +58,7 @@ Nuneaton one-way traffic system and tight residential loops.
 
 East Nuneaton — major roundabouts plus quieter residential streets.
 
-🔗 **[Open Route 3 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Croft%20Road/College%20Street/St%20Davids%20Way/Coventry%20Road/Gipsy%20Lane/Marston%20Lane/Northbourne%20Drive/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 3 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Croft%20Road%2C%20Nuneaton%2C%20UK/College%20Street%2C%20Nuneaton%2C%20UK/St%20Davids%20Way%2C%20Nuneaton%2C%20UK/Coventry%20Road%2C%20Nuneaton%2C%20UK/Gipsy%20Lane%2C%20Nuneaton%2C%20UK/Marston%20Lane%2C%20Nuneaton%2C%20UK/Northbourne%20Drive%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
@@ -75,7 +75,7 @@ East Nuneaton — major roundabouts plus quieter residential streets.
 
 North Nuneaton — clearance control through older residential estates.
 
-🔗 **[Open Route 4 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Midland%20Road/Tuttle%20Hill/Mancetter%20Road/Weddington%20Road/Shanklin%20Drive/Leicester%20Road/Newtown%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 4 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Midland%20Road%2C%20Nuneaton%2C%20UK/Tuttle%20Hill%2C%20Nuneaton%2C%20UK/Mancetter%20Road%2C%20Nuneaton%2C%20UK/Weddington%20Road%2C%20Nuneaton%2C%20UK/Shanklin%20Drive%2C%20Nuneaton%2C%20UK/Leicester%20Road%2C%20Nuneaton%2C%20UK/Newtown%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Left at Manor Court Rd
@@ -89,7 +89,7 @@ North Nuneaton — clearance control through older residential estates.
 
 Fast-flowing route to the outskirts toward Hinckley.
 
-🔗 **[Open Route 5 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/St%20Nicolas%20Park%20Drive/Coniston%20Way/Wallingford%20Avenue/Hinckley%20Road/Eastboro%20Way/Avenue%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 5 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/St%20Nicolas%20Park%20Drive%2C%20Nuneaton%2C%20UK/Coniston%20Way%2C%20Nuneaton%2C%20UK/Wallingford%20Avenue%2C%20Nuneaton%2C%20UK/Hinckley%20Road%2C%20Nuneaton%2C%20UK/Eastboro%20Way%2C%20Nuneaton%2C%20UK/Avenue%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd
@@ -103,7 +103,7 @@ Fast-flowing route to the outskirts toward Hinckley.
 
 Meeting traffic in narrow spaces; closely-spaced mini-roundabouts.
 
-🔗 **[Open Route 6 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Queens%20Road/Tomkinson%20Road/Haunchwood%20Road/Westbury%20Road/Arbury%20Road/Heath%20End%20Road/Radnor%20Drive/Dorlecote%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 6 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Queens%20Road%2C%20Nuneaton%2C%20UK/Tomkinson%20Road%2C%20Nuneaton%2C%20UK/Haunchwood%20Road%2C%20Nuneaton%2C%20UK/Westbury%20Road%2C%20Nuneaton%2C%20UK/Arbury%20Road%2C%20Nuneaton%2C%20UK/Heath%20End%20Road%2C%20Nuneaton%2C%20UK/Radnor%20Drive%2C%20Nuneaton%2C%20UK/Dorlecote%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
@@ -120,7 +120,7 @@ Meeting traffic in narrow spaces; closely-spaced mini-roundabouts.
 
 High-traffic town-centre driving mixed with quiet suburban navigation.
 
-🔗 **[Open Route 7 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Queens%20Road/Roanne%20Ringway/Leicester%20Road/Weddington%20Road/Higham%20Lane/St%20Nicolas%20Park%20Drive/Hinckley%20Road/Avenue%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 7 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Queens%20Road%2C%20Nuneaton%2C%20UK/Roanne%20Ringway%2C%20Nuneaton%2C%20UK/Leicester%20Road%2C%20Nuneaton%2C%20UK/Weddington%20Road%2C%20Nuneaton%2C%20UK/Higham%20Lane%2C%20Nuneaton%2C%20UK/St%20Nicolas%20Park%20Drive%2C%20Nuneaton%2C%20UK/Hinckley%20Road%2C%20Nuneaton%2C%20UK/Avenue%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Left at Manor Court Rd roundabout onto Queens Rd
@@ -135,7 +135,7 @@ High-traffic town-centre driving mixed with quiet suburban navigation.
 
 Like Route 1, but loops back tightly through Reynolds Road.
 
-🔗 **[Open Route 8 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Croft%20Road/Greenmoore%20Road/College%20Street/St%20Davids%20Way/Walsingham%20Drive/Sutherland%20Drive/Reynolds%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 8 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Croft%20Road%2C%20Nuneaton%2C%20UK/Greenmoore%20Road%2C%20Nuneaton%2C%20UK/College%20Street%2C%20Nuneaton%2C%20UK/St%20Davids%20Way%2C%20Nuneaton%2C%20UK/Walsingham%20Drive%2C%20Nuneaton%2C%20UK/Sutherland%20Drive%2C%20Nuneaton%2C%20UK/Reynolds%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Ahead at Manor Court Rd roundabout onto Croft Rd
@@ -150,7 +150,7 @@ Like Route 1, but loops back tightly through Reynolds Road.
 
 Transitions: tight Camp Hill/Stockingford residential streets → A444 → town centre.
 
-🔗 **[Open Route 9 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Barpool%20Road/Tomkinson%20Road/Northumberland%20Avenue/Croft%20Road/Heath%20End%20Road/College%20Street/Coventry%20Road/St%20Davids%20Way/Walsingham%20Drive/Coton%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 9 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Barpool%20Road%2C%20Nuneaton%2C%20UK/Tomkinson%20Road%2C%20Nuneaton%2C%20UK/Northumberland%20Avenue%2C%20Nuneaton%2C%20UK/Croft%20Road%2C%20Nuneaton%2C%20UK/Heath%20End%20Road%2C%20Nuneaton%2C%20UK/College%20Street%2C%20Nuneaton%2C%20UK/Coventry%20Road%2C%20Nuneaton%2C%20UK/St%20Davids%20Way%2C%20Nuneaton%2C%20UK/Walsingham%20Drive%2C%20Nuneaton%2C%20UK/Coton%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left Beaumont Rd, Left Barpool Rd, Right Tomkinson Rd, Left Northumberland Ave, Left Rutland Ave, Left Northumberland Ave, Left Croft Rd
@@ -166,7 +166,7 @@ Transitions: tight Camp Hill/Stockingford residential streets → A444 → town 
 
 North Nuneaton flow — Weddington and St Nicolas Park areas, lots of speed-limit transitions.
 
-🔗 **[Open Route 10 in Google Maps](https://www.google.com/maps/dir/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road/Midland%20Road/Tuttle%20Hill/Mancetter%20Road/Weddington%20Road/Shanklin%20Drive/Higham%20Lane/St%20Nicolas%20Park%20Drive/Hinckley%20Road/Eastboro%20Way/Avenue%20Road/Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 10 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Midland%20Road%2C%20Nuneaton%2C%20UK/Tuttle%20Hill%2C%20Nuneaton%2C%20UK/Mancetter%20Road%2C%20Nuneaton%2C%20UK/Weddington%20Road%2C%20Nuneaton%2C%20UK/Shanklin%20Drive%2C%20Nuneaton%2C%20UK/Higham%20Lane%2C%20Nuneaton%2C%20UK/St%20Nicolas%20Park%20Drive%2C%20Nuneaton%2C%20UK/Hinckley%20Road%2C%20Nuneaton%2C%20UK/Eastboro%20Way%2C%20Nuneaton%2C%20UK/Avenue%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left Beaumont Rd, Right Countess Rd, Right Earls Rd, Left Manor Court Rd, Left Midland Rd (traffic lights)
