@@ -33,12 +33,23 @@ function haversine(a, b) {
   const s = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(s));
 }
-async function geocode(road, town) {
-  const url = `${NOMINATIM}?format=json&limit=1&countrycodes=gb&q=${encodeURIComponent(`${road}, ${town}, UK`)}`;
+async function nominatim(q, limit = 1) {
+  const url = `${NOMINATIM}?format=json&limit=${limit}&countrycodes=gb&q=${encodeURIComponent(q)}`;
   const r = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "en-GB" } });
-  if (!r.ok) return null;
-  const j = await r.json();
-  return j.length ? [parseFloat(j[0].lat), parseFloat(j[0].lon)] : null;
+  if (!r.ok) return [];
+  return (await r.json()).map((x) => ({ pt: [parseFloat(x.lat), parseFloat(x.lon)], name: x.display_name }));
+}
+async function geocode(road, town) {
+  const hits = await nominatim(`${road}, ${town}, UK`, 1);
+  return hits[0] || null; // {pt, name} | undefined
+}
+// When a road is missing/far, look more broadly and propose the nearest real match.
+async function suggest(road, town, centrePt) {
+  const hits = await nominatim(`${road}, Warwickshire, UK`, 5);
+  if (!hits.length) return null;
+  hits.forEach((h) => (h.km = haversine(centrePt, h.pt) / 1000));
+  hits.sort((a, b) => a.km - b.km);
+  return hits[0];
 }
 async function osrmKm(waypoints) {
   const coords = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(";");
@@ -65,16 +76,21 @@ for (const route of routes) {
   const issues = [];
   const pts = [centrePt];
   for (const road of route.waypoints) {
-    let pt = geoCache.get(road);
-    if (pt === undefined) {
-      pt = await geocode(road, centre.town);
-      geoCache.set(road, pt);
+    let hit = geoCache.get(road);
+    if (hit === undefined) {
+      hit = await geocode(road, centre.town);
+      geoCache.set(road, hit);
       await sleep(1100); // Nominatim rate limit
     }
-    if (!pt) { issues.push(`✗ MISSING: ${road}`); continue; }
-    const km = haversine(centrePt, pt) / 1000;
-    if (km > 6) issues.push(`⚠ FAR: ${road} (${km.toFixed(1)} km from centre)`);
-    pts.push(pt);
+    if (!hit) {
+      const s = await sleep(1100).then(() => suggest(road, centre.town, centrePt));
+      issues.push(`✗ MISSING: ${road}` + (s ? `  → closest match: "${s.name.split(",")[0]}" (${s.km.toFixed(1)} km)` : ""));
+      continue;
+    }
+    const km = haversine(centrePt, hit.pt) / 1000;
+    console.log(`     · ${road.padEnd(24)} ${hit.pt[0].toFixed(4)}, ${hit.pt[1].toFixed(4)}  (${km.toFixed(1)} km)`);
+    if (km > 6) issues.push(`⚠ FAR: ${road} is ${km.toFixed(1)} km away — likely the wrong "${road}"`);
+    pts.push(hit.pt);
   }
   pts.push(centrePt);
 
