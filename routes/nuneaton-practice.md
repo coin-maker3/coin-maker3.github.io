@@ -179,6 +179,20 @@ North Nuneaton flow — Weddington and St Nicolas Park areas, lots of speed-limi
 
 ---
 
+## 🎯 Pressure points — drill these directly
+
+There is **no official "10 routes"** — DVSA stopped publishing routes in 2010,
+and examiners vary them. So mastering these recurring hard spots matters more
+than any single route. Tap to navigate to each, then practise it from a few
+different approaches.
+
+- **[A444 corridor](https://www.google.com/maps/dir/?api=1&destination=St%20Davids%20Way%2C%20Nuneaton%2C%20UK&travelmode=driving)** — Merging, speed management and lane discipline on the faster dual-carriageway sections.
+- **[Bull Ring / College Street roundabout](https://www.google.com/maps/dir/?api=1&destination=College%20Street%2C%20Nuneaton%2C%20UK&travelmode=driving)** — Big multi-lane roundabout — choose your lane early and plan the exit in advance.
+- **[Roanne Ringway (Jubilee Way)](https://www.google.com/maps/dir/?api=1&destination=Roanne%20Ringway%2C%20Nuneaton%2C%20UK&travelmode=driving)** — Traffic-light sequences and strict lane positioning under pressure.
+- **[Town centre one-way system](https://www.google.com/maps/dir/?api=1&destination=Bond%20Gate%2C%20Nuneaton%2C%20UK&travelmode=driving)** — Signs, markings and lane choice through the one-way streets.
+- **[Stockingford estates](https://www.google.com/maps/dir/?api=1&destination=Tomkinson%20Road%2C%20Nuneaton%2C%20UK&travelmode=driving)** — Narrow streets, parked cars and closely-spaced mini-roundabouts.
+- **[Camp Hill estates](https://www.google.com/maps/dir/?api=1&destination=Cedar%20Road%2C%20Nuneaton%2C%20UK&travelmode=driving)** — More tight residential streets and junction observation.
+
 ## 🎯 What to focus on (especially routes 9 & 10)
 
 Routes 9 and 10 are *variation* loops — examiners mix segments from the other
