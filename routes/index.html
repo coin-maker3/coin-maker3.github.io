@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>RouteReady — UK Driving Test Routes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="description" content="Practise UK driving test routes around your local DVSA test centre with free voice sat-nav guidance. Free, ad-supported.">
+<meta name="theme-color" content="#0b0f1a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="styles.css">
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2025557203901587"
+        crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="back-btn" id="backBtn" hidden aria-label="Back">‹</button>
+  <h1 class="brand">Route<span>Ready</span></h1>
+  <span class="tag">UK Driving Test Routes</span>
+</header>
+
+<!-- ───────────── HOME: test-centre picker ───────────── -->
+<section class="screen" id="screen-home">
+  <div class="hero">
+    <h2>Practise the real test routes</h2>
+    <p>Free voice sat-nav guidance around your local DVSA test centre. No subscription — ever.</p>
+  </div>
+
+  <div class="search">
+    <input id="centreSearch" type="search" placeholder="Search test centre or town…" autocomplete="off">
+  </div>
+
+  <!-- Ad slot: browse screen only. Never shown during live navigation. -->
+  <div class="ad-slot" data-ad="home">
+    <ins class="adsbygoogle" style="display:block"
+         data-ad-client="ca-pub-2025557203901587"
+         data-ad-slot="0000000000"
+         data-ad-format="auto" data-full-width-responsive="true"></ins>
+  </div>
+
+  <div id="centreList" class="card-list"></div>
+
+  <button class="ghost-btn" id="myRoutesBtn">📍 My recorded routes</button>
+</section>
+
+<!-- ───────────── ROUTE LIST for a centre ───────────── -->
+<section class="screen" id="screen-routes" hidden>
+  <h2 id="centreTitle"></h2>
+  <p id="centreSub" class="sub"></p>
+
+  <div class="ad-slot" data-ad="routes">
+    <ins class="adsbygoogle" style="display:block"
+         data-ad-client="ca-pub-2025557203901587"
+         data-ad-slot="0000000000"
+         data-ad-format="auto" data-full-width-responsive="true"></ins>
+  </div>
+
+  <div id="routeList" class="card-list"></div>
+  <button class="primary-btn" id="recordBtn">⏺ Record a new route here</button>
+</section>
+
+<!-- ───────────── MAP / PREVIEW ───────────── -->
+<section class="screen map-screen" id="screen-map" hidden>
+  <div id="map"></div>
+  <div class="route-panel">
+    <div class="route-meta">
+      <strong id="routeName"></strong>
+      <span id="routeStats" class="sub"></span>
+    </div>
+    <p id="routeNotes" class="sub"></p>
+    <button class="primary-btn big" id="startNavBtn">▶ Start drive</button>
+  </div>
+</section>
+
+<!-- ───────────── LIVE NAVIGATION ───────────── -->
+<section class="screen nav-screen" id="screen-nav" hidden>
+  <div id="navMap"></div>
+  <div class="nav-instruction" id="navInstruction">
+    <div class="nav-turn" id="navTurn">Getting ready…</div>
+    <div class="nav-dist" id="navDist"></div>
+  </div>
+  <div class="nav-controls">
+    <button class="icon-btn" id="muteBtn" aria-label="Mute voice">🔊</button>
+    <div class="nav-progress" id="navProgress">0%</div>
+    <button class="stop-btn" id="stopNavBtn">■ End</button>
+  </div>
+</section>
+
+<!-- ───────────── DRIVE SUMMARY (ad-friendly) ───────────── -->
+<section class="screen" id="screen-summary" hidden>
+  <div class="summary-card">
+    <h2>Drive complete 🎉</h2>
+    <p id="summaryStats" class="sub"></p>
+  </div>
+  <!-- Post-drive is a safe, policy-compliant spot for a larger ad unit. -->
+  <div class="ad-slot tall" data-ad="summary">
+    <ins class="adsbygoogle" style="display:block"
+         data-ad-client="ca-pub-2025557203901587"
+         data-ad-slot="0000000000"
+         data-ad-format="auto" data-full-width-responsive="true"></ins>
+  </div>
+  <button class="primary-btn" id="summaryDoneBtn">Done</button>
+</section>
+
+<!-- ───────────── RECORDING ───────────── -->
+<section class="screen nav-screen" id="screen-record" hidden>
+  <div id="recordMap"></div>
+  <div class="nav-instruction">
+    <div class="nav-turn">Recording route…</div>
+    <div class="nav-dist" id="recordDist">0.0 km</div>
+  </div>
+  <div class="nav-controls">
+    <div class="nav-progress" id="recordPoints">0 pts</div>
+    <button class="stop-btn" id="stopRecordBtn">■ Stop & save</button>
+  </div>
+</section>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>

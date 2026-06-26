@@ -1,0 +1,399 @@
+/* RouteReady — UK driving test route practice (free, ad-supported PWA) */
+(function () {
+  "use strict";
+
+  const OSRM = "https://router.project-osrm.org/route/v1/driving/";
+  const TILE = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const TILE_ATTR = '&copy; OpenStreetMap contributors';
+
+  const $ = (id) => document.getElementById(id);
+  const screens = ["home", "routes", "map", "nav", "summary", "record"];
+  const history = [];
+
+  let activeCentre = null;
+  let activeRoute = null;      // {name, geometry:[[lat,lng]], steps:[...], distance, duration, notes}
+  let muted = false;
+
+  /* ───────────────────────── screen router ───────────────────────── */
+  function show(name, push = true) {
+    screens.forEach((s) => { $("screen-" + s).hidden = s !== name; });
+    if (push && history[history.length - 1] !== name) history.push(name);
+    $("backBtn").hidden = history.length <= 1;
+    window.scrollTo(0, 0);
+  }
+  function back() {
+    history.pop();
+    const prev = history[history.length - 1] || "home";
+    // leaving a live screen? stop its sensors
+    stopNav(true); stopRecording(true);
+    show(prev, false);
+  }
+  $("backBtn").addEventListener("click", back);
+
+  /* ───────────────────────── toast ───────────────────────── */
+  let toastT;
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2600);
+  }
+
+  /* ───────────────────────── ads ───────────────────────── */
+  function renderAds() {
+    document.querySelectorAll(".ad-slot ins.adsbygoogle").forEach((ins) => {
+      if (ins.dataset.filled) return;
+      try { (window.adsbygoogle = window.adsbygoogle || []).push({}); ins.dataset.filled = "1"; }
+      catch (e) { /* AdSense not approved yet — slot stays as a placeholder */ }
+    });
+  }
+
+  /* ───────────────────────── geo helpers ───────────────────────── */
+  function haversine(a, b) {
+    const R = 6371000, toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(b[0] - a[0]), dLng = toRad(b[1] - a[1]);
+    const s = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+  const fmtKm = (m) => (m / 1000).toFixed(1) + " km";
+  const fmtMin = (s) => Math.max(1, Math.round(s / 60)) + " min";
+
+  /* ───────────────────────── OSRM routing ───────────────────────── */
+  async function fetchRoute(waypoints) {
+    const cacheKey = "rr_route_" + waypoints.map((w) => w.join(",")).join(";");
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const coords = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(";");
+    const url = `${OSRM}${coords}?overview=full&geometries=geojson&steps=true`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("routing failed");
+    const json = await res.json();
+    if (!json.routes || !json.routes.length) throw new Error("no route");
+    const r = json.routes[0];
+
+    const out = {
+      geometry: r.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
+      distance: r.distance,
+      duration: r.duration,
+      steps: []
+    };
+    r.legs.forEach((leg) => {
+      leg.steps.forEach((st) => {
+        const [lng, lat] = st.maneuver.location;
+        out.steps.push({
+          loc: [lat, lng],
+          text: instructionText(st.maneuver, st.name),
+          dist: st.distance
+        });
+      });
+    });
+    try { localStorage.setItem(cacheKey, JSON.stringify(out)); } catch (e) {}
+    return out;
+  }
+
+  function instructionText(m, road) {
+    const where = road ? ` onto ${road}` : "";
+    const dir = m.modifier ? m.modifier.replace("slight ", "slight ").replace("sharp ", "sharp ") : "";
+    switch (m.type) {
+      case "depart": return "Start the route" + (road ? ` on ${road}` : "");
+      case "arrive": return "You have arrived back at the test centre";
+      case "turn": return `Turn ${dir}${where}`;
+      case "new name": return `Continue${where}`;
+      case "merge": return `Merge ${dir}${where}`;
+      case "on ramp": return `Take the slip road ${dir}`;
+      case "off ramp": return `Take the exit ${dir}`;
+      case "fork": return `Keep ${dir}${where}`;
+      case "end of road": return `Turn ${dir}${where}`;
+      case "continue": return `Continue ${dir}`.trim() + where;
+      case "roundabout":
+      case "rotary":
+        return `At the roundabout, take exit ${m.exit || ""}`.trim() + where;
+      default: return `Continue${where}`;
+    }
+  }
+
+  /* ───────────────────────── HOME: centres ───────────────────────── */
+  function renderCentres(filter = "") {
+    const f = filter.trim().toLowerCase();
+    const list = $("centreList"); list.innerHTML = "";
+    const matches = TEST_CENTRES.filter((c) =>
+      !f || c.name.toLowerCase().includes(f) || c.town.toLowerCase().includes(f) ||
+      c.region.toLowerCase().includes(f));
+    if (!matches.length) { list.innerHTML = `<p class="sub">No test centres match “${filter}”.</p>`; return; }
+    matches.forEach((c) => {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.innerHTML = `<div class="c-main">
+          <div class="c-title">${c.name}</div>
+          <div class="c-sub">${c.region} · ${c.routes.length} route${c.routes.length > 1 ? "s" : ""}</div>
+        </div><div class="chev">›</div>`;
+      el.addEventListener("click", () => openCentre(c));
+      list.appendChild(el);
+    });
+  }
+  $("centreSearch").addEventListener("input", (e) => renderCentres(e.target.value));
+
+  /* ───────────────────────── ROUTE LIST ───────────────────────── */
+  function openCentre(c) {
+    activeCentre = c;
+    $("centreTitle").textContent = c.name;
+    $("centreSub").textContent = `${c.town} · ${c.region}`;
+    const list = $("routeList"); list.innerHTML = "";
+
+    const saved = getSavedRoutes(c.id);
+    const all = c.routes.map((r) => ({ ...r, saved: false }))
+      .concat(saved.map((r) => ({ ...r, saved: true })));
+
+    all.forEach((r) => {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.innerHTML = `<div class="c-main">
+          <div class="c-title">${r.name} ${r.saved ? "📍" : ""}</div>
+          <div class="c-sub">${r.notes || "Your recorded route"}</div>
+        </div>
+        <span class="pill ${r.difficulty || "Easy"}">${r.difficulty || "Saved"}</span>`;
+      el.addEventListener("click", () => openRoute(c, r));
+      list.appendChild(el);
+    });
+    show("routes");
+    renderAds();
+  }
+
+  /* ───────────────────────── MAP PREVIEW ───────────────────────── */
+  let previewMap;
+  async function openRoute(centre, route) {
+    show("map");
+    $("routeName").textContent = route.name;
+    $("routeStats").textContent = "Loading…";
+    $("routeNotes").textContent = route.notes || "";
+
+    if (!previewMap) {
+      previewMap = L.map("map", { zoomControl: true });
+      L.tileLayer(TILE, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(previewMap);
+    }
+    setTimeout(() => previewMap.invalidateSize(), 60);
+
+    try {
+      let data;
+      if (route.geometry) {
+        // user-recorded route already has geometry
+        data = { geometry: route.geometry, steps: route.steps || [], distance: route.distance, duration: route.duration };
+      } else {
+        data = await fetchRoute(route.waypoints);
+      }
+      activeRoute = { ...data, name: route.name, notes: route.notes };
+      drawRoute(previewMap, data);
+      $("routeStats").textContent = `${fmtKm(data.distance)} · ${fmtMin(data.duration)} · ${data.steps.length} steps`;
+    } catch (e) {
+      $("routeStats").textContent = "Couldn’t load this route — check your connection.";
+      toast("Routing service unavailable. Try again.");
+    }
+  }
+
+  let previewLayer;
+  function drawRoute(map, data) {
+    if (previewLayer) map.removeLayer(previewLayer);
+    const line = L.polyline(data.geometry, { color: "#3da5ff", weight: 5, opacity: .9 });
+    const start = L.circleMarker(data.geometry[0], { radius: 8, color: "#27d796", fillOpacity: 1 });
+    previewLayer = L.layerGroup([line, start]).addTo(map);
+    map.fitBounds(line.getBounds(), { padding: [30, 30] });
+  }
+
+  $("startNavBtn").addEventListener("click", () => startNav());
+
+  /* ───────────────────────── LIVE NAVIGATION ───────────────────────── */
+  let navMap, navLine, userMarker, watchId, navStepIdx, simTimer, navStartLen;
+
+  function speak(text) {
+    if (muted || !("speechSynthesis" in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-GB"; u.rate = 1;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }
+
+  function startNav() {
+    if (!activeRoute) return;
+    show("nav");
+    navStepIdx = 0;
+    navStartLen = activeRoute.geometry.length;
+
+    if (!navMap) {
+      navMap = L.map("navMap", { zoomControl: false });
+      L.tileLayer(TILE, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(navMap);
+    }
+    setTimeout(() => navMap.invalidateSize(), 60);
+
+    if (navLine) navMap.removeLayer(navLine);
+    navLine = L.polyline(activeRoute.geometry, { color: "#3da5ff", weight: 6, opacity: .9 }).addTo(navMap);
+    navMap.fitBounds(navLine.getBounds(), { padding: [40, 40] });
+
+    const icon = L.divIcon({ className: "", html: '<div class="user-dot"></div>', iconSize: [18, 18] });
+    userMarker = L.marker(activeRoute.geometry[0], { icon }).addTo(navMap);
+
+    updateInstruction(activeRoute.geometry[0]);
+    speak("Starting your practice drive. Drive safely.");
+
+    // Real GPS if we're actually moving; otherwise simulate so the route is reviewable.
+    if ("geolocation" in navigator) {
+      let moved = false;
+      watchId = navigator.geolocation.watchPosition(
+        (p) => { moved = true; onPosition([p.coords.latitude, p.coords.longitude]); },
+        () => { if (!moved) simulate(); },
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 8000 }
+      );
+      // If no real movement within 6s (e.g. testing on a desktop), simulate the drive.
+      setTimeout(() => { if (!moved) simulate(); }, 6000);
+    } else {
+      simulate();
+    }
+  }
+
+  function onPosition(pos) {
+    if (!userMarker) return;
+    userMarker.setLatLng(pos);
+    navMap.panTo(pos, { animate: true, duration: .5 });
+    updateInstruction(pos);
+  }
+
+  function updateInstruction(pos) {
+    const steps = activeRoute.steps;
+    if (!steps.length) { $("navTurn").textContent = "Follow the blue line"; return; }
+    // advance past any reached steps
+    while (navStepIdx < steps.length - 1 && haversine(pos, steps[navStepIdx].loc) < 35) {
+      navStepIdx++;
+      speak(steps[navStepIdx].text);
+    }
+    const step = steps[Math.min(navStepIdx, steps.length - 1)];
+    const d = haversine(pos, step.loc);
+    $("navTurn").textContent = step.text;
+    $("navDist").textContent = d > 30 ? `in ${Math.round(d)} m` : "now";
+
+    const pct = Math.round((navStepIdx / Math.max(1, steps.length - 1)) * 100);
+    $("navProgress").textContent = pct + "%";
+    if (navStepIdx >= steps.length - 1 && d < 40) finishDrive();
+  }
+
+  function simulate() {
+    if (simTimer) return;
+    const geo = activeRoute.geometry; let i = 0;
+    toast("Simulating drive (no live GPS)");
+    simTimer = setInterval(() => {
+      if (i >= geo.length) { finishDrive(); return; }
+      onPosition(geo[i]); i += Math.max(1, Math.floor(geo.length / 120));
+    }, 250);
+  }
+
+  function finishDrive() {
+    if ($("screen-summary").hidden === false) return;
+    const dist = activeRoute.distance, dur = activeRoute.duration;
+    stopNav(true);
+    $("summaryStats").textContent =
+      `${activeRoute.name} · ${fmtKm(dist)} · ${activeRoute.steps.length} manoeuvres practised.`;
+    speak("Drive complete. Well done.");
+    show("summary");
+    renderAds();
+  }
+
+  function stopNav(silent) {
+    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (simTimer) { clearInterval(simTimer); simTimer = null; }
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+  $("stopNavBtn").addEventListener("click", () => { stopNav(); show("summary"); finishDrive(); });
+  $("muteBtn").addEventListener("click", () => {
+    muted = !muted; $("muteBtn").textContent = muted ? "🔇" : "🔊";
+    if (muted && "speechSynthesis" in window) speechSynthesis.cancel();
+  });
+  $("summaryDoneBtn").addEventListener("click", () => { history.length = 0; show("home"); });
+
+  /* ───────────────────────── RECORD A ROUTE ───────────────────────── */
+  let recMap, recLine, recTrack, recWatch;
+
+  $("recordBtn").addEventListener("click", startRecording);
+  $("myRoutesBtn").addEventListener("click", () => {
+    // jump into a synthetic "centre" listing all saved routes
+    const saved = getAllSavedRoutes();
+    if (!saved.length) { toast("No recorded routes yet — open a centre and tap Record."); return; }
+    activeCentre = { id: "__saved__", name: "My recorded routes", town: "Saved", region: "On this device", routes: [] };
+    $("centreTitle").textContent = "My recorded routes";
+    $("centreSub").textContent = `${saved.length} saved on this device`;
+    const list = $("routeList"); list.innerHTML = "";
+    saved.forEach((r) => {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.innerHTML = `<div class="c-main"><div class="c-title">${r.name} 📍</div>
+        <div class="c-sub">${r.centreName || ""} · ${fmtKm(r.distance || 0)}</div></div>
+        <span class="pill Easy">Saved</span>`;
+      el.addEventListener("click", () => openRoute(activeCentre, r));
+      list.appendChild(el);
+    });
+    show("routes");
+  });
+
+  function startRecording() {
+    if (!("geolocation" in navigator)) { toast("Geolocation not supported on this device."); return; }
+    show("record");
+    recTrack = [];
+    if (!recMap) {
+      recMap = L.map("recordMap", { zoomControl: false });
+      L.tileLayer(TILE, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(recMap);
+    }
+    setTimeout(() => recMap.invalidateSize(), 60);
+    if (recLine) recMap.removeLayer(recLine);
+    recLine = L.polyline([], { color: "#27d796", weight: 6 }).addTo(recMap);
+
+    recWatch = navigator.geolocation.watchPosition(
+      (p) => {
+        const pt = [p.coords.latitude, p.coords.longitude];
+        recTrack.push(pt); recLine.addLatLng(pt); recMap.setView(pt, 16);
+        $("recordPoints").textContent = recTrack.length + " pts";
+        $("recordDist").textContent = fmtKm(trackLength(recTrack));
+      },
+      () => toast("Couldn’t get GPS fix — go outside for a better signal."),
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+    );
+  }
+
+  function trackLength(t) {
+    let d = 0; for (let i = 1; i < t.length; i++) d += haversine(t[i - 1], t[i]); return d;
+  }
+
+  function stopRecording(silent) {
+    if (recWatch != null) { navigator.geolocation.clearWatch(recWatch); recWatch = null; }
+    if (silent) return;
+    if (!recTrack || recTrack.length < 2) { toast("Too short to save."); show("routes", false); return; }
+    const name = prompt("Name this route:", activeCentre ? activeCentre.town + " practice" : "My route");
+    if (!name) { show("routes", false); return; }
+    saveRoute({
+      id: "saved_" + Date.now(),
+      name,
+      centreId: activeCentre ? activeCentre.id : "__saved__",
+      centreName: activeCentre ? activeCentre.name : "",
+      geometry: recTrack,
+      distance: trackLength(recTrack),
+      duration: recTrack.length * 2,
+      steps: [],
+      notes: "Your recorded route"
+    });
+    toast("Route saved 📍");
+    openCentre(activeCentre);
+  }
+  $("stopRecordBtn").addEventListener("click", () => stopRecording(false));
+
+  /* ───────────────────────── saved-route storage ───────────────────────── */
+  function getAllSavedRoutes() {
+    try { return JSON.parse(localStorage.getItem("rr_saved") || "[]"); } catch (e) { return []; }
+  }
+  function getSavedRoutes(centreId) {
+    return getAllSavedRoutes().filter((r) => r.centreId === centreId);
+  }
+  function saveRoute(r) {
+    const all = getAllSavedRoutes(); all.push(r);
+    try { localStorage.setItem("rr_saved", JSON.stringify(all)); } catch (e) { toast("Storage full."); }
+  }
+
+  /* ───────────────────────── boot ───────────────────────── */
+  renderCentres();
+  show("home", true);
+  renderAds();
+})();
