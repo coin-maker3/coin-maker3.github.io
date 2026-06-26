@@ -20,6 +20,7 @@ window.TEST_CENTRES = [
   { id: "manchester-cheetham",    name: "Manchester (Cheetham Hill)", town: "Manchester",  region: "North West",     lat: 53.5060, lng: -2.2360 },
   { id: "birmingham-garretts",    name: "Birmingham (Garretts Green)",town: "Birmingham",  region: "West Midlands",  lat: 52.4700, lng: -1.7880 },
   { id: "birmingham-kingstanding",name: "Birmingham (Kingstanding)",  town: "Birmingham",  region: "West Midlands",  lat: 52.5430, lng: -1.8870 },
+  { id: "nuneaton",               name: "Nuneaton",                   town: "Nuneaton",    region: "Warwickshire",   lat: 52.5250, lng: -1.4960 },
   { id: "leeds-horsforth",        name: "Leeds (Horsforth)",          town: "Leeds",       region: "Yorkshire",      lat: 53.8360, lng: -1.6260 },
   { id: "bristol-brislington",    name: "Bristol (Brislington)",      town: "Bristol",     region: "South West",     lat: 51.4390, lng: -2.5470 },
   { id: "glasgow-anniesland",     name: "Glasgow (Anniesland)",       town: "Glasgow",     region: "Scotland",       lat: 55.8870, lng: -4.3170 },
