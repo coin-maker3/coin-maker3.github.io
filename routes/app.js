@@ -128,14 +128,19 @@
     return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
   }
 
-  function renderCentres() {
-    const list = $("centreList"); list.innerHTML = "";
+  function nearestCentres() {
     let centres = TEST_CENTRES.slice();
     if (userLoc) {
       centres.forEach((c) => (c._dist = haversine(userLoc, [c.lat, c.lng])));
       centres.sort((a, b) => a._dist - b._dist);
       centres = centres.slice(0, 8); // nearest 8
     }
+    return centres;
+  }
+
+  function renderCentres() {
+    const centres = nearestCentres();
+    const list = $("centreList"); list.innerHTML = "";
     centres.forEach((c) => {
       const el = document.createElement("div");
       el.className = "card";
@@ -146,6 +151,40 @@
       el.addEventListener("click", () => openCentre(c));
       list.appendChild(el);
     });
+    renderHomeMap(centres);
+  }
+
+  /* ───────────── home overview map with a pin per centre ───────────── */
+  let homeMap, homeLayer;
+  function renderHomeMap(centres) {
+    if (typeof L === "undefined") return; // Leaflet CDN unavailable — list still works
+    if (!homeMap) {
+      homeMap = L.map("homeMap", { zoomControl: true, attributionControl: false });
+      L.tileLayer(TILE, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(homeMap);
+      homeMap.setView([54.0, -2.4], 5); // UK overview until we know the user
+    }
+    setTimeout(() => homeMap.invalidateSize(), 60);
+    if (homeLayer) homeMap.removeLayer(homeLayer);
+
+    const markers = [];
+    centres.forEach((c) => {
+      const icon = L.divIcon({ className: "", iconSize: [24, 24], iconAnchor: [12, 24],
+        html: `<div class="centre-pin"><span>P</span></div>` });
+      const m = L.marker([c.lat, c.lng], { icon }).bindTooltip(c.name);
+      m.on("click", () => openCentre(c));
+      markers.push(m);
+    });
+    if (userLoc) {
+      const you = L.marker(userLoc, {
+        icon: L.divIcon({ className: "", iconSize: [18, 18], html: '<div class="user-dot"></div>' })
+      }).bindTooltip("You");
+      markers.push(you);
+    }
+    homeLayer = L.layerGroup(markers).addTo(homeMap);
+
+    const pts = centres.map((c) => [c.lat, c.lng]);
+    if (userLoc) pts.push(userLoc);
+    if (pts.length) homeMap.fitBounds(L.latLngBounds(pts).pad(0.25));
   }
 
   async function findNearest(query) {

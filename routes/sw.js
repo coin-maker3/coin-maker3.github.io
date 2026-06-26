@@ -1,5 +1,5 @@
 /* RouteReady service worker — offline shell caching */
-const CACHE = "routeready-v1";
+const CACHE = "routeready-v2";
 const ASSETS = [
   "./", "./index.html", "./styles.css", "./app.js", "./data.js",
   "./manifest.webmanifest", "./icon.svg"
@@ -22,11 +22,13 @@ self.addEventListener("fetch", (e) => {
   // Never cache routing/tiles/ads — always go to network.
   if (/osrm|tile\.openstreetmap|googlesyndication|adsbygoogle/.test(url.href)) return;
   if (e.request.method !== "GET") return;
+  // Network-first for the app shell so deploys propagate immediately; fall back
+  // to cache when offline.
   e.respondWith(
-    caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
+    fetch(e.request).then((res) => {
       const copy = res.clone();
       caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
       return res;
-    }).catch(() => hit))
+    }).catch(() => caches.match(e.request))
   );
 });
