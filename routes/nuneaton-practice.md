@@ -63,7 +63,7 @@ East Nuneaton — major roundabouts plus quieter residential streets.
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd
 - Ahead at Manor Court Rd, Left onto Croft Rd
-- Left at Greenmoore Rd roundabout into Bullring, Right at College St roundabout
+- Left at Greenmoor Rd roundabout into Bullring, Right at College St roundabout
 - Right at A444 (2nd roundabout), Left at St Davids Way, Right at Walsingham Drive, Left back onto A444
 - Left onto Sutherland Drive, Right onto Nuneaton Rd/Coventry Rd
 - Left at Gipsy Lane roundabout, Right onto Marston Lane, Right onto Northbourne Drive, Right at mini-roundabout onto Marston Lane
@@ -135,11 +135,11 @@ High-traffic town-centre driving mixed with quiet suburban navigation.
 
 Like Route 1, but loops back tightly through Reynolds Road.
 
-🔗 **[Open Route 8 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Croft%20Road%2C%20Nuneaton%2C%20UK/Greenmoore%20Road%2C%20Nuneaton%2C%20UK/College%20Street%2C%20Nuneaton%2C%20UK/St%20Davids%20Way%2C%20Nuneaton%2C%20UK/Walsingham%20Drive%2C%20Nuneaton%2C%20UK/Sutherland%20Drive%2C%20Nuneaton%2C%20UK/Reynolds%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
+🔗 **[Open Route 8 in Google Maps](https://www.google.com/maps/dir/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA/Beaumont%20Road%2C%20Nuneaton%2C%20UK/Croft%20Road%2C%20Nuneaton%2C%20UK/Greenmoor%20Road%2C%20Nuneaton%2C%20UK/College%20Street%2C%20Nuneaton%2C%20UK/St%20Davids%20Way%2C%20Nuneaton%2C%20UK/Walsingham%20Drive%2C%20Nuneaton%2C%20UK/Sutherland%20Drive%2C%20Nuneaton%2C%20UK/Reynolds%20Road%2C%20Nuneaton%2C%20UK/54%20Vernons%20Lane%2C%20Nuneaton%20CV10%208AA)**
 
 **Turn-by-turn:**
 - Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Ahead at Manor Court Rd roundabout onto Croft Rd
-- Left onto Greenmoore Rd, Left at Greenmoore Rd roundabout into Bullring
+- Left onto Greenmoor Rd, Left at Greenmoor Rd roundabout into Bullring
 - Right at College St roundabout, Right at 2nd A444 roundabout, Left at St Davids Way, Right at Walsingham Drive
 - Left onto A444, 1st Left onto Sutherland Drive, 2nd Left onto Reynolds Rd, Left onto Sutherland Drive
 - Return to Vernons Lane

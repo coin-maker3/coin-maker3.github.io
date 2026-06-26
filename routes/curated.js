@@ -74,7 +74,7 @@ window.CURATED = {
       "steps": [
         "Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd",
         "Ahead at Manor Court Rd, Left onto Croft Rd",
-        "Left at Greenmoore Rd roundabout into Bullring, Right at College St roundabout",
+        "Left at Greenmoor Rd roundabout into Bullring, Right at College St roundabout",
         "Right at A444 (2nd roundabout), Left at St Davids Way, Right at Walsingham Drive, Left back onto A444",
         "Left onto Sutherland Drive, Right onto Nuneaton Rd/Coventry Rd",
         "Left at Gipsy Lane roundabout, Right onto Marston Lane, Right onto Northbourne Drive, Right at mini-roundabout onto Marston Lane",
@@ -182,7 +182,7 @@ window.CURATED = {
       "waypoints": [
         "Beaumont Road",
         "Croft Road",
-        "Greenmoore Road",
+        "Greenmoor Road",
         "College Street",
         "St Davids Way",
         "Walsingham Drive",
@@ -191,7 +191,7 @@ window.CURATED = {
       ],
       "steps": [
         "Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd, Ahead at Manor Court Rd roundabout onto Croft Rd",
-        "Left onto Greenmoore Rd, Left at Greenmoore Rd roundabout into Bullring",
+        "Left onto Greenmoor Rd, Left at Greenmoor Rd roundabout into Bullring",
         "Right at College St roundabout, Right at 2nd A444 roundabout, Left at St Davids Way, Right at Walsingham Drive",
         "Left onto A444, 1st Left onto Sutherland Drive, 2nd Left onto Reynolds Rd, Left onto Sutherland Drive",
         "Return to Vernons Lane"
