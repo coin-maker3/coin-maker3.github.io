@@ -219,7 +219,7 @@ window.CURATED = {
         "Left Beaumont Rd, Left Barpool Rd, Right Tomkinson Rd, Left Northumberland Ave, Left Rutland Ave, Left Northumberland Ave, Left Croft Rd",
         "Mini-roundabout Right onto The Raywoods, Right Brodrick Way, Left Fair Isle Drive, Left Oldany Way, Right The Raywoods",
         "Left onto Heath End Rd, Right onto Bullring/College St, Ahead onto College St, Right onto Coventry Rd",
-        "2nd roundabout Right onto St Davids Way, Left Walsingham Drive, Left onto A444, Left onto A444 (Nuneaton direction), Ahead at 2nd roundabout onto Chilvers Hill",
+        "2nd roundabout Right onto St Davids Way, Left Walsingham Drive, Left onto A444, Left onto A444 (Nuneaton direction), Ahead at 2nd roundabout onto Chilvers Rise (A444)",
         "Town centre: Ahead onto Coton Rd, Right onto Vicarage St, Left onto Church St, follow one-way via Bond St to Newtown Rd",
         "Return: Ahead at 2nd roundabout onto Roanne Ringway, Right onto Queens Rd, Right onto Beaumont Rd back to Vernons Lane"
       ]
