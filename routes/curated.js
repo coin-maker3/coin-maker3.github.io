@@ -10,9 +10,12 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Countess Road",
         "Earls Road",
+        "Manor Court Road",
         "Queens Road",
         "Roanne Ringway",
+        "Coton Road",
         "College Street",
         "Coventry Road",
         "St Davids Way",
@@ -37,13 +40,19 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Countess Road",
+        "Earls Road",
+        "Manor Court Road",
         "Croft Road",
         "Merevale Avenue",
+        "Bentley Road",
         "Heath End Road",
+        "College Street",
         "Coventry Road",
         "Avenue Road",
         "Church Street",
-        "Newtown Road"
+        "Newtown Road",
+        "Queens Road"
       ],
       "steps": [
         "Left onto Beaumont Rd, Right onto Countess Rd, Right onto Earls Rd",
@@ -63,9 +72,13 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Earls Road",
         "Croft Road",
+        "Greenmoor Road",
         "College Street",
         "St Davids Way",
+        "Walsingham Drive",
+        "Sutherland Drive",
         "Coventry Road",
         "Gipsy Lane",
         "Marston Lane",
@@ -88,10 +101,15 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Countess Road",
+        "Earls Road",
+        "Manor Court Road",
         "Midland Road",
         "Tuttle Hill",
         "Mancetter Road",
+        "Berrington Road",
         "Weddington Road",
+        "Kingsbridge Road",
         "Shanklin Drive",
         "Leicester Road",
         "Newtown Road"
@@ -110,6 +128,7 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Countess Road",
         "St Nicolas Park Drive",
         "Coniston Way",
         "Wallingford Avenue",
@@ -131,6 +150,7 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Earls Road",
         "Queens Road",
         "Tomkinson Road",
         "Haunchwood Road",
@@ -138,6 +158,10 @@ window.CURATED = {
         "Arbury Road",
         "Heath End Road",
         "Radnor Drive",
+        "Charnwood Avenue",
+        "Atholl Crescent",
+        "Coventry Road",
+        "Donnithorne Avenue",
         "Dorlecote Road"
       ],
       "steps": [
@@ -157,13 +181,17 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Earls Road",
         "Queens Road",
         "Roanne Ringway",
         "Leicester Road",
         "Weddington Road",
+        "Brookdale Road",
         "Higham Lane",
         "St Nicolas Park Drive",
+        "Windermere Avenue",
         "Hinckley Road",
+        "Eastboro Way",
         "Avenue Road"
       ],
       "steps": [
@@ -181,6 +209,8 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Countess Road",
+        "Earls Road",
         "Croft Road",
         "Greenmoor Road",
         "College Street",
@@ -207,13 +237,18 @@ window.CURATED = {
         "Barpool Road",
         "Tomkinson Road",
         "Northumberland Avenue",
+        "Rutland Avenue",
         "Croft Road",
+        "The Raywoods",
+        "Brodrick Way",
+        "Fair Isle Drive",
+        "Oldany Way",
         "Heath End Road",
         "College Street",
         "Coventry Road",
         "St Davids Way",
-        "Walsingham Drive",
-        "Coton Road"
+        "Coton Road",
+        "Church Street"
       ],
       "steps": [
         "Left Beaumont Rd, Left Barpool Rd, Right Tomkinson Rd, Left Northumberland Ave, Left Rutland Ave, Left Northumberland Ave, Left Croft Rd",
@@ -231,16 +266,21 @@ window.CURATED = {
       "difficulty": "Test route",
       "waypoints": [
         "Beaumont Road",
+        "Earls Road",
+        "Manor Court Road",
         "Midland Road",
         "Tuttle Hill",
         "Mancetter Road",
+        "Berrington Road",
         "Weddington Road",
         "Shanklin Drive",
         "Higham Lane",
         "St Nicolas Park Drive",
         "Hinckley Road",
         "Eastboro Way",
-        "Avenue Road"
+        "Avenue Road",
+        "Caldwell Road",
+        "Coton Road"
       ],
       "steps": [
         "Left Beaumont Rd, Right Countess Rd, Right Earls Rd, Left Manor Court Rd, Left Midland Rd (traffic lights)",
