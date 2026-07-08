@@ -1,0 +1,24 @@
+{
+  "rule_set": "document_titling",
+  "curriculum_version": null,
+  "verified_against": null,
+  "_status": "UNVERIFIED_DRAFT",
+  "_verification_note": "Draft only. Verify against the GMC Online Portfolio Application user guide (document naming rules) before use. Confirm separator, date format, max length, and allowed characters against the live guide.",
+  "rules": {
+    "pattern": "{evidence_type} - {employer_or_context} - {date}",
+    "date_format": "YYYY-MM-DD",
+    "separator": " - ",
+    "max_length": 100,
+    "disallowed_characters": ["/", "\\", ":", "*", "?", "\"", "<", ">", "|"],
+    "evidence_type_labels": {
+      "audit": "Audit",
+      "course": "Course certificate",
+      "wba": "Workplace-based assessment",
+      "publication": "Publication",
+      "teaching": "Teaching",
+      "appraisal": "Appraisal",
+      "employment_letter": "Employment letter",
+      "certificate": "Certificate"
+    }
+  }
+}

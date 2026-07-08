@@ -1,0 +1,46 @@
+{
+  "rule_set": "cv_structure",
+  "curriculum_version": null,
+  "verified_against": null,
+  "_status": "UNVERIFIED_DRAFT",
+  "_verification_note": "Draft only. Verify line-by-line against GMC 'Structuring your CV for a specialist or GP registration application' before setting verified_against and using in production. Section list, order, and required fields MUST be confirmed against the live page.",
+  "rules": {
+    "ordering": "reverse_chronological",
+    "employment_back_to": "primary_medical_qualification",
+    "gaps": {
+      "must_be_listed_explicitly": true,
+      "min_gap_days_to_flag": 28
+    },
+    "sections": [
+      {
+        "id": "personal_details",
+        "label": "Personal details",
+        "required": true,
+        "fields": ["full_name", "gmc_reference_number", "contact_details"],
+        "verified": false
+      },
+      {
+        "id": "qualifications",
+        "label": "Qualifications",
+        "required": true,
+        "fields": ["qualification", "awarding_body", "date_awarded"],
+        "verified": false
+      },
+      {
+        "id": "employment_history",
+        "label": "Employment history",
+        "required": true,
+        "ordering": "reverse_chronological",
+        "fields": ["post_title", "grade", "employer", "start_date", "end_date", "wte_percent", "employment_type"],
+        "verified": false
+      },
+      {
+        "id": "gaps_in_employment",
+        "label": "Gaps in employment",
+        "required": true,
+        "fields": ["start_date", "end_date", "reason"],
+        "verified": false
+      }
+    ]
+  }
+}

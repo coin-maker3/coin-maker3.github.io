@@ -1,0 +1,17 @@
+{
+  "rule_set": "evidence_currency",
+  "specialty": "general_surgery",
+  "curriculum_version": null,
+  "verified_against": null,
+  "_status": "UNVERIFIED_DRAFT",
+  "_verification_note": "Draft only. Confirm the currency window (commonly cited as 'last 5-6 years WTE') and any per-evidence-type exceptions against the current GS SSG before use.",
+  "rules": {
+    "default_window_years": 6,
+    "measured_in": "whole_time_equivalent",
+    "reference_date": "application_submission_date",
+    "per_type_overrides": {
+      "primary_medical_qualification": { "window_years": null },
+      "publication": { "window_years": null }
+    }
+  }
+}

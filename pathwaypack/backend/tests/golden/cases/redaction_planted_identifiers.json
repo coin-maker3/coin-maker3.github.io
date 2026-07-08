@@ -1,0 +1,12 @@
+{
+  "name": "five planted identifiers must all be caught (Phase 4 acceptance)",
+  "kind": "redaction",
+  "text": "Discharge summary. Patient NHS No: 943 476 5919 seen in clinic. DOB: 12/03/1978. Hospital number: H0456789. Operating surgeon GMC 6131234 supervised. Correspondence to OX3 7LE.",
+  "expected_blocking": [
+    { "type": "nhs_number", "text": "943 476 5919" },
+    { "type": "date_of_birth", "text": "12/03/1978" },
+    { "type": "hospital_number", "text": "H0456789" },
+    { "type": "gmc_number", "text": "6131234" }
+  ],
+  "expected_warn_contains": ["OX3 7LE"]
+}

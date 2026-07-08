@@ -1,0 +1,33 @@
+# HARD RULE 3 — No evidence documents committed to GitHub.
+# User documents live in object storage / MongoDB GridFS only.
+# This repo contains code and rules JSON only.
+uploads/
+evidence/
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.heic
+*.docx
+!tests/golden/**/*.docx        # expected-output fixtures may be committed
+*.xlsx
+*.xls
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# node / frontend
+node_modules/
+dist/
+.vite/

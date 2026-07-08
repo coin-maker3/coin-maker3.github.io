@@ -1,0 +1,29 @@
+{
+  "rule_set": "gs_ssg_cips",
+  "specialty": "general_surgery",
+  "curriculum_version": null,
+  "verified_against": null,
+  "_status": "UNVERIFIED_DRAFT",
+  "_verification_note": "CRITICAL: The CiP list, HLOs, and evidence requirements below are placeholders. They MUST be replaced with the exact CiPs from the current GMC General Surgery SSG PDF, and the curriculum version recorded, before any mapping output is shown to an applicant. Curricula update and change evidence requirements. Do NOT set verified_against until every CiP id, title, and descriptor matches the live SSG.",
+  "rules": {
+    "cips": [
+      {
+        "id": "PLACEHOLDER_GENERIC_CIP_1",
+        "title": "Generic professional capability (PLACEHOLDER)",
+        "domain": "generic",
+        "hlos": [],
+        "example_evidence_types": ["appraisal", "wba", "teaching"],
+        "verified": false
+      },
+      {
+        "id": "PLACEHOLDER_CLINICAL_CIP_1",
+        "title": "Clinical capability (PLACEHOLDER)",
+        "domain": "clinical",
+        "hlos": [],
+        "example_evidence_types": ["wba", "logbook", "audit"],
+        "verified": false
+      }
+    ],
+    "mapping_confidence_threshold": 0.6
+  }
+}

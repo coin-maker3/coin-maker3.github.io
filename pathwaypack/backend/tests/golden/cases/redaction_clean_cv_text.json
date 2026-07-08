@@ -1,0 +1,7 @@
+{
+  "name": "clean employment text must not raise blocking flags",
+  "kind": "redaction",
+  "text": "Registrar in General Surgery at Good Hope Hospital, 100% WTE, substantive post. Completed 3 audits and attended the Basic Surgical Skills course.",
+  "expected_blocking": [],
+  "expected_warn_contains": []
+}

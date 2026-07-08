@@ -1,0 +1,18 @@
+{
+  "rule_set": "accepted_file_types",
+  "curriculum_version": null,
+  "verified_against": null,
+  "_status": "UNVERIFIED_DRAFT",
+  "_verification_note": "Draft only. Confirm the accepted upload formats and size limits against the GMC Online Portfolio Application user guide before use. Note: multi-sheet Excel must be converted to PDF (single-sheet only, or convert).",
+  "rules": {
+    "accepted_extensions": ["pdf", "jpg", "jpeg", "png", "docx"],
+    "max_file_size_mb": null,
+    "conversions_required": [
+      {
+        "from": "xlsx_multi_sheet",
+        "to": "pdf",
+        "reason": "multi-sheet Excel is not accepted; each sheet must be a separate page/PDF"
+      }
+    ]
+  }
+}
