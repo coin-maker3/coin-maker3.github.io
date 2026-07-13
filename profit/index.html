@@ -200,26 +200,57 @@ async function refreshFx(){
 setTimeout(refreshFx, 800); setInterval(refreshFx, 300000);
 
 // ---- live price: Finnhub quote + WebSocket stream, Yahoo/proxy fallback ----
+// Finnhub free /quote FREEZES at the 16:00 ET close (its t stops moving), so outside
+// regular hours we pull the last 1-min extended print from Yahoo (includePrePost)
+// and label it honestly: PRE-MKT / AFTER-HRS / LAST CLOSE. Verified 13 Jul 2026:
+// AAPL after-hours — Finnhub c stuck 115 min, Yahoo 1m candle 0 min old.
 const FINNHUB_KEY = 'd9afnh1r01qg31s4h340d9afnh1r01qg31s4h34g';
-async function fetchQuote(symbol){
-  try {
-    const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(symbol) + '&token=' + FINNHUB_KEY);
-    if (r.ok){
-      const j = await r.json();
-      if (j && typeof j.c === 'number' && j.c > 0) return j.c;
-    }
-  } catch(e){}
-  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=1d';
-  for (const wrap of [u => u, u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)]){
+let extCache = { sym: null, at: 0, p: 0, tag: '' };            // 8s cache so 3s polling doesn't hammer proxies
+async function fetchExtended(symbol){
+  if (extCache.sym === symbol && Date.now() - extCache.at < 8000 && extCache.p > 0) return extCache;
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=1m&includePrePost=true';
+  for (const wrap of [u => u, u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)]){
     try {
       const r = await fetch(wrap(url));
       if (!r.ok) continue;
       const j = await r.json();
-      const p = j?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (p > 0) return p;
-      if (j?.chart?.error) break;
+      const res = j?.chart?.result?.[0];
+      if (!res){ if (j?.chart?.error) break; continue; }
+      const ts = res.timestamp || [], cl = res.indicators?.quote?.[0]?.close || [];
+      let i = cl.length - 1;
+      while (i >= 0 && cl[i] == null) i--;
+      if (i < 0 || !(cl[i] > 0)){                              // no candles — old regular-hours fallback
+        const p = res.meta && res.meta.regularMarketPrice;
+        if (p > 0){ extCache = { sym: symbol, at: Date.now(), p: p, tag: '' }; return extCache; }
+        break;
+      }
+      const ageH = (Date.now() / 1000 - ts[i]) / 3600;
+      const reg = res.meta && res.meta.currentTradingPeriod && res.meta.currentTradingPeriod.regular;
+      let tag = '';
+      if (ageH > 4) tag = 'LAST CLOSE';                        // weekend / overnight — nothing printing
+      else if (reg && ts[i] < reg.start) tag = 'PRE-MKT';
+      else if (reg && ts[i] >= reg.end)  tag = 'AFTER-HRS';
+      extCache = { sym: symbol, at: Date.now(), p: cl[i], tag: tag };
+      return extCache;
     } catch(e){}
   }
+  return null;
+}
+async function fetchQuote(symbol){
+  let fhClose = 0;
+  try {
+    const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(symbol) + '&token=' + FINNHUB_KEY);
+    if (r.ok){
+      const j = await r.json();
+      if (j && typeof j.c === 'number' && j.c > 0){
+        if (!j.t || Date.now() / 1000 - j.t < 120) return { p: j.c, tag: '' };   // fresh regular-hours trade
+        fhClose = j.c;                                         // stale = frozen close; try extended first
+      }
+    }
+  } catch(e){}
+  const ext = await fetchExtended(symbol);
+  if (ext && ext.p > 0) return { p: ext.p, tag: ext.tag };
+  if (fhClose > 0) return { p: fhClose, tag: 'LAST CLOSE' };
   throw new Error('no price');
 }
 
@@ -231,7 +262,8 @@ function setPrice(price, tag){
   bp.textContent = '$' + price.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
   bp.className = 'bigprice mono' + (prevPrice==null ? '' : price>prevPrice ? ' up' : price<prevPrice ? ' down' : '');
   prevPrice = price;
-  $('quote').innerHTML = '<strong>' + liveSym + '</strong> <span class="live"><span class="dot"></span>' + tag + '</span>';
+  const tagCls = tag.indexOf('LAST CLOSE') === 0 ? 'live stale' : 'live';   // frozen close must not glow green
+  $('quote').innerHTML = '<strong>' + liveSym + '</strong> <span class="' + tagCls + '"><span class="dot"></span>' + tag + '</span>';
   saveState(); calc();
 }
 function stopLive(){
@@ -242,7 +274,7 @@ function startPolling(sym){
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
     if (document.hidden) return;
-    try { const p = await fetchQuote(sym); if (p > 0 && sym === liveSym) setPrice(p, 'LIVE (3s)'); } catch(e){}
+    try { const q = await fetchQuote(sym); if (q.p > 0 && sym === liveSym) setPrice(q.p, (q.tag || 'LIVE') + ' (3s)'); } catch(e){}
   }, 3000);
 }
 function startStream(sym){
@@ -321,13 +353,13 @@ async function getPrice(){
   const btn = $('fetchBtn'); btn.disabled = true;
   $('quote').textContent = 'Connecting to ' + sym + '…';
   try {
-    const p = await fetchQuote(sym);
+    const q = await fetchQuote(sym);
     if ($('ticker').value.trim().toUpperCase() !== sym){ btn.disabled = false; return; }  // user typed a new symbol meanwhile
     const switched = sym !== liveSym;
     if (switched) prevPrice = null;
     liveSym = sym; lastUpdateAt = Date.now();
     if (switched) applyPosition(sym);   // this symbol's own entry/shares/stop — never another stock's
-    setPrice(p, 'LIVE');
+    setPrice(q.p, q.tag || 'LIVE');
     startStream(sym);
     runGauge(sym);                                   // Ross Cameron STRONG/MEDIUM/WEAK
     pushRecent(sym);                                 // remember for one-tap circle-back
