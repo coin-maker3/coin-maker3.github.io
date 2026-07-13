@@ -26,12 +26,17 @@ input:focus{border-color:var(--green)}
 .quote{font-size:12px;text-align:center;min-height:15px;color:var(--muted);margin-bottom:2px}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--green)}
 .live .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite}
+.live.stale{color:var(--amber)}
+.live.stale .dot{background:var(--amber);animation:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .err{color:var(--red)}
 .entry{display:flex;gap:8px;margin-top:6px}
 .entry input{flex:1}
 .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 4px}
 .be{display:flex;justify-content:center;align-items:center;gap:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--amber);border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;margin-top:6px;min-height:26px}
+.stopline{display:flex;justify-content:center;align-items:center;gap:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);color:var(--red);border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;margin-top:6px;min-height:26px}
+.daylog{text-align:center;color:var(--muted);font-size:11.5px;font-weight:700;margin-top:6px;cursor:pointer}
+.daylog b{color:var(--text)}
 .pl{display:flex;justify-content:center;align-items:baseline;gap:10px;margin-top:6px;min-height:34px}
 .pl .amt{font-size:28px;font-weight:800}
 .pl .pct{font-size:15px;font-weight:800}
@@ -50,7 +55,7 @@ input:focus{border-color:var(--green)}
 .tcard.t10{border-color:var(--green);box-shadow:0 0 0 1px rgba(74,222,128,.25)}
 .tcard.t10 .pct,.tcard.t10 .price,.tcard.t10 .prof .gbp{color:var(--green)}
 .tcard .hint{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.recents{display:flex;flex-wrap:nowrap;gap:6px;margin-top:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-height:34px}
+.recents{display:flex;flex-wrap:nowrap;gap:6px;margin-top:2px;padding-top:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-height:44px}
 .recents::-webkit-scrollbar{display:none}
 .recents button{flex:none;position:relative;background:var(--field);border:1px solid var(--line);color:var(--text);border-radius:99px;padding:6px 14px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.5px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .recents button .del{position:absolute;top:-9px;right:-7px;background:var(--red);color:#fff;border-radius:99px;font-size:10px;font-weight:900;padding:2px 8px;border:2px solid var(--bg);z-index:2}
@@ -99,6 +104,12 @@ footer{text-align:center;margin-top:10px;font-size:12px}
   <button class="btn" id="grabBtn" title="stamp the live price as my entry">Use live</button>
 </div>
 
+<div class="entry">
+  <input id="stop" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="stop price ($)">
+  <input id="risk" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="risk £" style="max-width:110px">
+  <button class="btn" id="soldBtn" title="log this trade as closed at the live price">SOLD</button>
+</div>
+<div class="stopline mono" id="stopLine" hidden></div>
 <div class="pl mono" id="plLine" hidden>
   <span class="sub">P/L now</span><span class="amt" id="plAmt">—</span><span class="pct" id="plPct"></span>
 </div>
@@ -114,6 +125,7 @@ footer{text-align:center;margin-top:10px;font-size:12px}
   <span class="price mono" id="p10">—</span>
   <span class="prof"><div class="gbp mono" id="g10">—</div><div class="usd mono" id="u10"></div><div class="hint">tap to copy</div></span>
 </button>
+<div class="daylog mono" id="dayLog" hidden></div>
 <div class="ghosts">
   <button class="ghost" data-p="10">10%</button>
   <button class="ghost" data-p="20">20%</button>
@@ -140,7 +152,7 @@ function limitFor(buy, x){
 function breakEven(buy){ return limitFor(buy, 0); }
 
 // ---- state persistence (per-device) ----
-const FIELDS = ['ticker','avg','shares','cur'];
+const FIELDS = ['ticker','avg','shares','stop','risk'];
 try {
   const saved = JSON.parse(localStorage.getItem('profit_state_v3') || '{}');
   FIELDS.forEach(id => { if (saved[id] != null && saved[id] !== '' && !$(id).value) $(id).value = saved[id]; });
@@ -153,13 +165,19 @@ FIELDS.forEach(id => $(id).addEventListener('input', () => { saveState(); calc()
 
 // ---- GBP/USD for the £ profit figures (silent; falls back to $-only) ----
 let GBPUSD = null;
-(async () => {
+async function refreshFx(){
+  try {   // live-ish cable via Yahoo (proxy race) — ECB daily ref can lag 0.3-0.5%
+    const res = await fetchCandles('GBPUSD=X');
+    const r = res && res.meta && res.meta.regularMarketPrice;
+    if (r > 0){ GBPUSD = r; calc(); return; }
+  } catch(e){}
   try {
     const r = await fetch('https://api.frankfurter.dev/v1/latest?base=GBP&symbols=USD');
     const j = await r.json();
     if (j && j.rates && j.rates.USD){ GBPUSD = j.rates.USD; calc(); }
   } catch(e){}
-})();
+}
+setTimeout(refreshFx, 800); setInterval(refreshFx, 300000);
 
 // ---- live price: Finnhub quote + WebSocket stream, Yahoo/proxy fallback ----
 const FINNHUB_KEY = 'd9afnh1r01qg31s4h340d9afnh1r01qg31s4h34g';
@@ -185,8 +203,9 @@ async function fetchQuote(symbol){
   throw new Error('no price');
 }
 
-let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0, prevPrice = null;
+let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0, prevPrice = null, lastUpdateAt = 0, haltBuzzed = false;
 function setPrice(price, tag){
+  lastUpdateAt = Date.now(); haltBuzzed = false;
   $('cur').value = price;
   const bp = $('bigPrice');
   bp.textContent = '$' + price.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
@@ -217,7 +236,11 @@ function startStream(sym){
         const m = JSON.parse(ev.data);
         if (m.type === 'trade' && m.data && m.data.length){
           const t = m.data[m.data.length - 1];
-          if (t.p > 0){ lastTickAt = Date.now(); setPrice(t.p, 'LIVE'); }
+          if (t.p > 0){
+            lastTickAt = Date.now();
+            if (pollTimer){ clearInterval(pollTimer); pollTimer = null; }   // stream is back: stop double-writing
+            setPrice(t.p, 'LIVE');
+          }
         }
       } catch(e){}
     };
@@ -279,8 +302,9 @@ async function getPrice(){
   $('quote').textContent = 'Connecting to ' + sym + '…';
   try {
     const p = await fetchQuote(sym);
+    if ($('ticker').value.trim().toUpperCase() !== sym){ btn.disabled = false; return; }  // user typed a new symbol meanwhile
     if (sym !== liveSym) prevPrice = null;
-    liveSym = sym;
+    liveSym = sym; lastUpdateAt = Date.now();
     setPrice(p, 'LIVE');
     startStream(sym);
     runGauge(sym);                                   // Ross Cameron STRONG/MEDIUM/WEAK
@@ -339,6 +363,7 @@ async function todayVolume(sym){
   try { return await Promise.any(tries); } catch(e){ return null; }
 }
 const GCACHE_KEY = 'gauge_' + new Date().toISOString().slice(0,10);
+try { Object.keys(localStorage).forEach(k => { if (k.startsWith('gauge_') && k !== GCACHE_KEY) localStorage.removeItem(k); }); } catch(e){}
 async function runGauge(sym){
   const box = $('gauge'), badge = $('gBadge'), rs = $('gReasons');
   box.hidden = false; badge.className = 'gbadge loading'; badge.textContent = 'rating ' + sym + '…'; rs.innerHTML = '';
@@ -389,6 +414,19 @@ $('grabBtn').addEventListener('click', () => {
   if (v > 0){ $('avg').value = v; saveState(); calc(); }
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && liveSym) startStream(liveSym); });
+// staleness watchdog: LIVE badge must never lie. >10s without a price = STALE (amber)
+// + restart polling; >30s on a previously-active symbol = possibly LULD-halted.
+setInterval(() => {
+  if (!liveSym || document.hidden || !lastUpdateAt) return;
+  const age = (Date.now() - lastUpdateAt) / 1000;
+  if (age <= 10) return;
+  const halt = age > 30;
+  $('quote').innerHTML = '<strong>' + liveSym + '</strong> <span class="live stale"><span class="dot"></span>' +
+    (halt ? 'NO PRINTS ' + Math.round(age) + 's — HALT?' : 'STALE ' + Math.round(age) + 's') + '</span>';
+  if (!pollTimer) startPolling(liveSym);
+  if (halt && !haltBuzzed){ haltBuzzed = true;
+    if (navigator.vibrate && parseFloat($('avg').value) > 0) navigator.vibrate([80,60,80]); }
+}, 5000);
 window.addEventListener('load', () => { renderRecents(); if ($('ticker').value.trim()) getPrice(); });
 
 // ================= SETUP badge engine (expert-designed, Jul 2026) =================
@@ -427,6 +465,7 @@ function computeSetup(res, last, dp, nowSec){
     const hod = Math.max(...reg.map(c => c.h));
     const lastC = reg[reg.length - 1];
     const elapsed = now - lastC.t;
+    if (elapsed > 600) return false;              // candles stale (cached proxy) — no signal
     let curVol;
     if (elapsed < 60 && reg.length >= 2) curVol = reg[reg.length - 2].v;   // candle too young: use prior
     else curVol = lastC.v * (300 / Math.min(Math.max(elapsed, 60), 300));  // pro-rate in-progress candle
@@ -465,6 +504,49 @@ setInterval(async () => {
   } catch(e){ if (chipSetup[sym]){ chipSetup[sym] = false; renderRecents(); } }
 }, 9000);
 
+// ---- trade journal: SOLD logs the round trip; strip shows today's net; tap = copy CSV ----
+function loadTrades(){ try { return JSON.parse(localStorage.getItem('trades') || '[]'); } catch(e){ return []; } }
+function renderDayLog(){
+  const today = new Date().toISOString().slice(0,10);
+  const t = loadTrades(), mine = t.filter(x => x.d.slice(0,10) === today);
+  const el = $('dayLog');
+  if (!mine.length){ el.hidden = true; return; }
+  const net = mine.reduce((a,x) => a + x.netGBP, 0);
+  el.innerHTML = 'Today: <b style="color:' + (net >= 0 ? 'var(--green)' : 'var(--red)') + '">' +
+    (net >= 0 ? '+' : '−') + '£' + fmt(Math.abs(net)) + '</b> · ' + mine.length + ' trade' + (mine.length === 1 ? '' : 's') + ' · tap to copy log';
+  el.hidden = false;
+}
+$('dayLog').addEventListener('click', () => {
+  const t = loadTrades();
+  if (!t.length) return;
+  const NL = String.fromCharCode(10);
+  const csv = 'date,symbol,entry,exit,shares,net_gbp' + NL + t.map(x =>
+    [x.d, x.sym, x.entry, x.exit, x.sh, x.netGBP.toFixed(2)].join(',')).join(NL);
+  (navigator.clipboard ? navigator.clipboard.writeText(csv) : Promise.reject()).then(() => {
+    const toast = $('toast'); toast.textContent = 'Trade log copied (CSV)';
+    toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600);
+  }).catch(()=>{});
+});
+$('soldBtn').addEventListener('click', () => {
+  const buy = parseFloat($('avg').value), sh = parseFloat($('shares').value), cur = parseFloat($('cur').value);
+  if (!(buy > 0) || !(sh > 0) || !(cur > 0) || !liveSym){ 
+    const toast = $('toast'); toast.textContent = 'Need entry + shares + live price to log';
+    toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600); return; }
+  if (!GBPUSD){ const toast = $('toast'); toast.textContent = 'FX rate still loading — try again in a moment';
+    toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600); return; }
+  const netUSD = (sh * cur * (1 - S) - sh * T) * (1 - F) - sh * buy * (1 + F);
+  const netGBP = netUSD / GBPUSD;
+  const t = loadTrades();
+  t.push({d: new Date().toISOString(), sym: liveSym, entry: buy, exit: cur, sh: sh, netGBP: netGBP});
+  try { localStorage.setItem('trades', JSON.stringify(t.slice(-500))); } catch(e){}
+  $('avg').value = ''; $('shares').value = ''; $('stop').value = ''; saveState(); calc(); renderDayLog();
+  const toast = $('toast');
+  toast.textContent = 'Logged: ' + (netGBP >= 0 ? '+' : '−') + '£' + fmt(Math.abs(netGBP));
+  toast.classList.add('show'); if (navigator.vibrate) navigator.vibrate(30);
+  setTimeout(() => toast.classList.remove('show'), 1800);
+});
+renderDayLog();
+
 // ---- second card target (10% default; ghosts swap to 20/25) ----
 let alt = 10;
 document.querySelectorAll('.ghost').forEach(g => g.addEventListener('click', () => {
@@ -493,6 +575,7 @@ function calc(){
   if (isNaN(buy) || buy <= 0){
     $('beLine').hidden = true;
     $('plLine').hidden = true;
+    $('stopLine').hidden = true;
     $('p5').textContent = '—'; $('g5').textContent = '—'; $('u5').textContent = '';
     $('p10').textContent = '—'; $('g10').textContent = '—'; $('u10').textContent = '';
     return;
@@ -515,6 +598,24 @@ function calc(){
     const el = $('plLine'); el.className = 'pl mono ' + (up ? 'up' : 'down'); el.hidden = false;
   } else {
     $('plLine').hidden = true;
+  }
+  // stop-loss guardrail + risk-based position size (net of ALL costs, like everything here)
+  const stopP = parseFloat($('stop').value), riskGBP = parseFloat($('risk').value);
+  if (!isNaN(stopP) && stopP > 0 && stopP < buy){
+    const lossPS = buy * (1 + F) - ((stopP * (1 - S) - T) * (1 - F));   // $ lost per share if stopped
+    let t = 'STOP $' + fmt(stopP);
+    if (!isNaN(shares) && shares > 0){
+      const lossTot = lossPS * shares;
+      t += ' → −' + (GBPUSD ? '£' + fmt(lossTot / GBPUSD) : '$' + fmt(lossTot));
+    }
+    const gain5PS = 0.05 * buy * (1 + F);                                // net $ gain/share at the +5% card
+    if (lossPS > 0) t += ' · R:R 1:' + fmt(gain5PS / lossPS, 1);
+    if (!isNaN(riskGBP) && riskGBP > 0 && GBPUSD && lossPS > 0)
+      t += ' · size for £' + fmt(riskGBP, 0) + ': ' + Math.floor(riskGBP * GBPUSD / lossPS) + ' sh';
+    $('stopLine').textContent = t;
+    $('stopLine').hidden = false;
+  } else {
+    $('stopLine').hidden = true;
   }
   fillCard('p5','g5','u5', buy, shares, 0.05);
   fillCard('p10','g10','u10', buy, shares, alt/100);
