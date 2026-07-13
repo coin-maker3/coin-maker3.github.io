@@ -208,7 +208,9 @@ const FINNHUB_KEY = 'd9afnh1r01qg31s4h340d9afnh1r01qg31s4h34g';
 let extCache = { sym: null, at: 0, p: 0, tag: '' };            // 8s cache so 3s polling doesn't hammer proxies
 async function fetchExtended(symbol){
   if (extCache.sym === symbol && Date.now() - extCache.at < 8000 && extCache.p > 0) return extCache;
-  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=1m&includePrePost=true';
+  // &cb= busts PROXY-side caching: corsproxy/allorigins serve the identical URL from
+  // cache for minutes (proven 13 Jul 2026: same candle returned 75s apart plain; fresh with cb)
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=1m&includePrePost=true&cb=' + Date.now();
   for (const wrap of [u => u, u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)]){
     try {
       const r = await fetch(wrap(url));
@@ -234,6 +236,9 @@ async function fetchExtended(symbol){
       return extCache;
     } catch(e){}
   }
+  // all proxies down this cycle: a recent extended print beats reverting to the
+  // hours-old frozen close (which would move the shown price BACKWARDS)
+  if (extCache.sym === symbol && extCache.p > 0 && Date.now() - extCache.at < 600000) return extCache;
   return null;
 }
 async function fetchQuote(symbol){
@@ -274,7 +279,9 @@ function startPolling(sym){
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
     if (document.hidden) return;
-    try { const q = await fetchQuote(sym); if (q.p > 0 && sym === liveSym) setPrice(q.p, (q.tag || 'LIVE') + ' (3s)'); } catch(e){}
+    try { const q = await fetchQuote(sym); if (q.p > 0 && sym === liveSym)
+      // "(3s)" only when genuinely 3s-fresh; extended prints are 1-min candles — say so
+      setPrice(q.p, q.tag === '' ? 'LIVE (3s)' : q.tag === 'LAST CLOSE' ? q.tag : q.tag + ' ~1m'); } catch(e){}
   }, 3000);
 }
 function startStream(sym){
@@ -532,7 +539,7 @@ function computeSetup(res, last, dp, nowSec){
 }
 try { window.computeSetup = computeSetup; } catch(e){}
 async function fetchCandles(sym){
-  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=5m&includePrePost=true';
+  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=5m&includePrePost=true&cb=' + Date.now();   // bust proxy cache — same freeze the "candles stale" guard kept firing on
   const enc = encodeURIComponent(y);
   const tries = [
     jget('https://corsproxy.io/?url=' + enc, 8000),
