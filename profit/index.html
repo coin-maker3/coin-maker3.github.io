@@ -86,6 +86,21 @@ footer{text-align:center;margin-top:8px}
   <input id="fee" type="number" inputmode="decimal" step="0.1" min="0" max="99" placeholder="e.g. 0.5">
 </div>
 
+<div class="card">
+  <label style="margin-top:0">Match Trading&nbsp;212 <span class="opt">(£ mode — optional. Fill these and profit is calculated in pounds, like your app shows.)</span></label>
+  <div class="row">
+    <div>
+      <label for="avgGBP">Average price (£) <span class="opt">(T212 shows it in brackets)</span></label>
+      <input id="avgGBP" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 5.63">
+    </div>
+    <div>
+      <label for="fx">GBP→USD rate <span class="opt">(auto — edit if needed)</span></label>
+      <input id="fx" type="number" inputmode="decimal" step="0.0001" min="0" placeholder="e.g. 1.3388">
+    </div>
+  </div>
+  <p class="note" style="margin-top:10px" id="fxNote">The rate auto-fills with the live GBP→USD rate. For an exact match to your app: rate = current $ price ÷ (VALUE £ ÷ SHARES) from the T212 screen.</p>
+</div>
+
 <div class="card result">
   <div class="lbl">Sell at</div>
   <div class="big" id="target">—</div>
@@ -96,7 +111,7 @@ footer{text-align:center;margin-top:8px}
     <div class="stat"><div class="k">Current P/L</div><div class="v" id="curPL">—</div></div>
     <div class="stat"><div class="k">Needed from here</div><div class="v" id="needed">—</div></div>
   </div>
-  <p class="note">Currency note: if you bought in another currency (e.g. GBP), your real return also moves with the exchange rate. Add an FX buffer above to stay safe.</p>
+  <p class="note">Currency note: your broker measures profit in pounds, so the exchange rate moves your real return. Fill the "Match Trading 212" box above and the target is calculated in £ — the number your app actually shows.</p>
 </div>
 
 <footer><a href="/">← coin-maker3</a></footer>
@@ -115,16 +130,28 @@ chips.forEach(c => c.addEventListener('click', () => {
   calc();
 }));
 
-['avg','custom','shares','cur','fee'].forEach(id => $(id).addEventListener('input', calc));
+['avg','custom','shares','cur','fee','avgGBP','fx'].forEach(id => $(id).addEventListener('input', calc));
 
-// --- live price lookup (Yahoo Finance, with CORS-proxy fallbacks) ---
+// --- live price lookup ---
+// Primary: Finnhub (official browser CORS, 60 calls/min free — key is public-safe by design).
+// Fallback: Yahoo Finance via CORS proxy (kept from v1).
+const FINNHUB_KEY = 'd9afnh1r01qg31s4h340d9afnh1r01qg31s4h34g';
 async function fetchQuote(symbol){
+  try {
+    const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' +
+                          encodeURIComponent(symbol) + '&token=' + FINNHUB_KEY);
+    if (r.ok){
+      const j = await r.json();
+      if (j && typeof j.c === 'number' && j.c > 0)
+        return { regularMarketPrice: j.c, symbol: symbol, currency: 'USD',
+                 shortName: (j.dp!=null ? (j.dp>=0?'+':'') + j.dp.toFixed(2) + '% today' : '') };
+    }
+  } catch(e){ /* fall through to Yahoo */ }
   const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
               encodeURIComponent(symbol) + '?range=1d&interval=1d';
   const attempts = [
     u => u,
     u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
   ];
   let lastErr;
   for (const wrap of attempts){
@@ -140,6 +167,26 @@ async function fetchQuote(symbol){
   }
   throw lastErr || new Error('could not fetch price');
 }
+
+// --- CURRENT GBP→USD rate for £ mode ---
+// Frankfurter first (free, key-less, dependable browser CORS; ECB daily reference,
+// can lag the live rate slightly — the field stays editable and the tip gives the
+// exact-match formula). Then try Yahoo's live GBPUSD=X to refine if it responds.
+(async function loadFx(){
+  try {
+    const r = await fetch('https://api.frankfurter.dev/v1/latest?base=GBP&symbols=USD');
+    const j = await r.json();
+    const rate = j && j.rates && j.rates.USD;
+    if (rate && !$('fx').value){ $('fx').value = rate; $('fx').dataset.auto = '1'; calc(); }
+  } catch(e){ /* user can type the rate manually */ }
+  try {
+    const q = await fetchQuote('GBPUSD=X');
+    if (q && q.regularMarketPrice > 0 && $('fx').dataset.auto === '1'){
+      $('fx').value = q.regularMarketPrice.toFixed(4); calc();
+    }
+  } catch(e){}
+})();
+$('fx').addEventListener('input', () => { delete $('fx').dataset.auto; });
 
 async function getPrice(){
   const sym = $('ticker').value.trim().toUpperCase();
@@ -174,6 +221,40 @@ function calc(){
   else if (!chips.some(x => x.classList.contains('active')))
     chips.find(x => parseFloat(x.dataset.p) === chipPct).classList.add('active');
 
+  const fee = Math.min(Math.max(parseFloat($('fee').value) || 0, 0), 99) / 100;
+  const shares = parseFloat($('shares').value);
+  const cur = parseFloat($('cur').value);
+
+  // ---- £ mode (matches Trading 212): both £ average and fx rate present ----
+  const avgGBP = parseFloat($('avgGBP').value);
+  const fx = parseFloat($('fx').value);
+  if (!isNaN(avgGBP) && avgGBP > 0 && !isNaN(fx) && fx > 0){
+    // sell price in $ that delivers pct% profit measured in POUNDS at this fx rate
+    const target = fx * avgGBP * (1 + pct/100) / (1 - fee);
+    $('target').textContent = '$' + fmt(target);
+    $('targetSub').textContent = 'for ' + pct + '% profit IN £ (at rate ' + fmt(fx,4) + ')' +
+                                 (fee ? ' incl. ' + fmt(fee*100,1) + '% buffer' : '');
+    const perShareGBP = avgGBP * (1 + pct/100) / (1 - fee) - avgGBP;
+    $('stats').hidden = false;
+    $('perShare').textContent = '+£' + fmt(perShareGBP);
+    $('total').textContent = (!isNaN(shares) && shares > 0) ? '+£' + fmt(perShareGBP * shares) : '—';
+    if (!isNaN(cur) && cur > 0){
+      const curGBP = cur / fx;                       // today's £ value of one share
+      const pl = (curGBP - avgGBP) / avgGBP * 100;   // = the RETURN % Trading 212 shows
+      const el = $('curPL');
+      el.textContent = (pl >= 0 ? '+' : '') + fmt(pl) + '%' +
+        ((!isNaN(shares) && shares > 0) ? ' (' + (pl>=0?'+':'−') + '£' + fmt(Math.abs((curGBP-avgGBP)*shares)) + ')' : '');
+      el.className = 'v ' + (pl >= 0 ? 'green' : 'red');
+      const need = (target - cur) / cur * 100;
+      $('needed').textContent = need <= 0 ? 'Target hit! 🎉' : '+' + fmt(need) + '% more';
+    } else {
+      $('curPL').textContent = '—'; $('curPL').className = 'v';
+      $('needed').textContent = '—';
+    }
+    return;
+  }
+
+  // ---- plain $ mode ----
   if (isNaN(avg) || avg <= 0){
     $('target').textContent = '—';
     $('targetSub').textContent = 'enter your buy price above';
@@ -181,13 +262,10 @@ function calc(){
     return;
   }
 
-  const fee = Math.min(Math.max(parseFloat($('fee').value) || 0, 0), 99) / 100;
   const target = avg * (1 + pct/100) / (1 - fee);
   $('target').textContent = '$' + fmt(target);
   $('targetSub').textContent = 'for ' + pct + '% profit' + (fee ? ' (incl. ' + fmt(fee*100,1) + '% buffer)' : '');
 
-  const shares = parseFloat($('shares').value);
-  const cur = parseFloat($('cur').value);
   const perShare = target - avg;
 
   $('stats').hidden = false;
