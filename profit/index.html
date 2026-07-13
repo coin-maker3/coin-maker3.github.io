@@ -213,9 +213,7 @@ async function fetchExtended(symbol){
   const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=1m&includePrePost=true&cb=' + Date.now();
   for (const wrap of [u => u, u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)]){
     try {
-      const r = await fetch(wrap(url));
-      if (!r.ok) continue;
-      const j = await r.json();
+      const j = await jget(wrap(url), 8000);          // 8s cap — a hung proxy socket must not stall the poll pipeline
       const res = j?.chart?.result?.[0];
       if (!res){ if (j?.chart?.error) break; continue; }
       const ts = res.timestamp || [], cl = res.indicators?.quote?.[0]?.close || [];
@@ -279,14 +277,15 @@ function startPolling(sym){
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
     if (document.hidden) return;
+    if (Date.now() - lastTickAt < 5000) return;        // stream healthy: don't double-write (no kill/restart flapping)
     try { const q = await fetchQuote(sym); if (q.p > 0 && sym === liveSym)
-      // "(3s)" only when genuinely 3s-fresh; extended prints are 1-min candles — say so
-      setPrice(q.p, q.tag === '' ? 'LIVE (3s)' : q.tag === 'LAST CLOSE' ? q.tag : q.tag + ' ~1m'); } catch(e){}
+      // "(3s)" only when genuinely 3s-fresh; extended prints refresh ~every 10s post cache-bust
+      setPrice(q.p, q.tag === '' ? 'LIVE (3s)' : q.tag === 'LAST CLOSE' ? q.tag : q.tag + ' ~10s'); } catch(e){}
   }, 3000);
 }
 function startStream(sym){
   stopLive();
-  liveSym = sym;
+  liveSym = sym; lastTickAt = 0;                       // per-symbol: old symbol's ticks must not mute the new one's poll
   try {
     ws = new WebSocket('wss://ws.finnhub.io?token=' + FINNHUB_KEY);
     ws.onopen = () => ws.send(JSON.stringify({type:'subscribe', symbol:sym}));
@@ -296,8 +295,7 @@ function startStream(sym){
         if (m.type === 'trade' && m.data && m.data.length){
           const t = m.data[m.data.length - 1];
           if (t.p > 0){
-            lastTickAt = Date.now();
-            if (pollTimer){ clearInterval(pollTimer); pollTimer = null; }   // stream is back: stop double-writing
+            lastTickAt = Date.now();                   // poll self-mutes while ticks flow — no kill/restart loop
             setPrice(t.p, 'LIVE');
           }
         }
@@ -417,7 +415,7 @@ async function jget(url, ms){
 }
 // today's volume via Yahoo — race two proxies, 8s cap, null if both fail (rating stays honest)
 async function todayVolume(sym){
-  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=1d';
+  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=1d&cb=' + Math.floor(Date.now() / 60000);   // bust proxy cache (60s bucket — RVOL froze the same way)
   const wraps = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?url='];
   const tries = wraps.map(w => jget(w + encodeURIComponent(y), 8000)
     .then(j => { const v = j?.chart?.result?.[0]?.meta?.regularMarketVolume; if (v > 0) return v; throw 0; }));
