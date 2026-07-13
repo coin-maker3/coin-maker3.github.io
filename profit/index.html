@@ -6,230 +6,164 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root{
-  --bg:#0b0f1a; --card:#131a2b; --field:#0e1524; --line:#243250;
-  --text:#e6edf7; --muted:#a8b3c7; --accent:#7cc4ff; --green:#4ade80; --red:#f87171;
+  --bg:#07090f; --card:#10141f; --field:#0b0f18; --line:#1f2738;
+  --text:#eef2f9; --muted:#8b96a8; --green:#4ade80; --green2:#22c55e; --red:#f87171; --amber:#fbbf24;
 }
 *{box-sizing:border-box}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;min-height:100vh;display:flex;justify-content:center;padding:24px 16px}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;min-height:100vh;display:flex;justify-content:center;padding:18px 14px 40px}
 main{width:100%;max-width:460px}
-h1{font-size:22px;margin:8px 0 4px;letter-spacing:.4px}
-.sub{color:var(--muted);font-size:14px;margin:0 0 20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
-label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
-label:first-child{margin-top:0}
-.opt{font-size:11px;opacity:.7}
-input[type=number]{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:17px;padding:12px 14px;outline:none}
-input[type=number]:focus{border-color:var(--accent)}
-.chips{display:flex;gap:8px;margin-top:8px}
-.chip{flex:1;background:var(--field);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:15px;padding:10px 0;cursor:pointer;text-align:center}
-.chip.active{border-color:var(--accent);color:var(--accent);font-weight:600}
-.row{display:flex;gap:12px}
-.row>div{flex:1}
-.result{text-align:center;padding:22px 18px}
-.result .big{font-size:38px;font-weight:700;letter-spacing:.5px;margin:2px 0}
-.result .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
-.stat{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:10px}
-.stat .v{font-size:17px;font-weight:600;margin-top:2px}
-.stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
-.green{color:var(--green)}.red{color:var(--red)}
-.note{color:var(--muted);font-size:12px;line-height:1.5;margin-top:14px}
-a{color:var(--accent);text-decoration:none}
-footer{text-align:center;margin-top:8px}
+.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .tickrow{display:flex;gap:8px}
 .tickrow input{flex:1;text-transform:uppercase}
-.btn{background:var(--accent);border:none;border-radius:10px;color:#08121f;font-size:15px;font-weight:600;padding:0 18px;cursor:pointer}
-.btn:disabled{opacity:.5;cursor:wait}
-.quote{font-size:13px;margin-top:8px;min-height:18px}
-.quote .name{color:var(--muted)}
-.err{color:var(--red)}
+input[type=text],input[type=number]{background:var(--field);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:17px;padding:13px 14px;outline:none;width:100%}
+input:focus{border-color:var(--green)}
+.btn{background:#1c2436;border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-weight:700;padding:0 16px;cursor:pointer;min-height:50px}
+.btn.primary{background:var(--green2);border:none;color:#03140a}
+.btn:disabled{opacity:.5}
+.bigprice{font-size:46px;font-weight:800;text-align:center;margin:12px 0 0;transition:color .2s;min-height:56px}
+.bigprice.up{color:var(--green)}.bigprice.down{color:var(--red)}
+.quote{font-size:13px;text-align:center;min-height:18px;color:var(--muted);margin-bottom:6px}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--green)}
 .live .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite}
-.live.stale{color:var(--muted)}.live.stale .dot{background:var(--muted);animation:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.bigprice{font-size:52px;font-weight:800;letter-spacing:.5px;text-align:center;margin:14px 0 2px;font-variant-numeric:tabular-nums;transition:color .25s}
-.bigprice.up{color:var(--green)}.bigprice.down{color:var(--red)}
-details summary::-webkit-details-marker{display:none}
+.err{color:var(--red)}
+.entry{display:flex;gap:8px;margin-top:6px}
+.entry input{flex:1}
+.lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 5px}
+.be{display:flex;justify-content:center;align-items:center;gap:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--amber);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:700;margin-top:14px;min-height:34px}
+.tcard{width:100%;border-radius:16px;padding:14px 16px;margin-top:12px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:12px;cursor:pointer;min-height:96px;text-align:left;color:var(--text)}
+.tcard:active{transform:scale(.99)}
+.tcard .pct{font-size:15px;font-weight:800;letter-spacing:.5px;min-width:82px}
+.tcard .price{font-size:34px;font-weight:800;flex:1;text-align:center}
+.tcard .prof{text-align:right;min-width:92px}
+.tcard .prof .gbp{font-size:17px;font-weight:800}
+.tcard .prof .usd{font-size:11.5px;color:var(--muted);margin-top:2px}
+.tcard.t5{border-color:rgba(74,222,128,.45)}
+.tcard.t5 .pct,.tcard.t5 .price,.tcard.t5 .prof .gbp{color:var(--green)}
+.tcard.t10{border-color:var(--green);box-shadow:0 0 0 1px rgba(74,222,128,.25)}
+.tcard.t10 .pct,.tcard.t10 .price,.tcard.t10 .prof .gbp{color:var(--green)}
+.tcard .hint{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.ghosts{display:flex;gap:8px;margin-top:10px;justify-content:center}
+.ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.ghost.on{border-color:var(--green);color:var(--green)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#e6f9ee;color:#0a3d1f;font-weight:800;font-size:14px;border-radius:99px;padding:10px 20px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;white-space:nowrap}
+.toast.show{opacity:1}
+.note{color:var(--muted);font-size:11.5px;line-height:1.5;text-align:center;margin-top:16px}
+a{color:var(--muted);text-decoration:none}
+footer{text-align:center;margin-top:10px;font-size:12px}
 </style>
 </head>
 <body>
 <main>
-<h1>Live Trade Cockpit</h1>
-<p class="sub">Type a symbol → live price streams. Tap "Use live" when you buy. Watch your exit.</p>
+<div class="tickrow">
+  <input id="ticker" type="text" autocapitalize="characters" autocomplete="off" placeholder="symbol — TSLA, AAPL…">
+  <button class="btn primary" id="fetchBtn">Go live</button>
+</div>
+<div class="bigprice mono" id="bigPrice">—</div>
+<div class="quote" id="quote"></div>
+<input id="cur" type="hidden">
 
-<div class="card">
-  <div class="tickrow">
-    <input id="ticker" type="text" autocapitalize="characters" autocomplete="off" placeholder="symbol — AAPL, TSLA…">
-    <button class="btn" id="fetchBtn">Go live</button>
-  </div>
-  <div class="bigprice" id="bigPrice">—</div>
-  <div class="quote" id="quote"></div>
-  <input id="cur" type="hidden">
-
-  <label for="avg">My buy price ($)</label>
-  <div class="tickrow">
-    <input id="avg" type="number" inputmode="decimal" step="any" min="0" placeholder="tap Use live when you buy →">
-    <button class="btn" id="grabBtn" title="copy the live price into buy price">Use live</button>
-  </div>
-
-  <label>Target profit %</label>
-  <div class="chips" id="chips">
-    <button class="chip active" data-p="5">5%</button>
-    <button class="chip" data-p="10">10%</button>
-    <button class="chip" data-p="20">20%</button>
-    <button class="chip" data-p="25">25%</button>
-  </div>
-  <div class="row">
-    <div>
-      <label for="custom">Custom % <span class="opt">(overrides)</span></label>
-      <input id="custom" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 0.5">
-    </div>
-    <div>
-      <label for="shares">Shares <span class="opt">(optional)</span></label>
-      <input id="shares" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 100">
-    </div>
-  </div>
-  <label for="fee">Fees / FX buffer % <span class="opt">(optional)</span></label>
-  <input id="fee" type="number" inputmode="decimal" step="0.1" min="0" max="99" placeholder="e.g. 0.15">
+<div class="lbl">My entry price ($) · shares</div>
+<div class="entry">
+  <input id="avg" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="entry price">
+  <input id="shares" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="shares" style="max-width:110px">
+  <button class="btn" id="grabBtn" title="stamp the live price as my entry">Use live</button>
 </div>
 
-<details class="card" style="padding:14px 18px">
-  <summary style="cursor:pointer;color:var(--muted);font-size:13px">£ mode (match Trading 212) — for longer holds</summary>
-  <div class="row" style="margin-top:10px">
-    <div>
-      <label for="avgGBP">Average price (£)</label>
-      <input id="avgGBP" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 5.63">
-    </div>
-    <div>
-      <label for="fx">GBP→USD rate <span class="opt">(auto)</span></label>
-      <input id="fx" type="number" inputmode="decimal" step="0.0001" min="0" placeholder="e.g. 1.3388">
-    </div>
-  </div>
-  <p class="note" style="margin-top:10px" id="fxNote">Exact match to T212: rate = current $ price ÷ (VALUE £ ÷ SHARES). On seconds-to-minutes trades the fx move is negligible — leave this closed.</p>
-</details>
+<div class="be mono" id="beLine" hidden></div>
 
-<div class="card result">
-  <div class="lbl">Sell at</div>
-  <div class="big" id="target">—</div>
-  <div class="lbl" id="targetSub">enter your buy price above</div>
-  <div class="grid" id="stats" hidden>
-    <div class="stat"><div class="k">Profit / share</div><div class="v green" id="perShare">—</div></div>
-    <div class="stat"><div class="k">Total profit</div><div class="v green" id="total">—</div></div>
-    <div class="stat"><div class="k">Current P/L</div><div class="v" id="curPL">—</div></div>
-    <div class="stat"><div class="k">Needed from here</div><div class="v" id="needed">—</div></div>
-  </div>
-  <p class="note">Currency note: your broker measures profit in pounds, so the exchange rate moves your real return. Fill the "Match Trading 212" box above and the target is calculated in £ — the number your app actually shows.</p>
+<button class="tcard t5" id="card5">
+  <span class="pct">+5% NET</span>
+  <span class="price mono" id="p5">—</span>
+  <span class="prof"><div class="gbp mono" id="g5">—</div><div class="usd mono" id="u5"></div><div class="hint">tap to copy</div></span>
+</button>
+<button class="tcard t10" id="card10">
+  <span class="pct" id="pct10">+10% NET</span>
+  <span class="price mono" id="p10">—</span>
+  <span class="prof"><div class="gbp mono" id="g10">—</div><div class="usd mono" id="u10"></div><div class="hint">tap to copy</div></span>
+</button>
+<div class="ghosts">
+  <button class="ghost" data-p="10">10%</button>
+  <button class="ghost" data-p="20">20%</button>
+  <button class="ghost" data-p="25">25%</button>
 </div>
 
+<p class="note">These are the exact LIMIT SELL prices to place on Trading&nbsp;212 — all its real costs (0.15% FX each way + US sell fees) are already included and rounded up in your favour. NET = profit after everything.</p>
 <footer><a href="/">← coin-maker3</a></footer>
 </main>
+<div class="toast" id="toast"></div>
 
 <script>
 const $ = id => document.getElementById(id);
-const chips = [...document.querySelectorAll('.chip')];
-let chipPct = 5;
 
-// ---- remember everything on this device (no baked-in position — per-trade tool) ----
-const DEFAULTS = {};
-const FIELDS = ['ticker','avg','custom','shares','cur','fee','avgGBP','fx'];
+// ---- Trading 212 UK Invest (GBP) real costs — verified July 2026, silent by design ----
+// FX fee 0.15% each way (baked into T212's rate) · SEC 0.00278% of sell value ·
+// FINRA TAF $0.000195/share sold. Commission zero. FX rate cancels for % targets:
+//   P_sell = ( P_buy·(1+x)·(1+f)/(1−f) + t ) / (1−s), then round UP to the cent.
+// Unit tests: buy $10.00 → +5% limit $10.54 · +10% limit $11.04 · break-even $10.04.
+const F = 0.0015, S = 0.0000278, T = 0.000195;
+function limitFor(buy, x){
+  const raw = (buy * (1 + x) * (1 + F) / (1 - F) + T) / (1 - S);
+  return Math.ceil(raw * 100 - 1e-9) / 100;
+}
+function breakEven(buy){ return limitFor(buy, 0); }
+
+// ---- state persistence (per-device) ----
+const FIELDS = ['ticker','avg','shares','cur'];
 try {
-  const saved = JSON.parse(localStorage.getItem('profit_state_v2') || '{}');
-  FIELDS.forEach(id => {
-    const v = (id in saved) ? saved[id] : DEFAULTS[id];
-    if (v != null && v !== '' && !$(id).value) $(id).value = v;
-  });
+  const saved = JSON.parse(localStorage.getItem('profit_state_v3') || '{}');
+  FIELDS.forEach(id => { if (saved[id] != null && saved[id] !== '' && !$(id).value) $(id).value = saved[id]; });
 } catch(e){}
 function saveState(){
-  try {
-    const s = {}; FIELDS.forEach(id => s[id] = $(id).value);
-    localStorage.setItem('profit_state_v2', JSON.stringify(s));
-  } catch(e){}
+  try { const s = {}; FIELDS.forEach(id => s[id] = $(id).value);
+        localStorage.setItem('profit_state_v3', JSON.stringify(s)); } catch(e){}
 }
-FIELDS.forEach(id => $(id).addEventListener('input', saveState));
+FIELDS.forEach(id => $(id).addEventListener('input', () => { saveState(); calc(); }));
 
-chips.forEach(c => c.addEventListener('click', () => {
-  chips.forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  chipPct = parseFloat(c.dataset.p);
-  $('custom').value = '';
-  calc();
-}));
-
-['avg','custom','shares','cur','fee','avgGBP','fx'].forEach(id => $(id).addEventListener('input', calc));
-
-// --- live price lookup ---
-// Primary: Finnhub (official browser CORS, 60 calls/min free — key is public-safe by design).
-// Fallback: Yahoo Finance via CORS proxy (kept from v1).
-const FINNHUB_KEY = 'd9afnh1r01qg31s4h340d9afnh1r01qg31s4h34g';
-async function fetchQuote(symbol){
-  try {
-    const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' +
-                          encodeURIComponent(symbol) + '&token=' + FINNHUB_KEY);
-    if (r.ok){
-      const j = await r.json();
-      if (j && typeof j.c === 'number' && j.c > 0)
-        return { regularMarketPrice: j.c, symbol: symbol, currency: 'USD',
-                 shortName: (j.dp!=null ? (j.dp>=0?'+':'') + j.dp.toFixed(2) + '% today' : '') };
-    }
-  } catch(e){ /* fall through to Yahoo */ }
-  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
-              encodeURIComponent(symbol) + '?range=1d&interval=1d';
-  const attempts = [
-    u => u,
-    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  ];
-  let lastErr;
-  for (const wrap of attempts){
-    try {
-      const r = await fetch(wrap(url));
-      if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
-      const j = await r.json();
-      const meta = j?.chart?.result?.[0]?.meta;
-      if (meta && meta.regularMarketPrice != null) return meta;
-      lastErr = new Error(j?.chart?.error?.description || 'symbol not found');
-      if (j?.chart?.error) break; // real "no such ticker" — don't retry proxies
-    } catch(e){ lastErr = e; }
-  }
-  throw lastErr || new Error('could not fetch price');
-}
-
-// --- CURRENT GBP→USD rate for £ mode ---
-// Frankfurter first (free, key-less, dependable browser CORS; ECB daily reference,
-// can lag the live rate slightly — the field stays editable and the tip gives the
-// exact-match formula). Then try Yahoo's live GBPUSD=X to refine if it responds.
-(async function loadFx(){
+// ---- GBP/USD for the £ profit figures (silent; falls back to $-only) ----
+let GBPUSD = null;
+(async () => {
   try {
     const r = await fetch('https://api.frankfurter.dev/v1/latest?base=GBP&symbols=USD');
     const j = await r.json();
-    const rate = j && j.rates && j.rates.USD;
-    if (rate && !$('fx').value){ $('fx').value = rate; $('fx').dataset.auto = '1'; calc(); }
-  } catch(e){ /* user can type the rate manually */ }
-  try {
-    const q = await fetchQuote('GBPUSD=X');
-    if (q && q.regularMarketPrice > 0 && $('fx').dataset.auto === '1'){
-      $('fx').value = q.regularMarketPrice.toFixed(4); calc();
-    }
+    if (j && j.rates && j.rates.USD){ GBPUSD = j.rates.USD; calc(); }
   } catch(e){}
 })();
-$('fx').addEventListener('input', () => { delete $('fx').dataset.auto; });
 
-// ---- LIVE price: Finnhub WebSocket (tick-by-tick real trades) + polling fallback ----
+// ---- live price: Finnhub quote + WebSocket stream, Yahoo/proxy fallback ----
+const FINNHUB_KEY = 'd9afnh1r01qg31s4h340d9afnh1r01qg31s4h34g';
+async function fetchQuote(symbol){
+  try {
+    const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(symbol) + '&token=' + FINNHUB_KEY);
+    if (r.ok){
+      const j = await r.json();
+      if (j && typeof j.c === 'number' && j.c > 0) return j.c;
+    }
+  } catch(e){}
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=1d';
+  for (const wrap of [u => u, u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)]){
+    try {
+      const r = await fetch(wrap(url));
+      if (!r.ok) continue;
+      const j = await r.json();
+      const p = j?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (p > 0) return p;
+      if (j?.chart?.error) break;
+    } catch(e){}
+  }
+  throw new Error('no price');
+}
+
 let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0, prevPrice = null;
 function setPrice(price, tag){
   $('cur').value = price;
   const bp = $('bigPrice');
   bp.textContent = '$' + price.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
-  bp.className = 'bigprice' + (prevPrice==null ? '' : price>prevPrice ? ' up' : price<prevPrice ? ' down' : '');
+  bp.className = 'bigprice mono' + (prevPrice==null ? '' : price>prevPrice ? ' up' : price<prevPrice ? ' down' : '');
   prevPrice = price;
-  $('quote').innerHTML = '<strong>' + liveSym + '</strong> ' +
-    '<span class="live" id="liveBadge"><span class="dot"></span>' + tag + '</span>';
+  $('quote').innerHTML = '<strong>' + liveSym + '</strong> <span class="live"><span class="dot"></span>' + tag + '</span>';
   saveState(); calc();
 }
-// "Use live" — stamp the live price as my buy price the moment I enter a trade
-$('grabBtn').addEventListener('click', () => {
-  const v = parseFloat($('cur').value);
-  if (v > 0){ $('avg').value = v; saveState(); calc(); }
-});
 function stopLive(){
   if (ws){ try { ws.close(); } catch(e){} ws = null; }
   if (pollTimer){ clearInterval(pollTimer); pollTimer = null; }
@@ -237,11 +171,8 @@ function stopLive(){
 function startPolling(sym){
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
-    if (document.hidden) return;               // don't burn the rate limit in background
-    try {
-      const q = await fetchQuote(sym);
-      if (q.regularMarketPrice > 0 && sym === liveSym) setPrice(q.regularMarketPrice, 'LIVE (3s)');
-    } catch(e){}
+    if (document.hidden) return;
+    try { const p = await fetchQuote(sym); if (p > 0 && sym === liveSym) setPrice(p, 'LIVE (3s)'); } catch(e){}
   }, 3000);
 }
 function startStream(sym){
@@ -259,113 +190,92 @@ function startStream(sym){
         }
       } catch(e){}
     };
-    ws.onerror = () => { startPolling(sym); };
+    ws.onerror = () => startPolling(sym);
     ws.onclose  = () => { if (sym === liveSym && !pollTimer) startPolling(sym); };
-    // if no trade arrives quickly (market closed / quiet stock), poll alongside
     setTimeout(() => { if (Date.now() - lastTickAt > 8000 && sym === liveSym) startPolling(sym); }, 8000);
   } catch(e){ startPolling(sym); }
 }
-
 async function getPrice(){
   const sym = $('ticker').value.trim().toUpperCase();
-  if (!sym) { $('quote').innerHTML = '<span class="err">Enter a ticker first</span>'; return; }
-  const btn = $('fetchBtn');
-  btn.disabled = true;
-  $('quote').textContent = 'Fetching ' + sym + '…';
+  if (!sym){ $('quote').innerHTML = '<span class="err">Type a symbol first</span>'; return; }
+  const btn = $('fetchBtn'); btn.disabled = true;
+  $('quote').textContent = 'Connecting to ' + sym + '…';
   try {
-    const q = await fetchQuote(sym);
-    if (sym !== liveSym) prevPrice = null;     // new symbol -> fresh up/down colouring
+    const p = await fetchQuote(sym);
+    if (sym !== liveSym) prevPrice = null;
     liveSym = sym;
-    setPrice(q.regularMarketPrice, 'LIVE');
-    startStream(sym);                          // tick-by-tick from here on
+    setPrice(p, 'LIVE');
+    startStream(sym);
   } catch(e){
-    $('quote').innerHTML = '<span class="err">Could not get price for ' + sym +
-      ' — check the ticker, or type the current price manually below.</span>';
+    $('quote').innerHTML = '<span class="err">No price for ' + sym + ' — check the symbol.</span>';
   }
   btn.disabled = false;
 }
 $('fetchBtn').addEventListener('click', getPrice);
 $('ticker').addEventListener('keydown', e => { if (e.key === 'Enter') getPrice(); });
-document.addEventListener('visibilitychange', () => {
-  // returning to the tab: reconnect the stream so the price is never stale
-  if (!document.hidden && liveSym) startStream(liveSym);
+$('grabBtn').addEventListener('click', () => {
+  const v = parseFloat($('cur').value);
+  if (v > 0){ $('avg').value = v; saveState(); calc(); }
 });
-// auto-start on open: ticker is prefilled, so the page goes live by itself
+document.addEventListener('visibilitychange', () => { if (!document.hidden && liveSym) startStream(liveSym); });
 window.addEventListener('load', () => { if ($('ticker').value.trim()) getPrice(); });
+
+// ---- second card target (10% default; ghosts swap to 20/25) ----
+let alt = 10;
+document.querySelectorAll('.ghost').forEach(g => g.addEventListener('click', () => {
+  document.querySelectorAll('.ghost').forEach(x => x.classList.remove('on'));
+  g.classList.add('on');
+  alt = parseFloat(g.dataset.p);
+  $('pct10').textContent = '+' + alt + '% NET';
+  calc();
+}));
+document.querySelector('.ghost[data-p="10"]').classList.add('on');
 
 function fmt(n, dp=2){ return n.toLocaleString('en-US',{minimumFractionDigits:dp, maximumFractionDigits:dp}); }
 
-function calc(){
-  const avg = parseFloat($('avg').value);
-  const custom = parseFloat($('custom').value);
-  const pct = (!isNaN(custom) && custom >= 0) ? custom : chipPct;
-  if (!isNaN(custom) && custom >= 0) chips.forEach(x => x.classList.remove('active'));
-  else if (!chips.some(x => x.classList.contains('active')))
-    chips.find(x => parseFloat(x.dataset.p) === chipPct).classList.add('active');
-
-  const fee = Math.min(Math.max(parseFloat($('fee').value) || 0, 0), 99) / 100;
-  const shares = parseFloat($('shares').value);
-  const cur = parseFloat($('cur').value);
-
-  // ---- £ mode (matches Trading 212): both £ average and fx rate present ----
-  const avgGBP = parseFloat($('avgGBP').value);
-  const fx = parseFloat($('fx').value);
-  if (!isNaN(avgGBP) && avgGBP > 0 && !isNaN(fx) && fx > 0){
-    // sell price in $ that delivers pct% profit measured in POUNDS at this fx rate
-    const target = fx * avgGBP * (1 + pct/100) / (1 - fee);
-    $('target').textContent = '$' + fmt(target);
-    $('targetSub').textContent = 'for ' + pct + '% profit IN £ (at rate ' + fmt(fx,4) + ')' +
-                                 (fee ? ' incl. ' + fmt(fee*100,1) + '% buffer' : '');
-    const perShareGBP = avgGBP * (1 + pct/100) / (1 - fee) - avgGBP;
-    $('stats').hidden = false;
-    $('perShare').textContent = '+£' + fmt(perShareGBP);
-    $('total').textContent = (!isNaN(shares) && shares > 0) ? '+£' + fmt(perShareGBP * shares) : '—';
-    if (!isNaN(cur) && cur > 0){
-      const curGBP = cur / fx;                       // today's £ value of one share
-      const pl = (curGBP - avgGBP) / avgGBP * 100;   // = the RETURN % Trading 212 shows
-      const el = $('curPL');
-      el.textContent = (pl >= 0 ? '+' : '') + fmt(pl) + '%' +
-        ((!isNaN(shares) && shares > 0) ? ' (' + (pl>=0?'+':'−') + '£' + fmt(Math.abs((curGBP-avgGBP)*shares)) + ')' : '');
-      el.className = 'v ' + (pl >= 0 ? 'green' : 'red');
-      const need = (target - cur) / cur * 100;
-      $('needed').textContent = need <= 0 ? 'Target hit! 🎉' : '+' + fmt(need) + '% more';
-    } else {
-      $('curPL').textContent = '—'; $('curPL').className = 'v';
-      $('needed').textContent = '—';
-    }
-    return;
-  }
-
-  // ---- plain $ mode ----
-  if (isNaN(avg) || avg <= 0){
-    $('target').textContent = '—';
-    $('targetSub').textContent = 'enter your buy price above';
-    $('stats').hidden = true;
-    return;
-  }
-
-  const target = avg * (1 + pct/100) / (1 - fee);
-  $('target').textContent = '$' + fmt(target);
-  $('targetSub').textContent = 'for ' + pct + '% profit' + (fee ? ' (incl. ' + fmt(fee*100,1) + '% buffer)' : '');
-
-  const perShare = target - avg;
-
-  $('stats').hidden = false;
-  $('perShare').textContent = '+$' + fmt(perShare);
-  $('total').textContent = (!isNaN(shares) && shares > 0) ? '+$' + fmt(perShare * shares) : '—';
-
-  if (!isNaN(cur) && cur > 0){
-    const pl = (cur - avg) / avg * 100;
-    const el = $('curPL');
-    el.textContent = (pl >= 0 ? '+' : '') + fmt(pl) + '%';
-    el.className = 'v ' + (pl >= 0 ? 'green' : 'red');
-    const need = (target - cur) / cur * 100;
-    $('needed').textContent = need <= 0 ? 'Target hit! 🎉' : '+' + fmt(need) + '% more';
-  } else {
-    $('curPL').textContent = '—'; $('curPL').className = 'v';
-    $('needed').textContent = '—';
-  }
+function fillCard(pEl, gEl, uEl, buy, shares, x){
+  $(pEl).textContent = '$' + fmt(limitFor(buy, x));
+  const profUSD = (!isNaN(shares) && shares > 0) ? x * shares * buy * (1 + F) : null;
+  if (profUSD != null){
+    if (GBPUSD){ $(gEl).textContent = '+£' + fmt(profUSD / GBPUSD); $(uEl).textContent = '+$' + fmt(profUSD); }
+    else { $(gEl).textContent = '+$' + fmt(profUSD); $(uEl).textContent = ''; }
+  } else { $(gEl).textContent = '—'; $(uEl).textContent = ''; }
 }
+
+function calc(){
+  const buy = parseFloat($('avg').value);
+  const shares = parseFloat($('shares').value);
+  if (isNaN(buy) || buy <= 0){
+    $('beLine').hidden = true;
+    $('p5').textContent = '—'; $('g5').textContent = '—'; $('u5').textContent = '';
+    $('p10').textContent = '—'; $('g10').textContent = '—'; $('u10').textContent = '';
+    return;
+  }
+  const be = breakEven(buy);
+  const cur = parseFloat($('cur').value);
+  let beTxt = 'Flat at $' + fmt(be);
+  if (!isNaN(cur) && cur > 0) beTxt += (cur >= be ? '  ·  you are UP' : '  ·  below break-even');
+  $('beLine').textContent = beTxt;
+  $('beLine').hidden = false;
+  fillCard('p5','g5','u5', buy, shares, 0.05);
+  fillCard('p10','g10','u10', buy, shares, alt/100);
+}
+
+// tap a card = copy its limit price (kills transcription errors into T212)
+function copyCard(priceId){
+  const t = $(priceId).textContent.replace('$','');
+  if (!t || t === '—') return;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => {
+    const toast = $('toast');
+    toast.textContent = t + ' copied — paste into your T212 limit order';
+    toast.classList.add('show');
+    if (navigator.vibrate) navigator.vibrate(30);
+    setTimeout(() => toast.classList.remove('show'), 1800);
+  }).catch(()=>{});
+}
+$('card5').addEventListener('click', () => copyCard('p5'));
+$('card10').addEventListener('click', () => copyCard('p10'));
+
 calc();
 </script>
 </body>
