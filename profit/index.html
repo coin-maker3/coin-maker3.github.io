@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Profit Target Calculator</title>
+<title>Live Trade Cockpit</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root{
@@ -47,63 +47,66 @@ footer{text-align:center;margin-top:8px}
 .live .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite}
 .live.stale{color:var(--muted)}.live.stale .dot{background:var(--muted);animation:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.bigprice{font-size:52px;font-weight:800;letter-spacing:.5px;text-align:center;margin:14px 0 2px;font-variant-numeric:tabular-nums;transition:color .25s}
+.bigprice.up{color:var(--green)}.bigprice.down{color:var(--red)}
+details summary::-webkit-details-marker{display:none}
 </style>
 </head>
 <body>
 <main>
-<h1>Profit Target Calculator</h1>
-<p class="sub">Find the sell price you need for your target profit.</p>
+<h1>Live Trade Cockpit</h1>
+<p class="sub">Type a symbol → live price streams. Tap "Use live" when you buy. Watch your exit.</p>
 
 <div class="card">
-  <label for="ticker">Stock ticker <span class="opt">(auto-fetches live price)</span></label>
   <div class="tickrow">
-    <input id="ticker" type="text" autocapitalize="characters" autocomplete="off" placeholder="e.g. AGEN, AAPL, TSLA">
-    <button class="btn" id="fetchBtn">Get price</button>
+    <input id="ticker" type="text" autocapitalize="characters" autocomplete="off" placeholder="symbol — AAPL, TSLA…">
+    <button class="btn" id="fetchBtn">Go live</button>
   </div>
+  <div class="bigprice" id="bigPrice">—</div>
   <div class="quote" id="quote"></div>
+  <input id="cur" type="hidden">
 
-  <label for="avg">Average buy price ($)</label>
-  <input id="avg" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 6.64">
+  <label for="avg">My buy price ($)</label>
+  <div class="tickrow">
+    <input id="avg" type="number" inputmode="decimal" step="any" min="0" placeholder="tap Use live when you buy →">
+    <button class="btn" id="grabBtn" title="copy the live price into buy price">Use live</button>
+  </div>
 
   <label>Target profit %</label>
   <div class="chips" id="chips">
+    <button class="chip" data-p="1">1%</button>
+    <button class="chip active" data-p="2">2%</button>
+    <button class="chip" data-p="3">3%</button>
     <button class="chip" data-p="5">5%</button>
-    <button class="chip active" data-p="10">10%</button>
-    <button class="chip" data-p="15">15%</button>
-    <button class="chip" data-p="20">20%</button>
   </div>
-  <label for="custom">Custom profit % <span class="opt">(overrides buttons)</span></label>
-  <input id="custom" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 7.5">
-
   <div class="row">
+    <div>
+      <label for="custom">Custom % <span class="opt">(overrides)</span></label>
+      <input id="custom" type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 0.5">
+    </div>
     <div>
       <label for="shares">Shares <span class="opt">(optional)</span></label>
-      <input id="shares" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 65.95">
-    </div>
-    <div>
-      <label for="cur">Current price ($) <span class="opt">(optional)</span></label>
-      <input id="cur" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 6.76">
+      <input id="shares" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 100">
     </div>
   </div>
-
-  <label for="fee">Fees / FX buffer % <span class="opt">(optional — raises target to cover costs)</span></label>
-  <input id="fee" type="number" inputmode="decimal" step="0.1" min="0" max="99" placeholder="e.g. 0.5">
+  <label for="fee">Fees / FX buffer % <span class="opt">(optional)</span></label>
+  <input id="fee" type="number" inputmode="decimal" step="0.1" min="0" max="99" placeholder="e.g. 0.15">
 </div>
 
-<div class="card">
-  <label style="margin-top:0">Match Trading&nbsp;212 <span class="opt">(£ mode — optional. Fill these and profit is calculated in pounds, like your app shows.)</span></label>
-  <div class="row">
+<details class="card" style="padding:14px 18px">
+  <summary style="cursor:pointer;color:var(--muted);font-size:13px">£ mode (match Trading 212) — for longer holds</summary>
+  <div class="row" style="margin-top:10px">
     <div>
-      <label for="avgGBP">Average price (£) <span class="opt">(T212 shows it in brackets)</span></label>
+      <label for="avgGBP">Average price (£)</label>
       <input id="avgGBP" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 5.63">
     </div>
     <div>
-      <label for="fx">GBP→USD rate <span class="opt">(auto — edit if needed)</span></label>
+      <label for="fx">GBP→USD rate <span class="opt">(auto)</span></label>
       <input id="fx" type="number" inputmode="decimal" step="0.0001" min="0" placeholder="e.g. 1.3388">
     </div>
   </div>
-  <p class="note" style="margin-top:10px" id="fxNote">The rate auto-fills with the live GBP→USD rate. For an exact match to your app: rate = current $ price ÷ (VALUE £ ÷ SHARES) from the T212 screen.</p>
-</div>
+  <p class="note" style="margin-top:10px" id="fxNote">Exact match to T212: rate = current $ price ÷ (VALUE £ ÷ SHARES). On seconds-to-minutes trades the fx move is negligible — leave this closed.</p>
+</details>
 
 <div class="card result">
   <div class="lbl">Sell at</div>
@@ -124,13 +127,13 @@ footer{text-align:center;margin-top:8px}
 <script>
 const $ = id => document.getElementById(id);
 const chips = [...document.querySelectorAll('.chip')];
-let chipPct = 10;
+let chipPct = 2;
 
-// ---- defaults (Ali's AGEN position) + remember everything on this device ----
-const DEFAULTS = { ticker:'AGEN', avgGBP:'5.63', shares:'65.58362581' };
+// ---- remember everything on this device (no baked-in position — per-trade tool) ----
+const DEFAULTS = {};
 const FIELDS = ['ticker','avg','custom','shares','cur','fee','avgGBP','fx'];
 try {
-  const saved = JSON.parse(localStorage.getItem('profit_state') || '{}');
+  const saved = JSON.parse(localStorage.getItem('profit_state_v2') || '{}');
   FIELDS.forEach(id => {
     const v = (id in saved) ? saved[id] : DEFAULTS[id];
     if (v != null && v !== '' && !$(id).value) $(id).value = v;
@@ -139,7 +142,7 @@ try {
 function saveState(){
   try {
     const s = {}; FIELDS.forEach(id => s[id] = $(id).value);
-    localStorage.setItem('profit_state', JSON.stringify(s));
+    localStorage.setItem('profit_state_v2', JSON.stringify(s));
   } catch(e){}
 }
 FIELDS.forEach(id => $(id).addEventListener('input', saveState));
@@ -211,14 +214,22 @@ async function fetchQuote(symbol){
 $('fx').addEventListener('input', () => { delete $('fx').dataset.auto; });
 
 // ---- LIVE price: Finnhub WebSocket (tick-by-tick real trades) + polling fallback ----
-let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0;
+let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0, prevPrice = null;
 function setPrice(price, tag){
   $('cur').value = price;
-  $('quote').innerHTML = '<strong>' + liveSym + '</strong> · ' +
-    price.toLocaleString('en-US',{maximumFractionDigits:4}) + ' USD ' +
+  const bp = $('bigPrice');
+  bp.textContent = '$' + price.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
+  bp.className = 'bigprice' + (prevPrice==null ? '' : price>prevPrice ? ' up' : price<prevPrice ? ' down' : '');
+  prevPrice = price;
+  $('quote').innerHTML = '<strong>' + liveSym + '</strong> ' +
     '<span class="live" id="liveBadge"><span class="dot"></span>' + tag + '</span>';
   saveState(); calc();
 }
+// "Use live" — stamp the live price as my buy price the moment I enter a trade
+$('grabBtn').addEventListener('click', () => {
+  const v = parseFloat($('cur').value);
+  if (v > 0){ $('avg').value = v; saveState(); calc(); }
+});
 function stopLive(){
   if (ws){ try { ws.close(); } catch(e){} ws = null; }
   if (pollTimer){ clearInterval(pollTimer); pollTimer = null; }
@@ -263,6 +274,7 @@ async function getPrice(){
   $('quote').textContent = 'Fetching ' + sym + '…';
   try {
     const q = await fetchQuote(sym);
+    if (sym !== liveSym) prevPrice = null;     // new symbol -> fresh up/down colouring
     liveSym = sym;
     setPrice(q.regularMarketPrice, 'LIVE');
     startStream(sym);                          // tick-by-tick from here on
