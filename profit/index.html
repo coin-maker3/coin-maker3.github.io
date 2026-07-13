@@ -36,6 +36,13 @@ input[type=number]:focus{border-color:var(--accent)}
 .note{color:var(--muted);font-size:12px;line-height:1.5;margin-top:14px}
 a{color:var(--accent);text-decoration:none}
 footer{text-align:center;margin-top:8px}
+.tickrow{display:flex;gap:8px}
+.tickrow input{flex:1;text-transform:uppercase}
+.btn{background:var(--accent);border:none;border-radius:10px;color:#08121f;font-size:15px;font-weight:600;padding:0 18px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:wait}
+.quote{font-size:13px;margin-top:8px;min-height:18px}
+.quote .name{color:var(--muted)}
+.err{color:var(--red)}
 </style>
 </head>
 <body>
@@ -44,6 +51,13 @@ footer{text-align:center;margin-top:8px}
 <p class="sub">Find the sell price you need for your target profit.</p>
 
 <div class="card">
+  <label for="ticker">Stock ticker <span class="opt">(auto-fetches live price)</span></label>
+  <div class="tickrow">
+    <input id="ticker" type="text" autocapitalize="characters" autocomplete="off" placeholder="e.g. AGEN, AAPL, TSLA">
+    <button class="btn" id="fetchBtn">Get price</button>
+  </div>
+  <div class="quote" id="quote"></div>
+
   <label for="avg">Average buy price ($)</label>
   <input id="avg" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 6.64">
 
@@ -102,6 +116,53 @@ chips.forEach(c => c.addEventListener('click', () => {
 }));
 
 ['avg','custom','shares','cur','fee'].forEach(id => $(id).addEventListener('input', calc));
+
+// --- live price lookup (Yahoo Finance, with CORS-proxy fallbacks) ---
+async function fetchQuote(symbol){
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+              encodeURIComponent(symbol) + '?range=1d&interval=1d';
+  const attempts = [
+    u => u,
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  ];
+  let lastErr;
+  for (const wrap of attempts){
+    try {
+      const r = await fetch(wrap(url));
+      if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
+      const j = await r.json();
+      const meta = j?.chart?.result?.[0]?.meta;
+      if (meta && meta.regularMarketPrice != null) return meta;
+      lastErr = new Error(j?.chart?.error?.description || 'symbol not found');
+      if (j?.chart?.error) break; // real "no such ticker" — don't retry proxies
+    } catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('could not fetch price');
+}
+
+async function getPrice(){
+  const sym = $('ticker').value.trim().toUpperCase();
+  if (!sym) { $('quote').innerHTML = '<span class="err">Enter a ticker first</span>'; return; }
+  const btn = $('fetchBtn');
+  btn.disabled = true;
+  $('quote').textContent = 'Fetching ' + sym + '…';
+  try {
+    const q = await fetchQuote(sym);
+    const price = q.regularMarketPrice;
+    $('cur').value = price;
+    $('quote').innerHTML = '<strong>' + (q.symbol || sym) + '</strong> · ' +
+      price.toLocaleString('en-US',{maximumFractionDigits:4}) + ' ' + (q.currency || '') +
+      ' <span class="name">' + (q.shortName || q.longName || '') + '</span>';
+    calc();
+  } catch(e){
+    $('quote').innerHTML = '<span class="err">Could not get price for ' + sym +
+      ' — check the ticker, or type the current price manually below.</span>';
+  }
+  btn.disabled = false;
+}
+$('fetchBtn').addEventListener('click', getPrice);
+$('ticker').addEventListener('keydown', e => { if (e.key === 'Enter') getPrice(); });
 
 function fmt(n, dp=2){ return n.toLocaleString('en-US',{minimumFractionDigits:dp, maximumFractionDigits:dp}); }
 
