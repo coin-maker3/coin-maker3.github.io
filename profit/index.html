@@ -74,10 +74,10 @@ details summary::-webkit-details-marker{display:none}
 
   <label>Target profit %</label>
   <div class="chips" id="chips">
-    <button class="chip" data-p="1">1%</button>
-    <button class="chip active" data-p="2">2%</button>
-    <button class="chip" data-p="3">3%</button>
-    <button class="chip" data-p="5">5%</button>
+    <button class="chip active" data-p="5">5%</button>
+    <button class="chip" data-p="10">10%</button>
+    <button class="chip" data-p="20">20%</button>
+    <button class="chip" data-p="25">25%</button>
   </div>
   <div class="row">
     <div>
@@ -127,7 +127,7 @@ details summary::-webkit-details-marker{display:none}
 <script>
 const $ = id => document.getElementById(id);
 const chips = [...document.querySelectorAll('.chip')];
-let chipPct = 2;
+let chipPct = 5;
 
 // ---- remember everything on this device (no baked-in position — per-trade tool) ----
 const DEFAULTS = {};
