@@ -10,7 +10,8 @@
   --text:#eef2f9; --muted:#8b96a8; --green:#4ade80; --green2:#22c55e; --red:#f87171; --amber:#fbbf24;
 }
 *{box-sizing:border-box}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;min-height:100vh;display:flex;justify-content:center;padding:18px 14px 40px}
+html{background:var(--bg);overscroll-behavior-y:none}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;min-height:100vh;display:flex;justify-content:center;padding:18px 14px 40px;overscroll-behavior-y:none}
 main{width:100%;max-width:460px}
 .mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .tickrow{display:flex;gap:8px}
@@ -46,6 +47,16 @@ input:focus{border-color:var(--green)}
 .ghosts{display:flex;gap:8px;margin-top:10px;justify-content:center}
 .ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}
 .ghost.on{border-color:var(--green);color:var(--green)}
+.gbadge{text-align:center;font-size:20px;font-weight:900;letter-spacing:2px;border-radius:12px;padding:9px 0;margin:6px 0 6px}
+.gbadge.strong{background:rgba(74,222,128,.14);color:var(--green);border:1px solid rgba(74,222,128,.5)}
+.gbadge.medium{background:rgba(251,191,36,.10);color:var(--amber);border:1px solid rgba(251,191,36,.4)}
+.gbadge.weak{background:rgba(248,113,113,.10);color:var(--red);border:1px solid rgba(248,113,113,.4)}
+.gbadge.loading{background:none;color:var(--muted);border:1px dashed var(--line);font-weight:700;letter-spacing:.5px;font-size:13px}
+.greasons{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:4px}
+.greasons span{font-size:11.5px;font-weight:700;border-radius:99px;padding:4px 10px;background:var(--field);border:1px solid var(--line);color:var(--muted)}
+.greasons span.ok{color:var(--green);border-color:rgba(74,222,128,.35)}
+.greasons span.bad{color:var(--red);border-color:rgba(248,113,113,.3)}
+.greasons span.warn{color:var(--amber);border-color:rgba(251,191,36,.35)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#e6f9ee;color:#0a3d1f;font-weight:800;font-size:14px;border-radius:99px;padding:10px 20px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;white-space:nowrap}
 .toast.show{opacity:1}
 .note{color:var(--muted);font-size:11.5px;line-height:1.5;text-align:center;margin-top:16px}
@@ -61,6 +72,10 @@ footer{text-align:center;margin-top:10px;font-size:12px}
 </div>
 <div class="bigprice mono" id="bigPrice">—</div>
 <div class="quote" id="quote"></div>
+<div id="gauge" hidden>
+  <div class="gbadge" id="gBadge">—</div>
+  <div class="greasons" id="gReasons"></div>
+</div>
 <input id="cur" type="hidden">
 
 <div class="lbl">My entry price ($) · shares</div>
@@ -206,11 +221,104 @@ async function getPrice(){
     liveSym = sym;
     setPrice(p, 'LIVE');
     startStream(sym);
+    runGauge(sym);                                   // Ross Cameron STRONG/MEDIUM/WEAK
   } catch(e){
     $('quote').innerHTML = '<span class="err">No price for ' + sym + ' — check the symbol.</span>';
   }
   btn.disabled = false;
 }
+// ================= Ross Cameron momentum gauge =================
+// Criteria per Warrior Trading / "How to Day Trade" (verified Jul 2026):
+// gain >= +10% today · RVOL >= 2 (>=5 ideal) · price $2-20 · float <= 20M (approx
+// via shares outstanding — upper bound) · news catalyst within 48h.
+// STRONG = core + all 3 quality; MEDIUM = core + >=1; WEAK = otherwise.
+// Caps to MEDIUM: price only half-in-band ($1-2 / $20-30), float >50M, volume
+// unknown (pre-market), or an offering/dilution headline (Ross red flag).
+function rateStock(d){
+  const reasons = [];
+  const pFull = d.price >= 2 && d.price <= 20;
+  const pHalf = (d.price >= 1 && d.price < 2) || (d.price > 20 && d.price <= 30);
+  reasons.push({cls: pFull ? 'ok' : pHalf ? 'warn' : 'bad', t: '$' + (d.price!=null?d.price.toFixed(2):'?') + (pFull ? ' in $2–20' : pHalf ? ' edge of band' : ' out of $2–20')});
+  const gainOk = d.gain != null && d.gain >= 10;
+  reasons.push({cls: gainOk ? 'ok' : 'bad', t: (d.gain!=null?(d.gain>=0?'+':'')+d.gain.toFixed(1):'?') + '% today'});
+  const rvolKnown = d.rvol != null && isFinite(d.rvol);
+  const rvolOk = rvolKnown && d.rvol >= 2, rvolHot = rvolKnown && d.rvol >= 5;
+  reasons.push({cls: !rvolKnown ? 'warn' : rvolHot ? 'ok' : rvolOk ? 'warn' : 'bad', t: rvolKnown ? 'RVOL ' + d.rvol.toFixed(1) + '×' : 'volume unknown yet'});
+  const fKnown = d.floatM != null;
+  const fOk = fKnown && d.floatM <= 20, fBig = fKnown && d.floatM > 50;
+  reasons.push({cls: !fKnown ? 'warn' : fOk ? 'ok' : fBig ? 'bad' : 'warn', t: fKnown ? '~' + Math.round(d.floatM) + 'M shares (approx float)' : 'float unknown'});
+  reasons.push({cls: d.news ? 'ok' : 'bad', t: d.news ? 'news ' + d.newsAge : 'no fresh news'});
+  if (d.offering) reasons.push({cls:'bad', t:'⚠ OFFERING headline — dilution risk'});
+  const core = (pFull || pHalf) && gainOk && (rvolOk || !rvolKnown);
+  let q = 0; if (rvolHot) q++; if (fOk) q++; if (d.news) q++;
+  let v = (core && q === 3) ? 'STRONG' : (core && q >= 1) ? 'MEDIUM' : 'WEAK';
+  if (v === 'STRONG' && (pHalf || fBig || !rvolKnown || d.offering)) v = 'MEDIUM';
+  if (fBig && v !== 'WEAK' && q <= 1) v = 'WEAK';
+  return {verdict: v, reasons};
+}
+try { window.rateStock = rateStock; } catch(e){}
+
+async function jget(url, ms){
+  const ctl = new AbortController();
+  const t = ms ? setTimeout(() => ctl.abort(), ms) : null;
+  try {
+    const r = await fetch(url, {signal: ctl.signal});
+    if (!r.ok) throw new Error('http ' + r.status);
+    return await r.json();
+  } finally { if (t) clearTimeout(t); }
+}
+// today's volume via Yahoo — race two proxies, 8s cap, null if both fail (rating stays honest)
+async function todayVolume(sym){
+  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=1d';
+  const wraps = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?url='];
+  const tries = wraps.map(w => jget(w + encodeURIComponent(y), 8000)
+    .then(j => { const v = j?.chart?.result?.[0]?.meta?.regularMarketVolume; if (v > 0) return v; throw 0; }));
+  try { return await Promise.any(tries); } catch(e){ return null; }
+}
+const GCACHE_KEY = 'gauge_' + new Date().toISOString().slice(0,10);
+async function runGauge(sym){
+  const box = $('gauge'), badge = $('gBadge'), rs = $('gReasons');
+  box.hidden = false; badge.className = 'gbadge loading'; badge.textContent = 'rating ' + sym + '…'; rs.innerHTML = '';
+  try {
+    let cache = {};
+    try { cache = JSON.parse(localStorage.getItem(GCACHE_KEY) || '{}'); } catch(e){}
+    let st = cache[sym];
+    if (!st){
+      const [met, prof] = await Promise.all([
+        jget('https://finnhub.io/api/v1/stock/metric?symbol=' + sym + '&metric=all&token=' + FINNHUB_KEY).catch(()=>null),
+        jget('https://finnhub.io/api/v1/stock/profile2?symbol=' + sym + '&token=' + FINNHUB_KEY).catch(()=>null)]);
+      st = { avgM: met?.metric?.['10DayAverageTradingVolume'] ?? null,   // millions
+             soM: prof?.shareOutstanding ?? null };                       // millions
+      cache[sym] = st;
+      try { localStorage.setItem(GCACHE_KEY, JSON.stringify(cache)); } catch(e){}
+    }
+    const to = new Date(), fr = new Date(Date.now() - 2*864e5);
+    const dstr = d => d.toISOString().slice(0,10);
+    const [q, news, vol] = await Promise.all([
+      jget('https://finnhub.io/api/v1/quote?symbol=' + sym + '&token=' + FINNHUB_KEY, 8000).catch(()=>null),
+      jget('https://finnhub.io/api/v1/company-news?symbol=' + sym + '&from=' + dstr(fr) + '&to=' + dstr(to) + '&token=' + FINNHUB_KEY, 8000).catch(()=>[]),
+      todayVolume(sym)]);
+    if (sym !== liveSym) return;                      // user moved on — drop stale rating
+    const rvol = (vol && st.avgM) ? vol / (st.avgM * 1e6) : null;
+    const fresh = (news || []).filter(n => n.datetime * 1000 >= Date.now() - 48*3600e3);
+    const newest = fresh.length ? Math.max(...fresh.map(n => n.datetime * 1000)) : null;
+    const ageH = newest ? Math.max(0, Math.round((Date.now() - newest) / 3600e3)) : null;
+    const r = rateStock({
+      price: (q && q.c > 0) ? q.c : (parseFloat($('cur').value) || null),
+      gain: q?.dp ?? null,
+      rvol, floatM: st.soM,
+      news: fresh.length > 0,
+      newsAge: ageH != null ? (ageH === 0 ? 'just now' : ageH + 'h ago') : '',
+      offering: fresh.some(n => /offering|pricing of|dilut/i.test(n.headline || ''))
+    });
+    badge.className = 'gbadge ' + r.verdict.toLowerCase();
+    badge.textContent = r.verdict;
+    rs.innerHTML = r.reasons.map(x => '<span class="' + x.cls + '">' + x.t + '</span>').join('');
+  } catch(e){
+    badge.className = 'gbadge loading'; badge.textContent = 'rating unavailable';
+  }
+}
+
 $('fetchBtn').addEventListener('click', getPrice);
 $('ticker').addEventListener('keydown', e => { if (e.key === 'Enter') getPrice(); });
 $('grabBtn').addEventListener('click', () => {
