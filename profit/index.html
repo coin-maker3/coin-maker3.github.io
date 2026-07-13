@@ -43,6 +43,10 @@ footer{text-align:center;margin-top:8px}
 .quote{font-size:13px;margin-top:8px;min-height:18px}
 .quote .name{color:var(--muted)}
 .err{color:var(--red)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--green)}
+.live .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite}
+.live.stale{color:var(--muted)}.live.stale .dot{background:var(--muted);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
 </head>
 <body>
@@ -122,6 +126,24 @@ const $ = id => document.getElementById(id);
 const chips = [...document.querySelectorAll('.chip')];
 let chipPct = 10;
 
+// ---- defaults (Ali's AGEN position) + remember everything on this device ----
+const DEFAULTS = { ticker:'AGEN', avgGBP:'5.63', shares:'65.58362581' };
+const FIELDS = ['ticker','avg','custom','shares','cur','fee','avgGBP','fx'];
+try {
+  const saved = JSON.parse(localStorage.getItem('profit_state') || '{}');
+  FIELDS.forEach(id => {
+    const v = (id in saved) ? saved[id] : DEFAULTS[id];
+    if (v != null && v !== '' && !$(id).value) $(id).value = v;
+  });
+} catch(e){}
+function saveState(){
+  try {
+    const s = {}; FIELDS.forEach(id => s[id] = $(id).value);
+    localStorage.setItem('profit_state', JSON.stringify(s));
+  } catch(e){}
+}
+FIELDS.forEach(id => $(id).addEventListener('input', saveState));
+
 chips.forEach(c => c.addEventListener('click', () => {
   chips.forEach(x => x.classList.remove('active'));
   c.classList.add('active');
@@ -188,6 +210,51 @@ async function fetchQuote(symbol){
 })();
 $('fx').addEventListener('input', () => { delete $('fx').dataset.auto; });
 
+// ---- LIVE price: Finnhub WebSocket (tick-by-tick real trades) + polling fallback ----
+let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0;
+function setPrice(price, tag){
+  $('cur').value = price;
+  $('quote').innerHTML = '<strong>' + liveSym + '</strong> · ' +
+    price.toLocaleString('en-US',{maximumFractionDigits:4}) + ' USD ' +
+    '<span class="live" id="liveBadge"><span class="dot"></span>' + tag + '</span>';
+  saveState(); calc();
+}
+function stopLive(){
+  if (ws){ try { ws.close(); } catch(e){} ws = null; }
+  if (pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+}
+function startPolling(sym){
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    if (document.hidden) return;               // don't burn the rate limit in background
+    try {
+      const q = await fetchQuote(sym);
+      if (q.regularMarketPrice > 0 && sym === liveSym) setPrice(q.regularMarketPrice, 'LIVE (3s)');
+    } catch(e){}
+  }, 3000);
+}
+function startStream(sym){
+  stopLive();
+  liveSym = sym;
+  try {
+    ws = new WebSocket('wss://ws.finnhub.io?token=' + FINNHUB_KEY);
+    ws.onopen = () => ws.send(JSON.stringify({type:'subscribe', symbol:sym}));
+    ws.onmessage = (ev) => {
+      try {
+        const m = JSON.parse(ev.data);
+        if (m.type === 'trade' && m.data && m.data.length){
+          const t = m.data[m.data.length - 1];
+          if (t.p > 0){ lastTickAt = Date.now(); setPrice(t.p, 'LIVE'); }
+        }
+      } catch(e){}
+    };
+    ws.onerror = () => { startPolling(sym); };
+    ws.onclose  = () => { if (sym === liveSym && !pollTimer) startPolling(sym); };
+    // if no trade arrives quickly (market closed / quiet stock), poll alongside
+    setTimeout(() => { if (Date.now() - lastTickAt > 8000 && sym === liveSym) startPolling(sym); }, 8000);
+  } catch(e){ startPolling(sym); }
+}
+
 async function getPrice(){
   const sym = $('ticker').value.trim().toUpperCase();
   if (!sym) { $('quote').innerHTML = '<span class="err">Enter a ticker first</span>'; return; }
@@ -196,12 +263,9 @@ async function getPrice(){
   $('quote').textContent = 'Fetching ' + sym + '…';
   try {
     const q = await fetchQuote(sym);
-    const price = q.regularMarketPrice;
-    $('cur').value = price;
-    $('quote').innerHTML = '<strong>' + (q.symbol || sym) + '</strong> · ' +
-      price.toLocaleString('en-US',{maximumFractionDigits:4}) + ' ' + (q.currency || '') +
-      ' <span class="name">' + (q.shortName || q.longName || '') + '</span>';
-    calc();
+    liveSym = sym;
+    setPrice(q.regularMarketPrice, 'LIVE');
+    startStream(sym);                          // tick-by-tick from here on
   } catch(e){
     $('quote').innerHTML = '<span class="err">Could not get price for ' + sym +
       ' — check the ticker, or type the current price manually below.</span>';
@@ -210,6 +274,12 @@ async function getPrice(){
 }
 $('fetchBtn').addEventListener('click', getPrice);
 $('ticker').addEventListener('keydown', e => { if (e.key === 'Enter') getPrice(); });
+document.addEventListener('visibilitychange', () => {
+  // returning to the tab: reconnect the stream so the price is never stale
+  if (!document.hidden && liveSym) startStream(liveSym);
+});
+// auto-start on open: ticker is prefilled, so the page goes live by itself
+window.addEventListener('load', () => { if ($('ticker').value.trim()) getPrice(); });
 
 function fmt(n, dp=2){ return n.toLocaleString('en-US',{minimumFractionDigits:dp, maximumFractionDigits:dp}); }
 
