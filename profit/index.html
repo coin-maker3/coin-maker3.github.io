@@ -32,6 +32,12 @@ input:focus{border-color:var(--green)}
 .entry input{flex:1}
 .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 5px}
 .be{display:flex;justify-content:center;align-items:center;gap:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--amber);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:700;margin-top:14px;min-height:34px}
+.pl{display:flex;justify-content:center;align-items:baseline;gap:12px;margin-top:12px;min-height:44px}
+.pl .amt{font-size:36px;font-weight:800}
+.pl .pct{font-size:18px;font-weight:800}
+.pl .sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.pl.up .amt,.pl.up .pct{color:var(--green)}
+.pl.down .amt,.pl.down .pct{color:var(--red)}
 .tcard{width:100%;border-radius:16px;padding:14px 16px;margin-top:12px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:12px;cursor:pointer;min-height:96px;text-align:left;color:var(--text)}
 .tcard:active{transform:scale(.99)}
 .tcard .pct{font-size:15px;font-weight:800;letter-spacing:.5px;min-width:82px}
@@ -85,6 +91,9 @@ footer{text-align:center;margin-top:10px;font-size:12px}
   <button class="btn" id="grabBtn" title="stamp the live price as my entry">Use live</button>
 </div>
 
+<div class="pl mono" id="plLine" hidden>
+  <span class="sub">P/L now</span><span class="amt" id="plAmt">—</span><span class="pct" id="plPct"></span>
+</div>
 <div class="be mono" id="beLine" hidden></div>
 
 <button class="tcard t5" id="card5">
@@ -365,6 +374,19 @@ function calc(){
   if (!isNaN(cur) && cur > 0) beTxt += (cur >= be ? '  ·  you are UP' : '  ·  below break-even');
   $('beLine').textContent = beTxt;
   $('beLine').hidden = false;
+  // live P/L NOW — what he truly walks away with if he sold at the live price,
+  // after ALL T212 costs (same model as the targets). Updates on every tick.
+  if (!isNaN(cur) && cur > 0 && !isNaN(shares) && shares > 0){
+    const cost = shares * buy * (1 + F);
+    const proceeds = (shares * cur * (1 - S) - shares * T) * (1 - F);
+    const pl = proceeds - cost, plPct = pl / cost * 100;
+    const up = pl >= 0, sign = up ? '+' : '−';
+    $('plAmt').textContent = GBPUSD ? sign + '£' + fmt(Math.abs(pl) / GBPUSD) : sign + '$' + fmt(Math.abs(pl));
+    $('plPct').textContent = sign + fmt(Math.abs(plPct)) + '%';
+    const el = $('plLine'); el.className = 'pl mono ' + (up ? 'up' : 'down'); el.hidden = false;
+  } else {
+    $('plLine').hidden = true;
+  }
   fillCard('p5','g5','u5', buy, shares, 0.05);
   fillCard('p10','g10','u10', buy, shares, alt/100);
 }
