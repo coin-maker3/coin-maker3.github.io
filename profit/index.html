@@ -152,7 +152,7 @@ function limitFor(buy, x){
 function breakEven(buy){ return limitFor(buy, 0); }
 
 // ---- state persistence (per-device) ----
-const FIELDS = ['ticker','avg','shares','stop','risk'];
+const FIELDS = ['ticker'];
 try {
   const saved = JSON.parse(localStorage.getItem('profit_state_v3') || '{}');
   FIELDS.forEach(id => { if (saved[id] != null && saved[id] !== '' && !$(id).value) $(id).value = saved[id]; });
@@ -162,6 +162,26 @@ function saveState(){
         localStorage.setItem('profit_state_v3', JSON.stringify(s)); } catch(e){}
 }
 FIELDS.forEach(id => $(id).addEventListener('input', () => { saveState(); calc(); }));
+
+// ---- PER-SYMBOL positions: your entry belongs to ONE stock. Switching symbols
+// shows THAT symbol's saved entry/shares/stop (or blanks) — never yesterday's
+// numbers against another stock's price (the "massive fake gain" bug).
+const POS_FIELDS = ['avg','shares','stop','risk'];
+function loadPositions(){ try { return JSON.parse(localStorage.getItem('positions_v1') || '{}'); } catch(e){ return {}; } }
+function savePosition(){
+  if (!liveSym) return;
+  const pos = loadPositions();
+  const v = {};
+  let any = false;
+  POS_FIELDS.forEach(id => { v[id] = $(id).value; if (v[id] !== '') any = true; });
+  if (any) pos[liveSym] = v; else delete pos[liveSym];
+  try { localStorage.setItem('positions_v1', JSON.stringify(pos)); } catch(e){}
+}
+function applyPosition(sym){
+  const v = loadPositions()[sym] || {};
+  POS_FIELDS.forEach(id => { $(id).value = v[id] || ''; });
+}
+POS_FIELDS.forEach(id => $(id).addEventListener('input', () => { savePosition(); calc(); }));
 
 // ---- GBP/USD for the £ profit figures (silent; falls back to $-only) ----
 let GBPUSD = null;
@@ -303,8 +323,10 @@ async function getPrice(){
   try {
     const p = await fetchQuote(sym);
     if ($('ticker').value.trim().toUpperCase() !== sym){ btn.disabled = false; return; }  // user typed a new symbol meanwhile
-    if (sym !== liveSym) prevPrice = null;
+    const switched = sym !== liveSym;
+    if (switched) prevPrice = null;
     liveSym = sym; lastUpdateAt = Date.now();
+    if (switched) applyPosition(sym);   // this symbol's own entry/shares/stop — never another stock's
     setPrice(p, 'LIVE');
     startStream(sym);
     runGauge(sym);                                   // Ross Cameron STRONG/MEDIUM/WEAK
@@ -411,7 +433,7 @@ $('fetchBtn').addEventListener('click', getPrice);
 $('ticker').addEventListener('keydown', e => { if (e.key === 'Enter') getPrice(); });
 $('grabBtn').addEventListener('click', () => {
   const v = parseFloat($('cur').value);
-  if (v > 0){ $('avg').value = v; saveState(); calc(); }
+  if (v > 0){ $('avg').value = v; savePosition(); calc(); }
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && liveSym) startStream(liveSym); });
 // staleness watchdog: LIVE badge must never lie. >10s without a price = STALE (amber)
@@ -539,7 +561,7 @@ $('soldBtn').addEventListener('click', () => {
   const t = loadTrades();
   t.push({d: new Date().toISOString(), sym: liveSym, entry: buy, exit: cur, sh: sh, netGBP: netGBP});
   try { localStorage.setItem('trades', JSON.stringify(t.slice(-500))); } catch(e){}
-  $('avg').value = ''; $('shares').value = ''; $('stop').value = ''; saveState(); calc(); renderDayLog();
+  $('avg').value = ''; $('shares').value = ''; $('stop').value = ''; savePosition(); calc(); renderDayLog();
   const toast = $('toast');
   toast.textContent = 'Logged: ' + (netGBP >= 0 ? '+' : '−') + '£' + fmt(Math.abs(netGBP));
   toast.classList.add('show'); if (navigator.vibrate) navigator.vibrate(30);
