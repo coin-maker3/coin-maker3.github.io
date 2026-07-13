@@ -50,6 +50,10 @@ input:focus{border-color:var(--green)}
 .tcard.t10{border-color:var(--green);box-shadow:0 0 0 1px rgba(74,222,128,.25)}
 .tcard.t10 .pct,.tcard.t10 .price,.tcard.t10 .prof .gbp{color:var(--green)}
 .tcard .hint{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.recents{display:flex;gap:7px;margin-top:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.recents::-webkit-scrollbar{display:none}
+.recents button{flex:none;background:var(--field);border:1px solid var(--line);color:var(--text);border-radius:99px;padding:8px 16px;font-size:13.5px;font-weight:800;cursor:pointer;letter-spacing:.5px}
+.recents button.on{border-color:var(--green);color:var(--green)}
 .ghosts{display:flex;gap:8px;margin-top:10px;justify-content:center}
 .ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}
 .ghost.on{border-color:var(--green);color:var(--green)}
@@ -76,6 +80,7 @@ footer{text-align:center;margin-top:10px;font-size:12px}
   <input id="ticker" type="text" autocapitalize="characters" autocomplete="off" placeholder="symbol — TSLA, AAPL…">
   <button class="btn primary" id="fetchBtn">Go live</button>
 </div>
+<div class="recents" id="recents"></div>
 <div class="bigprice mono" id="bigPrice">—</div>
 <div class="quote" id="quote"></div>
 <div id="gauge" hidden>
@@ -219,6 +224,22 @@ function startStream(sym){
     setTimeout(() => { if (Date.now() - lastTickAt > 8000 && sym === liveSym) startPolling(sym); }, 8000);
   } catch(e){ startPolling(sym); }
 }
+// ---- recent symbols: one-tap circle-back to anything searched before ----
+function loadRecents(){ try { return JSON.parse(localStorage.getItem('recent_syms') || '[]'); } catch(e){ return []; } }
+function renderRecents(){
+  const el = $('recents');
+  const list = loadRecents();
+  el.innerHTML = list.map(s => '<button class="' + (s === liveSym ? 'on' : '') + '" data-s="' + s + '">' + s + '</button>').join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => { $('ticker').value = b.dataset.s; saveState(); getPrice(); });
+}
+function pushRecent(sym){
+  let list = loadRecents().filter(s => s !== sym);
+  list.unshift(sym);
+  list = list.slice(0, 8);
+  try { localStorage.setItem('recent_syms', JSON.stringify(list)); } catch(e){}
+  renderRecents();
+}
+
 async function getPrice(){
   const sym = $('ticker').value.trim().toUpperCase();
   if (!sym){ $('quote').innerHTML = '<span class="err">Type a symbol first</span>'; return; }
@@ -231,6 +252,7 @@ async function getPrice(){
     setPrice(p, 'LIVE');
     startStream(sym);
     runGauge(sym);                                   // Ross Cameron STRONG/MEDIUM/WEAK
+    pushRecent(sym);                                 // remember for one-tap circle-back
   } catch(e){
     $('quote').innerHTML = '<span class="err">No price for ' + sym + ' — check the symbol.</span>';
   }
@@ -335,7 +357,7 @@ $('grabBtn').addEventListener('click', () => {
   if (v > 0){ $('avg').value = v; saveState(); calc(); }
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && liveSym) startStream(liveSym); });
-window.addEventListener('load', () => { if ($('ticker').value.trim()) getPrice(); });
+window.addEventListener('load', () => { renderRecents(); if ($('ticker').value.trim()) getPrice(); });
 
 // ---- second card target (10% default; ghosts swap to 20/25) ----
 let alt = 10;
