@@ -11,59 +11,62 @@
 }
 *{box-sizing:border-box}
 html{background:var(--bg);overscroll-behavior-y:none}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;min-height:100vh;display:flex;justify-content:center;padding:18px 14px 40px;overscroll-behavior-y:none}
-main{width:100%;max-width:460px}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;height:100dvh;overflow:hidden;display:flex;justify-content:center;padding:10px 12px;overscroll-behavior-y:none}
+main{width:100%;max-width:460px;display:flex;flex-direction:column;height:100%;overflow:hidden}
 .mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .tickrow{display:flex;gap:8px}
 .tickrow input{flex:1;text-transform:uppercase}
-input[type=text],input[type=number]{background:var(--field);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:17px;padding:13px 14px;outline:none;width:100%}
+input[type=text],input[type=number]{background:var(--field);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:16px;padding:9px 12px;outline:none;width:100%}
 input:focus{border-color:var(--green)}
-.btn{background:#1c2436;border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-weight:700;padding:0 16px;cursor:pointer;min-height:50px}
+.btn{background:#1c2436;border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:14px;font-weight:700;padding:0 14px;cursor:pointer;min-height:40px}
 .btn.primary{background:var(--green2);border:none;color:#03140a}
 .btn:disabled{opacity:.5}
-.bigprice{font-size:46px;font-weight:800;text-align:center;margin:12px 0 0;transition:color .2s;min-height:56px}
+.bigprice{font-size:38px;font-weight:800;text-align:center;margin:6px 0 0;transition:color .2s;min-height:44px}
 .bigprice.up{color:var(--green)}.bigprice.down{color:var(--red)}
-.quote{font-size:13px;text-align:center;min-height:18px;color:var(--muted);margin-bottom:6px}
+.quote{font-size:12px;text-align:center;min-height:15px;color:var(--muted);margin-bottom:2px}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--green)}
 .live .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .err{color:var(--red)}
 .entry{display:flex;gap:8px;margin-top:6px}
 .entry input{flex:1}
-.lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 5px}
-.be{display:flex;justify-content:center;align-items:center;gap:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--amber);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:700;margin-top:14px;min-height:34px}
-.pl{display:flex;justify-content:center;align-items:baseline;gap:12px;margin-top:12px;min-height:44px}
-.pl .amt{font-size:36px;font-weight:800}
-.pl .pct{font-size:18px;font-weight:800}
+.lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 4px}
+.be{display:flex;justify-content:center;align-items:center;gap:8px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--amber);border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;margin-top:6px;min-height:26px}
+.pl{display:flex;justify-content:center;align-items:baseline;gap:10px;margin-top:6px;min-height:34px}
+.pl .amt{font-size:28px;font-weight:800}
+.pl .pct{font-size:15px;font-weight:800}
 .pl .sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
 .pl.up .amt,.pl.up .pct{color:var(--green)}
 .pl.down .amt,.pl.down .pct{color:var(--red)}
-.tcard{width:100%;border-radius:16px;padding:14px 16px;margin-top:12px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:12px;cursor:pointer;min-height:96px;text-align:left;color:var(--text)}
+.tcard{width:100%;border-radius:12px;padding:8px 14px;margin-top:8px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:10px;cursor:pointer;min-height:64px;text-align:left;color:var(--text)}
 .tcard:active{transform:scale(.99)}
-.tcard .pct{font-size:15px;font-weight:800;letter-spacing:.5px;min-width:82px}
-.tcard .price{font-size:34px;font-weight:800;flex:1;text-align:center}
+.tcard .pct{font-size:13px;font-weight:800;letter-spacing:.5px;min-width:70px}
+.tcard .price{font-size:26px;font-weight:800;flex:1;text-align:center}
 .tcard .prof{text-align:right;min-width:92px}
-.tcard .prof .gbp{font-size:17px;font-weight:800}
-.tcard .prof .usd{font-size:11.5px;color:var(--muted);margin-top:2px}
+.tcard .prof .gbp{font-size:14px;font-weight:800}
+.tcard .prof .usd{font-size:10px;color:var(--muted);margin-top:1px}
 .tcard.t5{border-color:rgba(74,222,128,.45)}
 .tcard.t5 .pct,.tcard.t5 .price,.tcard.t5 .prof .gbp{color:var(--green)}
 .tcard.t10{border-color:var(--green);box-shadow:0 0 0 1px rgba(74,222,128,.25)}
 .tcard.t10 .pct,.tcard.t10 .price,.tcard.t10 .prof .gbp{color:var(--green)}
-.tcard .hint{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
-.recents{display:flex;gap:7px;margin-top:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tcard .hint{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.recents{display:flex;flex-wrap:nowrap;gap:6px;margin-top:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-height:34px}
 .recents::-webkit-scrollbar{display:none}
-.recents button{flex:none;background:var(--field);border:1px solid var(--line);color:var(--text);border-radius:99px;padding:8px 16px;font-size:13.5px;font-weight:800;cursor:pointer;letter-spacing:.5px}
+.recents button{flex:none;position:relative;background:var(--field);border:1px solid var(--line);color:var(--text);border-radius:99px;padding:6px 14px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.5px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.recents button .del{position:absolute;top:-9px;right:-7px;background:var(--red);color:#fff;border-radius:99px;font-size:10px;font-weight:900;padding:2px 8px;border:2px solid var(--bg);z-index:2}
+.recents button .setup{position:absolute;top:-8px;left:-5px;background:var(--amber);color:#3a2a00;border-radius:99px;font-size:8.5px;font-weight:900;letter-spacing:.4px;padding:1.5px 6px;border:2px solid var(--bg)}
 .recents button.on{border-color:var(--green);color:var(--green)}
-.ghosts{display:flex;gap:8px;margin-top:10px;justify-content:center}
-.ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.ghosts{display:flex;gap:8px;margin-top:8px;justify-content:center}
+.ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer}
 .ghost.on{border-color:var(--green);color:var(--green)}
-.gbadge{text-align:center;font-size:20px;font-weight:900;letter-spacing:2px;border-radius:12px;padding:9px 0;margin:6px 0 6px}
+.gbadge{text-align:center;font-size:15px;font-weight:900;letter-spacing:1.5px;border-radius:10px;padding:5px 0;margin:4px 0 4px}
 .gbadge.strong{background:rgba(74,222,128,.14);color:var(--green);border:1px solid rgba(74,222,128,.5)}
 .gbadge.medium{background:rgba(251,191,36,.10);color:var(--amber);border:1px solid rgba(251,191,36,.4)}
 .gbadge.weak{background:rgba(248,113,113,.10);color:var(--red);border:1px solid rgba(248,113,113,.4)}
 .gbadge.loading{background:none;color:var(--muted);border:1px dashed var(--line);font-weight:700;letter-spacing:.5px;font-size:13px}
-.greasons{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:4px}
-.greasons span{font-size:11.5px;font-weight:700;border-radius:99px;padding:4px 10px;background:var(--field);border:1px solid var(--line);color:var(--muted)}
+.greasons{display:flex;flex-wrap:nowrap;gap:6px;justify-content:flex-start;margin-bottom:2px;overflow-x:auto;scrollbar-width:none}
+.greasons::-webkit-scrollbar{display:none}
+.greasons span{flex:none;font-size:10.5px;font-weight:700;border-radius:99px;padding:3px 9px;background:var(--field);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .greasons span.ok{color:var(--green);border-color:rgba(74,222,128,.35)}
 .greasons span.bad{color:var(--red);border-color:rgba(248,113,113,.3)}
 .greasons span.warn{color:var(--amber);border-color:rgba(251,191,36,.35)}
@@ -117,8 +120,7 @@ footer{text-align:center;margin-top:10px;font-size:12px}
   <button class="ghost" data-p="25">25%</button>
 </div>
 
-<p class="note">These are the exact LIMIT SELL prices to place on Trading&nbsp;212 — all its real costs (0.15% FX each way + US sell fees) are already included and rounded up in your favour. NET = profit after everything.</p>
-<footer><a href="/">← coin-maker3</a></footer>
+
 </main>
 <div class="toast" id="toast"></div>
 
@@ -226,11 +228,41 @@ function startStream(sym){
 }
 // ---- recent symbols: one-tap circle-back to anything searched before ----
 function loadRecents(){ try { return JSON.parse(localStorage.getItem('recent_syms') || '[]'); } catch(e){ return []; } }
+const chipSetup = {};   // sym -> true when the 4 momentum conditions align (see SETUP engine)
+function clearDels(){ document.querySelectorAll('.recents .del').forEach(x => x.remove()); }
+function removeRecent(sym){
+  const l = loadRecents().filter(s => s !== sym);
+  try { localStorage.setItem('recent_syms', JSON.stringify(l)); } catch(e){}
+  renderRecents();
+}
 function renderRecents(){
   const el = $('recents');
   const list = loadRecents();
-  el.innerHTML = list.map(s => '<button class="' + (s === liveSym ? 'on' : '') + '" data-s="' + s + '">' + s + '</button>').join('');
-  el.querySelectorAll('button').forEach(b => b.onclick = () => { $('ticker').value = b.dataset.s; saveState(); getPrice(); });
+  el.innerHTML = list.map(s => '<button class="' + (s === liveSym ? 'on' : '') + '" data-s="' + s + '">' + s +
+    (chipSetup[s] ? '<span class="setup">SETUP</span>' : '') + '</button>').join('');
+  el.querySelectorAll('button').forEach(b => {
+    const sym = b.dataset.s;
+    let timer = null, long = false;
+    const start = () => { long = false; timer = setTimeout(() => {   // long-press -> DELETE bubble
+      long = true; clearDels();
+      const d = document.createElement('span'); d.className = 'del'; d.textContent = 'DELETE';
+      d.onclick = (ev) => { ev.stopPropagation(); removeRecent(sym); };
+      b.appendChild(d);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }, 550); };
+    const cancel = () => { if (timer){ clearTimeout(timer); timer = null; } };
+    b.addEventListener('pointerdown', start);
+    b.addEventListener('pointerup', cancel);
+    b.addEventListener('pointerleave', cancel);
+    b.addEventListener('contextmenu', e => e.preventDefault());
+    b.addEventListener('click', (e) => {
+      if (long){ e.preventDefault(); return; }                        // the long-press itself
+      const d = b.querySelector('.del');
+      if (d){ d.remove(); return; }                                   // tap chip body = dismiss delete
+      clearDels();
+      $('ticker').value = sym; saveState(); getPrice();
+    });
+  });
 }
 function pushRecent(sym){
   let list = loadRecents().filter(s => s !== sym);
@@ -359,6 +391,80 @@ $('grabBtn').addEventListener('click', () => {
 document.addEventListener('visibilitychange', () => { if (!document.hidden && liveSym) startStream(liveSym); });
 window.addEventListener('load', () => { renderRecents(); if ($('ticker').value.trim()) getPrice(); });
 
+// ================= SETUP badge engine (expert-designed, Jul 2026) =================
+// The 4 consensus intraday momentum conditions, ALL required (5-min candles):
+//   1. price > session VWAP        2. EMA9 > EMA20 (incl. pre-market seed)
+//   3. price >= 99.5% of HOD       4. current 5m volume >= 1.5x avg of prior 10
+// Hard gates (badge NEVER shows): market closed / first 15 min, stock red on day,
+// <25 candles or <3 regular candles, or data unfetchable — absence of data is
+// absence of signal. Amber "SETUP", not "BUY": conditions aligned, not advice.
+function emaCalc(vals, n){
+  if (vals.length < n) return null;
+  let e = vals.slice(0, n).reduce((a,b) => a+b, 0) / n;
+  const k = 2 / (n + 1);
+  for (let i = n; i < vals.length; i++) e = vals[i] * k + e * (1 - k);
+  return e;
+}
+function computeSetup(res, last, dp, nowSec){
+  try {
+    if (dp == null || dp <= 0 || !(last > 0)) return false;
+    const ts = res.timestamp || [], q = res.indicators.quote[0];
+    const reg0 = res.meta.currentTradingPeriod.regular.start, reg1 = res.meta.currentTradingPeriod.regular.end;
+    const now = nowSec || (Date.now() / 1000);
+    if (now < reg0 + 900 || now > reg1) return false;          // pre-9:45 ET or closed
+    const cands = [];
+    for (let i = 0; i < ts.length; i++)
+      if (q.close[i] != null) cands.push({t: ts[i], h: q.high[i], l: q.low[i], c: q.close[i], v: q.volume[i] || 0});
+    if (cands.length < 25) return false;
+    const reg = cands.filter(c => c.t >= reg0 && c.t < reg1);
+    if (reg.length < 3) return false;
+    let pv = 0, vv = 0;
+    reg.forEach(c => { if (c.v > 0){ pv += ((c.h + c.l + c.c) / 3) * c.v; vv += c.v; } });
+    if (!vv) return false;
+    const vwap = pv / vv;
+    const e9 = emaCalc(cands.map(c => c.c), 9), e20 = emaCalc(cands.map(c => c.c), 20);
+    if (e9 == null || e20 == null) return false;
+    const hod = Math.max(...reg.map(c => c.h));
+    const lastC = reg[reg.length - 1];
+    const elapsed = now - lastC.t;
+    let curVol;
+    if (elapsed < 60 && reg.length >= 2) curVol = reg[reg.length - 2].v;   // candle too young: use prior
+    else curVol = lastC.v * (300 / Math.min(Math.max(elapsed, 60), 300));  // pro-rate in-progress candle
+    const prior = reg.slice(-11, -1);
+    if (prior.length < 5) return false;
+    const avg = prior.reduce((a,c) => a + c.v, 0) / prior.length;
+    if (!(avg > 0)) return false;
+    return last > vwap && e9 > e20 && last >= 0.995 * hod && curVol >= 1.5 * avg;
+  } catch(e){ return false; }
+}
+try { window.computeSetup = computeSetup; } catch(e){}
+async function fetchCandles(sym){
+  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=5m&includePrePost=true';
+  const enc = encodeURIComponent(y);
+  const tries = [
+    jget('https://corsproxy.io/?url=' + enc, 8000),
+    jget('https://api.allorigins.win/get?url=' + enc, 8000).then(j => JSON.parse(j.contents)),
+    jget('https://api.allorigins.win/raw?url=' + enc, 8000),
+  ].map(pr => pr.then(j => { const r = j && j.chart && j.chart.result && j.chart.result[0]; if (r) return r; throw 0; }));
+  try { return await Promise.any(tries); } catch(e){ return null; }
+}
+// round-robin: one chip every 9s -> each of 8 chips refreshed ~every 72s
+let setupIdx = 0;
+setInterval(async () => {
+  if (document.hidden) return;
+  const list = loadRecents();
+  if (!list.length) return;
+  const sym = list[setupIdx % list.length]; setupIdx++;
+  try {
+    const [res, q] = await Promise.all([
+      fetchCandles(sym),
+      jget('https://finnhub.io/api/v1/quote?symbol=' + sym + '&token=' + FINNHUB_KEY, 8000).catch(() => null)]);
+    const live = (sym === liveSym && prevPrice) ? prevPrice : (q && q.c > 0 ? q.c : null);
+    const on = (res && live) ? computeSetup(res, live, q ? q.dp : null) : false;
+    if (chipSetup[sym] !== on){ chipSetup[sym] = on; renderRecents(); }
+  } catch(e){ if (chipSetup[sym]){ chipSetup[sym] = false; renderRecents(); } }
+}, 9000);
+
 // ---- second card target (10% default; ghosts swap to 20/25) ----
 let alt = 10;
 document.querySelectorAll('.ghost').forEach(g => g.addEventListener('click', () => {
@@ -386,6 +492,7 @@ function calc(){
   const shares = parseFloat($('shares').value);
   if (isNaN(buy) || buy <= 0){
     $('beLine').hidden = true;
+    $('plLine').hidden = true;
     $('p5').textContent = '—'; $('g5').textContent = '—'; $('u5').textContent = '';
     $('p10').textContent = '—'; $('g10').textContent = '—'; $('u10').textContent = '';
     return;
