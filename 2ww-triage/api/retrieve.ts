@@ -3,9 +3,13 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { kvGet } from './_kv.js'
+import { CAPTURE_ENABLED, CAPTURE_LOCKED_MESSAGE } from './_capture.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
+  // Master pilot lock: patient submissions can't be read back while capture is
+  // disabled (there should be none stored anyway). See api/_capture.ts.
+  if (!CAPTURE_ENABLED) return res.status(403).json({ error: CAPTURE_LOCKED_MESSAGE })
   try {
     const ref = String(req.query.ref ?? '')
     if (!ref) return res.status(400).json({ error: 'Missing ref' })

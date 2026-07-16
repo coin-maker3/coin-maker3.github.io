@@ -4,6 +4,14 @@ import {
   INVESTIGATION_LABELS,
   type Investigation,
 } from '../algorithm/types'
+import {
+  DISCORDANCE_REASONS,
+  DISCORDANCE_REASON_LABELS,
+  DISCORDANCE_DIRECTIONS,
+  DISCORDANCE_DIRECTION_LABELS,
+  type DiscordanceReason,
+  type DiscordanceDirection,
+} from '../audit/types'
 import { PID_LABELS, scanForPid } from '../lib/pid-scan'
 
 function PidWarning({ text }: { text: string }) {
@@ -37,6 +45,10 @@ interface Props {
   onNotesChange: (v: string) => void
   reviewerNotes: string
   onReviewerNotesChange: (v: string) => void
+  discordanceReason: DiscordanceReason | ''
+  onDiscordanceReasonChange: (v: DiscordanceReason | '') => void
+  discordanceDirection: DiscordanceDirection | ''
+  onDiscordanceDirectionChange: (v: DiscordanceDirection | '') => void
 }
 
 export function ActualOutcomePanel({
@@ -47,6 +59,10 @@ export function ActualOutcomePanel({
   onNotesChange,
   reviewerNotes,
   onReviewerNotesChange,
+  discordanceReason,
+  onDiscordanceReasonChange,
+  discordanceDirection,
+  onDiscordanceDirectionChange,
 }: Props) {
   const concordant = actualDecision && actualDecision === toolDecision
 
@@ -114,19 +130,68 @@ export function ActualOutcomePanel({
       </div>
 
       {actualDecision && !concordant && (
-        <div className="mt-3">
-          <label className="label" htmlFor="reviewerNotes">
-            Reviewer notes — why might tool and clinic differ?
-          </label>
-          <textarea
-            id="reviewerNotes"
-            rows={2}
-            className="input"
-            placeholder="e.g. tool didn't capture comorbidity, clinician deviated for patient preference"
-            value={reviewerNotes}
-            onChange={(e) => onReviewerNotesChange(e.target.value)}
-          />
-          <PidWarning text={reviewerNotes} />
+        <div className="mt-3 space-y-3 rounded-md border border-amber-200 bg-amber-50/40 p-3">
+          <div>
+            <label className="label" htmlFor="discordanceReason">
+              Why did they differ? <span className="text-red-600">*</span>
+            </label>
+            <select
+              id="discordanceReason"
+              className="select"
+              value={discordanceReason}
+              onChange={(e) => onDiscordanceReasonChange(e.target.value as DiscordanceReason | '')}
+            >
+              <option value="">— select —</option>
+              {DISCORDANCE_REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {DISCORDANCE_REASON_LABELS[r]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="label" htmlFor="discordanceDirection">
+              Direction — depth of investigation <span className="text-red-600">*</span>
+            </label>
+            <select
+              id="discordanceDirection"
+              className="select"
+              value={discordanceDirection}
+              onChange={(e) =>
+                onDiscordanceDirectionChange(e.target.value as DiscordanceDirection | '')
+              }
+            >
+              <option value="">— select —</option>
+              {DISCORDANCE_DIRECTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {DISCORDANCE_DIRECTION_LABELS[d]}
+                </option>
+              ))}
+            </select>
+            {discordanceDirection === 'clinician_less' && (
+              <p className="mt-1 flex items-start gap-1.5 text-xs text-red-700">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                Clinician investigated less than the protocol recommended — a potential
+                under-investigation. Flag for senior review.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="label" htmlFor="reviewerNotes">
+              Reviewer notes (optional detail)
+            </label>
+            <textarea
+              id="reviewerNotes"
+              rows={2}
+              className="input"
+              placeholder="e.g. tool didn't capture comorbidity, clinician deviated for patient preference"
+              value={reviewerNotes}
+              onChange={(e) => onReviewerNotesChange(e.target.value)}
+            />
+            <PidWarning text={reviewerNotes} />
+          </div>
         </div>
       )}
     </div>

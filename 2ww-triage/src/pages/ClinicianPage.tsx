@@ -10,6 +10,7 @@ import { ALGORITHM_VERSION } from '../algorithm/version'
 import { DEFAULT_INTAKE, type Intake } from '../schema/intake'
 import { generateTestRef } from '../lib/api'
 import { linkTo } from '../lib/router'
+import { CAPTURE_ENABLED } from '../config/capture'
 
 export function ClinicianPage() {
   const [intake, setIntake] = useState<Intake>(DEFAULT_INTAKE)
@@ -78,9 +79,24 @@ export function ClinicianPage() {
       <main className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_460px]">
           <div className="space-y-6">
-            <PatientImportPanel onImport={onImport} />
+            {!CAPTURE_ENABLED && (
+              <div className="card border-l-4 border-l-nhs-mid-grey bg-nhs-pale-grey">
+                <h3 className="text-sm font-semibold text-nhs-dark-blue">
+                  Patient submission &amp; data capture — disabled
+                </h3>
+                <p className="mt-1 text-xs text-nhs-mid-grey">
+                  Data capture is turned off pending audit authorisation. This is a
+                  decision-support calculator only — nothing is uploaded, imported, or
+                  stored. Enter the clinical details below to see the recommended
+                  investigation.
+                </p>
+              </div>
+            )}
+
+            {CAPTURE_ENABLED && <PatientImportPanel onImport={onImport} />}
 
             {/* Issue patient pre-clinic form (test mode) */}
+            {CAPTURE_ENABLED && (
             <div className="card border-l-4 border-l-nhs-light-blue">
               <h3 className="text-sm font-semibold text-nhs-dark-blue">
                 Issue patient pre-clinic form
@@ -117,6 +133,7 @@ export function ClinicianPage() {
                 </div>
               )}
             </div>
+            )}
 
             {importedRef && (
               <div className="rounded-md border-l-4 border-l-nhs-green bg-green-50 p-3 text-sm text-green-900">
@@ -139,7 +156,10 @@ export function ClinicianPage() {
 
         <footer className="mt-10 border-t border-gray-200 pt-4 text-xs text-nhs-mid-grey">
           <p>
-            Decision support only. Clinical judgement always overrides. Patient submissions are stored for 48 hours during testing only and are not patient-identifiable.
+            Decision support only. Clinical judgement always overrides.{' '}
+            {CAPTURE_ENABLED
+              ? 'Patient submissions are stored for 48 hours during testing only and are not patient-identifiable.'
+              : 'Data capture is disabled pending audit authorisation — nothing entered here is uploaded or stored.'}
           </p>
         </footer>
       </main>

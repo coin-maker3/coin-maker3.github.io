@@ -21,6 +21,73 @@ export const EXCLUSION_REASON_LABELS: Record<ExclusionReason, string> = {
   other: 'Other (specify in notes)',
 }
 
+/**
+ * Structured classification of a discordance (tool ≠ clinic). Captured at entry
+ * so the disagreements — the whole point of the audit — can be aggregated
+ * across 100s of cases instead of read out of free text one at a time.
+ *
+ * Axis 1: WHY they differed. Separates a tool bug ('algorithm_error', a fix
+ * list) from a legitimate clinical deviation ('clinician_deviation', a gap in
+ * the protocol) — which is what makes a raw concordance % interpretable.
+ */
+export const DISCORDANCE_REASONS = [
+  'algorithm_error',
+  'clinician_deviation',
+  'transcription_difference',
+  'clinically_equivalent',
+  'other',
+] as const
+export type DiscordanceReason = (typeof DISCORDANCE_REASONS)[number]
+
+export const DISCORDANCE_REASON_LABELS: Record<DiscordanceReason, string> = {
+  algorithm_error: 'Algorithm got it wrong',
+  clinician_deviation: 'Clinician deviated for a valid reason the tool doesn’t model',
+  transcription_difference: 'Transcription / data difference',
+  clinically_equivalent: 'Clinically equivalent / trivial difference',
+  other: 'Other (specify in notes)',
+}
+
+/**
+ * Axis 2: DIRECTION — the safety axis on a cancer pathway. Did the clinician
+ * investigate more than the tool (over-investigation, safe), the same depth, or
+ * less (under-investigation — the safety signal)?
+ */
+export const DISCORDANCE_DIRECTIONS = [
+  'clinician_more',
+  'equivalent',
+  'clinician_less',
+] as const
+export type DiscordanceDirection = (typeof DISCORDANCE_DIRECTIONS)[number]
+
+export const DISCORDANCE_DIRECTION_LABELS: Record<DiscordanceDirection, string> = {
+  clinician_more: 'Clinician did more than the tool (over-investigation)',
+  equivalent: 'Equivalent depth of investigation',
+  clinician_less: 'Clinician did less than the tool (under-investigation)',
+}
+
+/**
+ * Final diagnosis / outcome for the case — the safety axis that matters most for
+ * the paper: did the case actually turn out to be cancer, and would the
+ * algorithm's recommendation have caught it? Usually needs a follow-up look-up
+ * (histology / final MDT outcome), not just the index clinic letter.
+ */
+export const FINAL_DIAGNOSES = [
+  'colorectal_cancer',
+  'other_cancer',
+  'benign',
+  'not_known',
+  'other',
+] as const
+export type FinalDiagnosis = (typeof FINAL_DIAGNOSES)[number]
+
+export const FINAL_DIAGNOSIS_LABELS: Record<FinalDiagnosis, string> = {
+  colorectal_cancer: 'Colorectal cancer',
+  other_cancer: 'Other cancer',
+  benign: 'Benign / no cancer',
+  not_known: 'Not yet known',
+  other: 'Other (see notes)',
+}
+
 export interface AuditCase {
   /** Anonymous audit ID (auto AUDIT-YYYY-NNNN or user-supplied e.g. GEH-2WW-001). */
   id: string
@@ -64,6 +131,10 @@ export interface AuditCase {
   reviewerNotes: string
   /** Auto-computed: does toolDecision === actualDecision? */
   concordant: boolean
+  /** On a mismatch only — structured reason the tool and clinic differed. */
+  discordanceReason?: DiscordanceReason
+  /** On a mismatch only — did the clinician investigate more / equal / less (safety axis). */
+  discordanceDirection?: DiscordanceDirection
   /** ISO timestamps. */
   createdAt: string
   /** Seconds taken to enter the case (for time-per-case secondary outcome). */
@@ -272,6 +343,19 @@ export interface AuditSummary {
     overallReason: string | null
     armsTriggered: Array<{ label: string; total: number; concordancePct: number }>
   }
+  /**
+   * Discordance analysis over the analysed mismatches: WHY they differed and in
+   * which DIRECTION. `unclassified` = mismatches saved before this was captured
+   * (or left blank). `clinicianLess` is pulled out because it's the safety read.
+   */
+  discordance: {
+    mismatches: number
+    classified: number
+    unclassified: number
+    reasons: Array<{ reason: DiscordanceReason; label: string; count: number }>
+    directions: Array<{ direction: DiscordanceDirection; label: string; count: number }>
+    clinicianLess: number
+  }
 }
 
 function subgroupStat(label: string, list: AuditCase[]) {
@@ -459,6 +543,37 @@ export function buildSummary(allCases: AuditCase[]): AuditSummary {
     armsTriggered,
   }
 
+  // Discordance analysis (analysed mismatches only)
+  const mismatchCases = cases.filter((c) => !c.concordant)
+  const reasonCounts = new Map<DiscordanceReason, number>()
+  const directionCounts = new Map<DiscordanceDirection, number>()
+  let classified = 0
+  for (const c of mismatchCases) {
+    if (c.discordanceReason) {
+      reasonCounts.set(c.discordanceReason, (reasonCounts.get(c.discordanceReason) ?? 0) + 1)
+      classified++
+    }
+    if (c.discordanceDirection) {
+      directionCounts.set(c.discordanceDirection, (directionCounts.get(c.discordanceDirection) ?? 0) + 1)
+    }
+  }
+  const discordance = {
+    mismatches: mismatchCases.length,
+    classified,
+    unclassified: mismatchCases.length - classified,
+    reasons: DISCORDANCE_REASONS.filter((r) => reasonCounts.has(r)).map((r) => ({
+      reason: r,
+      label: DISCORDANCE_REASON_LABELS[r],
+      count: reasonCounts.get(r) ?? 0,
+    })),
+    directions: DISCORDANCE_DIRECTIONS.filter((d) => directionCounts.has(d)).map((d) => ({
+      direction: d,
+      label: DISCORDANCE_DIRECTION_LABELS[d],
+      count: directionCounts.get(d) ?? 0,
+    })),
+    clinicianLess: directionCounts.get('clinician_less') ?? 0,
+  }
+
   return {
     total: allCases.length,
     excluded,
@@ -475,6 +590,7 @@ export function buildSummary(allCases: AuditCase[]): AuditSummary {
     byFy1,
     subgroups: { byReferralReason, byAgeBand, byBowelPrepFit },
     stopCriteria,
+    discordance,
   }
 }
 
@@ -508,6 +624,8 @@ export function exportCSV(cases: AuditCase[]): string {
     'toolWarnings',
     'actualDecision',
     'concordant',
+    'discordanceReason',
+    'discordanceDirection',
     'actualDecisionNotes',
     'reviewerNotes',
     'excluded',
@@ -551,6 +669,8 @@ export function exportCSV(cases: AuditCase[]): string {
       (c.toolDecision.warnings ?? []).join(' | '),
       c.actualDecision,
       c.concordant,
+      c.discordanceReason ?? '',
+      c.discordanceDirection ?? '',
       c.actualDecisionNotes,
       c.reviewerNotes,
       c.excluded ? 'yes' : 'no',

@@ -10,12 +10,16 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { kvSet } from './_kv.js'
+import { CAPTURE_ENABLED, CAPTURE_LOCKED_MESSAGE } from './_capture.js'
 
 const TTL_SECONDS = 48 * 60 * 60
 const MAX_PAYLOAD_BYTES = 50_000 // 50 KB is ~10x a fully-populated form; anything bigger is abuse
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
+  // Master pilot lock: no patient submissions are stored until the audit team
+  // authorises data capture. See api/_capture.ts.
+  if (!CAPTURE_ENABLED) return res.status(403).json({ error: CAPTURE_LOCKED_MESSAGE })
   try {
     const { ref, payload } = req.body ?? {}
     if (typeof ref !== 'string' || ref.length < 4 || ref.length > 64) {

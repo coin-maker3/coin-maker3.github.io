@@ -1,8 +1,12 @@
 # 2WW Colorectal Triage Aid — Session Context
 
-> **READ THIS FIRST.** This file is the handoff from the previous Claude
-> Code session. It captures user context, decisions made, current state,
-> and outstanding work so you can resume without losing momentum.
+> ⚠️ **OUTDATED — READ `HANDOFF.md` (in this folder) FIRST.**
+> Everything below this banner is from an OLD session and is now WRONG in key
+> ways: the tool is no longer on Vercel (migrated to **Firebase**, live at
+> https://ww-colerectal.web.app), the algorithm is **v0.4.0** (not v0.2.1), the
+> repo is **private**, deployment is done, and the patient upload is disabled.
+> Use `HANDOFF.md` for current state; the notes below are only kept for the
+> background/user-context they still contain.
 
 ---
 

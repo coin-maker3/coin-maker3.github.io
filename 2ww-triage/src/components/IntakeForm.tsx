@@ -68,13 +68,22 @@ function PidWarning({ text }: { text: string }) {
 interface Props {
   value: Intake
   onChange: (next: Intake) => void
+  /** audit mode: fields currently marked "not documented in the letter" (Kasun, Jul 2026).
+   *  When provided, the yes/no questions gain a third honest option; ND computes as 'no'
+   *  (the declared convention) but is recorded distinctly in the audit row. */
+  nd?: Set<string>
+  onNd?: (field: string, nd: boolean) => void
 }
 
 type K = keyof Intake
 
-export function IntakeForm({ value, onChange }: Props) {
+export function IntakeForm({ value, onChange, nd, onNd }: Props) {
   const set = <Key extends K>(k: Key, v: Intake[Key]) =>
     onChange({ ...value, [k]: v })
+
+  // spreads the "Not documented" option onto a toggle (audit mode only)
+  const ndp = (k: string) =>
+    onNd ? { nd: nd?.has(k) ?? false, onNd: (v: boolean) => onNd(k, v) } : {}
 
   // Age is the source of truth; the algorithm reads `ageBand` so we
   // derive it whenever age changes. Future: when EPR integration lands,
@@ -313,7 +322,7 @@ export function IntakeForm({ value, onChange }: Props) {
         </p>
         <div className="space-y-3">
           <Row label="Have you had any change in bowel habit?">
-            <YesNoToggle value={value.cibh} onChange={(v) => set('cibh', v)} />
+            <YesNoToggle value={value.cibh} onChange={(v) => set('cibh', v)} {...ndp('cibh')} />
             {value.cibh === 'yes' && (
               <NumberField
                 id="cibhDuration"
@@ -355,15 +364,15 @@ export function IntakeForm({ value, onChange }: Props) {
           )}
 
           <Row label="Have you experienced any mucus per rectum?">
-            <YesNoToggle value={value.mucusPR} onChange={(v) => set('mucusPR', v)} />
+            <YesNoToggle value={value.mucusPR} onChange={(v) => set('mucusPR', v)} {...ndp('mucusPR')} />
           </Row>
 
           <Row label="Has there been any tenesmus or incomplete evacuation?">
-            <YesNoToggle value={value.tenesmus} onChange={(v) => set('tenesmus', v)} />
+            <YesNoToggle value={value.tenesmus} onChange={(v) => set('tenesmus', v)} {...ndp('tenesmus')} />
           </Row>
 
           <Row label="Have you experienced any weight loss?">
-            <YesNoToggle value={value.weightLoss} onChange={(v) => set('weightLoss', v)} />
+            <YesNoToggle value={value.weightLoss} onChange={(v) => set('weightLoss', v)} {...ndp('weightLoss')} />
             {value.weightLoss === 'yes' && (
               <NumberField
                 id="wtLoss"
@@ -377,7 +386,7 @@ export function IntakeForm({ value, onChange }: Props) {
           </Row>
 
           <Row label="Have you experienced any abdominal pain?">
-            <YesNoToggle value={value.abdominalPain} onChange={(v) => set('abdominalPain', v)} />
+            <YesNoToggle value={value.abdominalPain} onChange={(v) => set('abdominalPain', v)} {...ndp('abdominalPain')} />
           </Row>
         </div>
       </section>
@@ -392,18 +401,19 @@ export function IntakeForm({ value, onChange }: Props) {
         </p>
         <div className="space-y-3">
           <Row label="Family history of bowel cancer or IBD?">
-            <YesNoToggle value={value.fhxCrcOrIbd} onChange={(v) => set('fhxCrcOrIbd', v)} />
+            <YesNoToggle value={value.fhxCrcOrIbd} onChange={(v) => set('fhxCrcOrIbd', v)} {...ndp('fhxCrcOrIbd')} />
           </Row>
           <Row label="Previous colorectal cancer?">
-            <YesNoToggle value={value.previousCRC} onChange={(v) => set('previousCRC', v)} />
+            <YesNoToggle value={value.previousCRC} onChange={(v) => set('previousCRC', v)} {...ndp('previousCRC')} />
           </Row>
           <Row label="Known inflammatory bowel disease?">
-            <YesNoToggle value={value.ibd} onChange={(v) => set('ibd', v)} />
+            <YesNoToggle value={value.ibd} onChange={(v) => set('ibd', v)} {...ndp('ibd')} />
           </Row>
           <Row label="Colonoscopy in last 2 years?">
             <YesNoToggle
               value={value.priorColonoscopyWithin2y}
               onChange={(v) => set('priorColonoscopyWithin2y', v)}
+              {...ndp('priorColonoscopyWithin2y')}
             />
           </Row>
           {value.priorColonoscopyWithin2y === 'yes' && (
@@ -541,7 +551,7 @@ export function IntakeForm({ value, onChange }: Props) {
             <YesNoToggle value={value.overnightEscort} onChange={(v) => set('overnightEscort', v)} />
           </Row>
           <Row label="Fit for bowel prep (clinical judgement)">
-            <YesNoToggle value={value.fitForBowelPrep} onChange={(v) => set('fitForBowelPrep', v)} />
+            <YesNoToggle value={value.fitForBowelPrep} onChange={(v) => set('fitForBowelPrep', v)} {...ndp('fitForBowelPrep')} />
           </Row>
           <Row label="Fit for sedation (clinical judgement)">
             <YesNoToggle value={value.fitForSedation} onChange={(v) => set('fitForSedation', v)} />
@@ -579,10 +589,10 @@ export function IntakeForm({ value, onChange }: Props) {
             Read from the free text above and tick yes/no below — the algorithm uses these flags:
           </p>
           <Row label="Palpable abdominal mass?">
-            <YesNoToggle value={value.palpableAbdoMass} onChange={(v) => set('palpableAbdoMass', v)} />
+            <YesNoToggle value={value.palpableAbdoMass} onChange={(v) => set('palpableAbdoMass', v)} {...ndp('palpableAbdoMass')} />
           </Row>
           <Row label="Palpable rectal mass on PR?">
-            <YesNoToggle value={value.palpableRectalMass} onChange={(v) => set('palpableRectalMass', v)} />
+            <YesNoToggle value={value.palpableRectalMass} onChange={(v) => set('palpableRectalMass', v)} {...ndp('palpableRectalMass')} />
           </Row>
           {value.palpableRectalMass === 'yes' && (
             <Row label="Mass low and tender?">

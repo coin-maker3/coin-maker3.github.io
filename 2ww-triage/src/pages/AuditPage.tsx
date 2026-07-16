@@ -482,6 +482,54 @@ export function AuditPage() {
           </section>
         )}
 
+        {summary && summary.discordance.mismatches > 0 && (
+          <section className="card">
+            <h2 className="mb-1 text-sm font-semibold text-nhs-dark-blue">Discordance analysis</h2>
+            <p className="mb-3 text-xs text-nhs-mid-grey">
+              Of {summary.discordance.mismatches} mismatch{summary.discordance.mismatches === 1 ? '' : 'es'}
+              {summary.discordance.unclassified > 0 &&
+                ` (${summary.discordance.classified} classified, ${summary.discordance.unclassified} not yet classified)`}
+              .
+            </p>
+
+            {summary.discordance.clinicianLess > 0 && (
+              <div className="mb-3 rounded-md border-l-4 border-l-red-500 bg-red-50 p-3 text-sm text-red-900">
+                <strong>{summary.discordance.clinicianLess}</strong> case
+                {summary.discordance.clinicianLess === 1 ? '' : 's'} where the clinician investigated{' '}
+                <strong>less</strong> than the protocol recommended — potential under-investigation.
+                Review these first.
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-nhs-mid-grey">
+                  Why they differed
+                </h3>
+                <ul className="space-y-1 text-sm">
+                  {summary.discordance.reasons.map((r) => (
+                    <li key={r.reason}>
+                      <strong>{r.count}×</strong> {r.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-nhs-mid-grey">
+                  Direction (safety)
+                </h3>
+                <ul className="space-y-1 text-sm">
+                  {summary.discordance.directions.map((d) => (
+                    <li key={d.direction}>
+                      <strong>{d.count}×</strong> {d.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className="card">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold text-nhs-dark-blue">All cases</h2>

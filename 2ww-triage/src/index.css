@@ -65,4 +65,9 @@
   .toggle-yn button[aria-pressed='false'] {
     @apply bg-white text-nhs-dark-grey hover:bg-nhs-pale-grey;
   }
+
+  /* "Not documented" reads as a distinct, honest state — amber, not a blue answer */
+  .toggle-yn button.nd[aria-pressed='true'] {
+    @apply bg-amber-500 text-white;
+  }
 }

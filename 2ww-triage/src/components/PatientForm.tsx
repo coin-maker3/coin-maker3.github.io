@@ -6,6 +6,7 @@ import {
   ageToBand,
   type Intake,
 } from '../schema/intake'
+import { CAPTURE_ENABLED } from '../config/capture'
 
 interface Props {
   initialRef: string | null
@@ -77,6 +78,23 @@ export function PatientForm({ initialRef }: Props) {
           </p>
           <p className="mt-2 text-xs text-nhs-mid-grey">
             Please bring your appointment letter to clinic. You don't need to do anything else.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!CAPTURE_ENABLED) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+        <div className="card border-l-4 border-l-nhs-mid-grey text-center">
+          <h2 className="text-xl font-semibold text-nhs-dark-blue">
+            This online form isn't currently in use
+          </h2>
+          <p className="mt-2 text-sm text-nhs-dark-grey">
+            There's nothing you need to do online. Please just bring your appointment
+            letter to clinic — the doctor will go through these questions with you in
+            person.
           </p>
         </div>
       </div>
