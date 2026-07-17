@@ -80,6 +80,19 @@ input:focus{border-color:var(--green)}
 .note{color:var(--muted);font-size:11.5px;line-height:1.5;text-align:center;margin-top:16px}
 a{color:var(--muted);text-decoration:none}
 footer{text-align:center;margin-top:10px;font-size:12px}
+
+/* ---- SIM (paper trading) — amber = practice, unmistakable ---- */
+#simPanel{margin:10px 0}
+.simtoggle{width:100%;border:1px dashed #b8860b;color:#d9a520;background:transparent;font-weight:700}
+#simPanel.simon .simtoggle{background:#2a2413;border-style:solid}
+.simline{font-size:13px;padding:7px 2px;color:#cfc9b8}
+.simline .sub{color:#8a8577;font-size:11px}
+.simbad{color:var(--red)}
+.simrules{font-size:11px;color:#9a8f6d;border-left:3px solid #b8860b;padding:4px 8px;margin:4px 0}
+.simbtns{display:flex;gap:8px;margin-top:6px}
+.simbuy{flex:1;border-color:var(--green);color:var(--green);font-weight:800;padding:12px}
+.simsell{flex:1;border-color:var(--red);color:var(--red);font-weight:800;padding:12px}
+.simrecap{border-color:#555}
 </style>
 </head>
 <body>
@@ -126,6 +139,17 @@ footer{text-align:center;margin-top:10px;font-size:12px}
   <span class="prof"><div class="gbp mono" id="g10">—</div><div class="usd mono" id="u10"></div><div class="hint">tap to copy</div></span>
 </button>
 <div class="daylog mono" id="dayLog" hidden></div>
+<div id="simPanel">
+  <button class="btn simtoggle" id="simToggle">SIM — practice with £2,000</button>
+  <div id="simBanner" class="mono simline" hidden></div>
+  <div id="simPos" class="mono simline" hidden></div>
+  <div id="simRules" class="simrules" hidden>RULE: enter only on the first 1-min reclaim of HOD · no stop = no trade · +5% card = out · 6 min = edge over</div>
+  <div class="simbtns">
+    <button id="simBuy" class="btn simbuy" hidden>SIM BUY</button>
+    <button id="simSell" class="btn simsell" hidden>SIM SELL</button>
+    <button id="simRecap" class="btn simrecap" hidden>RECAP</button>
+  </div>
+</div>
 <div class="ghosts">
   <button class="ghost" data-p="10">10%</button>
   <button class="ghost" data-p="20">20%</button>
@@ -260,6 +284,7 @@ async function fetchQuote(symbol){
 let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0, prevPrice = null, lastUpdateAt = 0, haltBuzzed = false;
 function setPrice(price, tag){
   lastUpdateAt = Date.now(); haltBuzzed = false;
+  if (window._simTickHook) window._simTickHook(price);
   $('cur').value = price;
   const bp = $('bigPrice');
   bp.textContent = '$' + price.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
@@ -696,6 +721,174 @@ $('card5').addEventListener('click', () => copyCard('p5'));
 $('card10').addEventListener('click', () => copyCard('p10'));
 
 calc();
+
+// ================= SIM — paper trading, £2,000 (expert-spec, Jul 2026) =================
+// Pessimistic by design: 2s pending fills at the WORST tick in the window ± slippage
+// (25bps, 2c floor), so real trading should feel BETTER than sim, never worse.
+// Rules enforced: £20 risk/trade, max 50% equity/position, ONE position, 6 trades/day,
+// -£60 day lockout, RTH only. Ali's personal rules: 6-min edge window, peak give-back
+// tracked (the greed meter), no stop = no trade, stop-widening flagged.
+const SIM_START=2000, SIM_RISK=20, SIM_MAXPOS=0.5, SIM_DAYCAP=6, SIM_LOCK=-60, SIM_WARN=-40;
+function simLoad(){ try{ return JSON.parse(localStorage.getItem('sim_v1')||'null'); }catch(e){ return null; } }
+let SIM = simLoad() || {on:false, equity:SIM_START, log:[], open:null, day:null, dayPL:0, dayN:0, lockedDay:null};
+function simSave(){ try{ localStorage.setItem('sim_v1', JSON.stringify(SIM)); }catch(e){} }
+function simToast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function etParts(){ const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false,year:'numeric',month:'2-digit',day:'2-digit'}); const p={}; f.formatToParts(new Date()).forEach(x=>p[x.type]=x.value); return p; }
+function etDay(){ const p=etParts(); return p.year+'-'+p.month+'-'+p.day; }
+function inRTH(){ const p=etParts(); const m=(+p.hour)*60+(+p.minute); return m>=570 && m<960; }
+function simRollDay(){ const d=etDay(); if(SIM.day!==d){ SIM.day=d; SIM.dayPL=0; SIM.dayN=0; } }
+function slipFor(px){ return Math.max(0.02, px*0.0025); }
+function simNetGBP(entry, exit, sh){ const netUSD=(sh*exit*(1-S)-sh*T)*(1-F)-sh*entry*(1+F); return netUSD/GBPUSD; }
+
+async function simFill(kind){                       // worst tick over 2s ± slip
+  const p0=parseFloat($('cur').value); const ticks=[p0];
+  window._simTickHook=(p)=>ticks.push(p);
+  await new Promise(r=>setTimeout(r,2000));
+  window._simTickHook=null;
+  const worst = kind==='buy' ? Math.max(...ticks) : Math.min(...ticks);
+  const sl=slipFor(worst);
+  return kind==='buy' ? +(worst+sl).toFixed(4) : Math.max(0.01, +(worst-sl).toFixed(4));
+}
+
+function simGuards(){                                // returns error string or null
+  simRollDay();
+  if(!liveSym || !(parseFloat($('cur').value)>0)) return 'Go live on a symbol first';
+  if(!GBPUSD) return 'FX still loading';
+  if(SIM.lockedDay===etDay()) return 'LOCKED OUT today (-£60 hit) — back tomorrow';
+  if(!inRTH()) return 'Market closed — sim trades 09:30–16:00 ET only';
+  if(SIM.open) return 'Close the open position first (one at a time)';
+  if(SIM.dayN>=SIM_DAYCAP) return ' 6 trades today — done. Overtrading is a violation.';
+  const stop=parseFloat($('stop').value), px=parseFloat($('cur').value);
+  if(!(stop>0&&stop<px)) return 'Set a stop below the price first — no stop, no trade';
+  return null;
+}
+
+$('simToggle').addEventListener('click', ()=>{ SIM.on=!SIM.on; simSave(); simRender(); });
+
+$('simBuy').addEventListener('click', async ()=>{
+  const err=simGuards(); if(err){ simToast(err); return; }
+  const stop=parseFloat($('stop').value);
+  $('simBuy').disabled=true; $('simBuy').textContent='PENDING…';
+  const fill=await simFill('buy');
+  $('simBuy').disabled=false; $('simBuy').textContent='SIM BUY';
+  const riskUSD=SIM_RISK*GBPUSD;
+  let sh=Math.floor(riskUSD/Math.max(0.01,fill-stop));
+  sh=Math.min(sh, Math.floor(SIM.equity*SIM_MAXPOS*GBPUSD/fill));
+  if(sh<1){ simToast('Stop too far for £20 risk — tighten it'); return; }
+  const gb=$('gBadge'); const gauge=($('gauge').hidden||!gb)?'':gb.textContent;
+  SIM.open={sym:liveSym, sh:sh, entry:fill, stop:stop, stop0:stop, target:limitFor(fill,0.05),
+            fx:GBPUSD, t:Date.now(), peak:fill, viol:[], gauge:gauge};
+  SIM.dayN++; simSave(); simRender();
+  simToast('SIM filled '+sh+' sh @ $'+fill+' (worst tick + slippage)');
+  if(navigator.vibrate) navigator.vibrate(30);
+});
+
+$('simSell').addEventListener('click', async ()=>{
+  const o=SIM.open; if(!o) return;
+  if(liveSym!==o.sym){ simToast('Switch to '+o.sym+' (tap its chip) to sell'); return; }
+  if(!(parseFloat($('cur').value)>0)||!GBPUSD){ simToast('Need live price + FX'); return; }
+  $('simSell').disabled=true; $('simSell').textContent='PENDING…';
+  const fill=await simFill('sell');
+  $('simSell').disabled=false; $('simSell').textContent='SIM SELL';
+  const heldSec=Math.round((Date.now()-o.t)/1000);
+  const netGBP=simNetGBP(o.entry, fill, o.sh);
+  const peakPct=(o.peak-o.entry)/o.entry*100, exitPct=(fill-o.entry)/o.entry*100;
+  const giveback = peakPct>0 ? Math.max(0, peakPct-exitPct) : 0;   // greed only counts if you WERE green
+  const viol=o.viol.slice();
+  if(heldSec>600) viol.push('held past 10min window');
+  if(fill<o.stop0*0.995) viol.push('rode through the stop');
+  const tr={d:new Date().toISOString(), sym:o.sym, entry:o.entry, exit:fill, sh:o.sh,
+            netGBP:+netGBP.toFixed(2), R:+(netGBP/SIM_RISK).toFixed(2), heldSec:heldSec,
+            peakPct:+peakPct.toFixed(2), exitPct:+exitPct.toFixed(2), giveback:+giveback.toFixed(2),
+            viol:viol, adherent:viol.length===0, gauge:o.gauge};
+  SIM.log.push(tr); SIM.log=SIM.log.slice(-1000);
+  SIM.equity=+(SIM.equity+netGBP).toFixed(2); SIM.dayPL=+(SIM.dayPL+netGBP).toFixed(2);
+  SIM.open=null;
+  if(SIM.dayPL<=SIM_LOCK){ SIM.lockedDay=etDay(); simToast('DAY LOCKOUT: −£60 hit. Done until tomorrow.'); if(navigator.vibrate) navigator.vibrate([80,60,80]); }
+  simSave(); simRender();
+  simToast('SIM sold @ $'+fill+' → '+(netGBP>=0?'+':'−')+'£'+fmt(Math.abs(netGBP))+' ('+(netGBP/SIM_RISK).toFixed(1)+'R)'+(viol.length?' · '+viol.length+' violation'+(viol.length>1?'s':''):' · clean'));
+});
+
+// stop edits while open: tightening OK, widening (lower) = violation, once
+$('stop').addEventListener('change', ()=>{
+  const o=SIM.open; if(!o) return;
+  const ns=parseFloat($('stop').value);
+  if(!(ns>0)) return;
+  if(ns<o.stop0 && o.viol.indexOf('stop widened')<0){ o.viol.push('stop widened'); simToast('⚠ Stop widened — violation recorded'); }
+  o.stop=ns; simSave();
+});
+
+// 1s heartbeat while a position is open: peak, timer, alerts (only when viewing the symbol)
+setInterval(()=>{
+  const o=SIM.open; if(!o||!SIM.on) return;
+  if(liveSym===o.sym){ const p=parseFloat($('cur').value); if(p>o.peak){ o.peak=p; simSave(); } }
+  simRenderPos();
+  const held=(Date.now()-o.t)/1000;
+  if(held>360 && held<362){ simToast('⏱ 6 min — your edge window is over. Exit.'); if(navigator.vibrate) navigator.vibrate(60); }
+  const p=liveSym===o.sym?parseFloat($('cur').value):null;
+  if(p && p<=o.stop && !o._stopBuzz){ o._stopBuzz=true; simToast('🛑 STOP HIT — SELL NOW'); if(navigator.vibrate) navigator.vibrate([100,60,100,60,100]); }
+  if(p && p>o.stop) o._stopBuzz=false;
+},1000);
+
+function simRenderPos(){
+  const el=$('simPos'), o=SIM.open;
+  if(!SIM.on||!o){ el.hidden=true; return; }
+  const held=Math.floor((Date.now()-o.t)/1000);
+  const mm=Math.floor(held/60), ss=String(held%60).padStart(2,'0');
+  const onSym=liveSym===o.sym;
+  const p=onSym?parseFloat($('cur').value):null;
+  const pl=p?simNetGBP(o.entry,p,o.sh):null;
+  const peakPct=((o.peak-o.entry)/o.entry*100);
+  el.innerHTML='<b>'+o.sym+'</b> '+o.sh+' sh @ $'+o.entry.toFixed(2)
+    +' · stop $'+o.stop.toFixed(2)+' · target $'+o.target.toFixed(2)
+    +' · <b class="'+(held>360?'simbad':'')+'">⏱ '+mm+':'+ss+'</b>'
+    +' · peak +'+peakPct.toFixed(1)+'%'
+    +(pl!=null?' · now <b style="color:'+(pl>=0?'var(--green)':'var(--red)')+'">'+(pl>=0?'+':'−')+'£'+fmt(Math.abs(pl))+'</b>':' · <i>switch to '+o.sym+' to manage</i>');
+  el.hidden=false;
+}
+
+function simRender(){
+  const on=SIM.on;
+  $('simPanel').classList.toggle('simon', on);
+  $('simToggle').textContent = on ? 'SIM ON — £'+fmt(SIM.equity) : 'SIM — practice with £2,000';
+  $('simBanner').hidden=!on; $('simRules').hidden=!on;
+  $('simBuy').hidden=!on||!!SIM.open; $('simSell').hidden=!on||!SIM.open; $('simRecap').hidden=!on;
+  if(on){
+    simRollDay();
+    const locked=SIM.lockedDay===etDay();
+    const warn=SIM.dayPL<=SIM_WARN&&!locked;
+    $('simBanner').innerHTML='£'+fmt(SIM.equity)+' <span class="sub">equity</span>'
+      +' · <b style="color:'+(SIM.dayPL>=0?'var(--green)':'var(--red)')+'">'+(SIM.dayPL>=0?'+':'−')+'£'+fmt(Math.abs(SIM.dayPL))+'</b> <span class="sub">today</span>'
+      +' · '+SIM.dayN+'/'+SIM_DAYCAP+' <span class="sub">trades</span>'
+      +(locked?' · <b class="simbad">LOCKED (−£60)</b>':warn?' · <b class="simbad">−£40 — one bad trade from lockout</b>':'');
+  }
+  simRenderPos();
+}
+
+$('simRecap').addEventListener('click', ()=>{
+  const L=SIM.log; if(!L.length){ simToast('No sim trades yet'); return; }
+  const today=etDay(); const t=L.filter(x=>x.d.slice(0,10)===new Date().toISOString().slice(0,10));
+  const net=a=>a.reduce((s,x)=>s+x.netGBP,0);
+  const ad=L.filter(x=>x.adherent), vi=L.filter(x=>!x.adherent);
+  let msg='SIM — '+L.length+' trades, equity £'+fmt(SIM.equity)+' (start £2,000)\n';
+  msg+='Today: '+t.length+' trades, '+(net(t)>=0?'+':'−')+'£'+fmt(Math.abs(net(t)))+'\n';
+  msg+='Rule-following ('+ad.length+'): '+(net(ad)>=0?'+':'−')+'£'+fmt(Math.abs(net(ad)))
+      +' · Rule-breaking ('+vi.length+'): '+(net(vi)>=0?'+':'−')+'£'+fmt(Math.abs(net(vi)))+'\n';
+  msg+='Given back to greed: £'+fmt(L.reduce((s,x)=>s+Math.max(0,x.giveback/100*x.entry*x.sh/GBPUSD),0))+' (peak vs exit)\n';
+  if(L.length<30){ msg+='Sample '+L.length+'/30 — no verdict yet. Keep logging.'; }
+  else{
+    const exp=net(L)/L.length, wins=L.filter(x=>x.netGBP>0);
+    const pf=Math.abs(net(wins)/Math.min(-0.01,net(L.filter(x=>x.netGBP<=0))));
+    msg+='Expectancy £'+exp.toFixed(2)+'/trade ('+(exp/SIM_RISK).toFixed(2)+'R) · win '+Math.round(wins.length/L.length*100)+'% · PF '+pf.toFixed(2);
+  }
+  const NL=String.fromCharCode(10);
+  const csv='date,symbol,entry,exit,shares,net_gbp,R,held_sec,peak_pct,exit_pct,giveback_pct,adherent,violations,gauge'+NL
+    +L.map(x=>[x.d,x.sym,x.entry,x.exit,x.sh,x.netGBP,x.R,x.heldSec,x.peakPct,x.exitPct,x.giveback,x.adherent,'"'+x.viol.join('; ')+'"','"'+(x.gauge||'')+'"'].join(',')).join(NL);
+  (navigator.clipboard?navigator.clipboard.writeText(csv):Promise.reject()).then(()=>{ alert(msg+'\n\n(Full CSV copied — paste it to Claude for the deep review.)'); }).catch(()=>{ alert(msg); });
+});
+
+simRender();
+
 </script>
 </body>
 </html>
