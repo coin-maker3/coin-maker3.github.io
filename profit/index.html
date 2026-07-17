@@ -69,7 +69,7 @@ input:focus{border-color:var(--green)}
 .gbadge.medium{background:rgba(251,191,36,.10);color:var(--amber);border:1px solid rgba(251,191,36,.4)}
 .gbadge.weak{background:rgba(248,113,113,.10);color:var(--red);border:1px solid rgba(248,113,113,.4)}
 .gbadge.loading{background:none;color:var(--muted);border:1px dashed var(--line);font-weight:700;letter-spacing:.5px;font-size:13px}
-.greasons{display:flex;flex-wrap:nowrap;gap:6px;justify-content:flex-start;margin-bottom:2px;overflow-x:auto;scrollbar-width:none}
+.greasons{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-start;margin-bottom:2px}
 .greasons::-webkit-scrollbar{display:none}
 .greasons span{flex:none;font-size:10.5px;font-weight:700;border-radius:99px;padding:3px 9px;background:var(--field);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .greasons span.ok{color:var(--green);border-color:rgba(74,222,128,.35)}
@@ -98,6 +98,22 @@ footer{text-align:center;margin-top:10px;font-size:12px}
 #mktLine{font-size:12px;padding:4px 2px;color:#8a8577}
 #mktLine b.hot{color:#2ecc71}#mktLine b.warm{color:#d9a520}#mktLine b.cold{color:#7f8c9b}
 #mktLine .msym{color:#cfc9b8;text-decoration:underline dotted;cursor:pointer;margin-left:6px}
+
+/* SIM on: reclaim vertical space — second target card + % selector hidden (sim shows its own 1:1/2:1 target) */
+#simPanel.simon ~ * {}
+body.simon #card10, body.simon .ghosts{display:none}
+body.simon .tcard{padding:10px 14px}
+#simRules{line-height:1.35}
+
+@media (max-height:800px){
+  .bigprice{font-size:40px}
+  .tcard{padding:8px 12px}
+  .gbadge{padding:6px}
+  .simline{padding:4px 2px;font-size:12px}
+  #simRules{font-size:10px}
+  .simbuy,.simsell{padding:9px}
+  #mktLine{font-size:11px;padding:2px}
+}
 </style>
 </head>
 <body>
@@ -149,7 +165,7 @@ footer{text-align:center;margin-top:10px;font-size:12px}
   <button class="btn simtoggle" id="simToggle">SIM — practice with £2,000</button>
   <div id="simBanner" class="mono simline" hidden></div>
   <div id="simPos" class="mono simline" hidden></div>
-  <div id="simRules" class="simrules" hidden>HIS RULES: criteria stock only (gauge green) · no stop = no trade · take the 1:1 target · goal or max loss = computer OFF · 2 trades max</div>
+  <div id="simRules" class="simrules" hidden>HIS RULES: gauge-green stock · no stop = no trade · take the target · goal or max loss = OFF</div>
   <div class="simbtns">
     <button id="simBuy" class="btn simbuy" hidden>SIM BUY</button>
     <button id="simSell" class="btn simsell" hidden>SIM SELL</button>
@@ -784,7 +800,7 @@ function renderMkt(){
   if(MKT.temp==='UNKNOWN'){ el.innerHTML='MARKET: <b class="cold">temp unknown</b> (screener unreachable)'; el.hidden=false; return; }
   const cls=MKT.temp==='HOT'?'hot':MKT.temp==='WARM'?'warm':'cold';
   let h='MARKET: <b class="'+cls+'">'+MKT.temp+'</b> · '+MKT.n+' in play';
-  if(MKT.temp==='COLD') h+=' — best trade today may be none';
+  if(MKT.temp==='COLD') h+=' — maybe no trade';
   MKT.top.forEach(m=>{ h+='<span class="msym" data-s="'+m.s+'">'+m.s+' $'+(m.p<1?m.p.toFixed(2):m.p.toFixed(0))+' +'+m.c+'%'+(m.tag?' '+m.tag:'')+'</span>'; });
   el.innerHTML=h; el.hidden=false;
   el.querySelectorAll('.msym').forEach(x=>x.addEventListener('click',()=>{ $('ticker').value=x.dataset.s; $('fetchBtn').click(); }));
@@ -960,6 +976,7 @@ function simRenderPos(){
 function simRender(){
   const on=SIM.on, c=tierCfg();
   $('simPanel').classList.toggle('simon', on);
+  document.body.classList.toggle('simon', on);
   $('simToggle').textContent = on ? 'SIM ON — £'+c.eq+' · Week '+(SIM.tier+1)+' (MoneyMarch rules)' : 'SIM — practice, MoneyMarch guardrails';
   $('simBanner').hidden=!on; $('simRules').hidden=!on;
   $('simBuy').hidden=!on||!!SIM.open; $('simSell').hidden=!on||!SIM.open; $('simRecap').hidden=!on;
