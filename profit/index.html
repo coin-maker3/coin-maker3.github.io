@@ -413,19 +413,22 @@ async function getPrice(){
 // unknown (pre-market), or an offering/dilution headline (Ross red flag).
 function rateStock(d){
   const reasons = [];
-  const pFull = d.price >= 2 && d.price <= 20;
-  const pHalf = (d.price >= 1 && d.price < 2) || (d.price > 20 && d.price <= 30);
-  reasons.push({cls: pFull ? 'ok' : pHalf ? 'warn' : 'bad', t: '$' + (d.price!=null?d.price.toFixed(2):'?') + (pFull ? ' in $2–20' : pHalf ? ' edge of band' : ' out of $2–20')});
-  const gainOk = d.gain != null && d.gain >= 10;
-  reasons.push({cls: gainOk ? 'ok' : 'bad', t: (d.gain!=null?(d.gain>=0?'+':'')+d.gain.toFixed(1):'?') + '% today'});
   const rvolKnown = d.rvol != null && isFinite(d.rvol);
   const rvolOk = rvolKnown && d.rvol >= 2, rvolHot = rvolKnown && d.rvol >= 5;
+  // price: $2-20 classic band; sub-$1 pennies COUNT as in-band when volume proves the build-up (Ali 17 Jul)
+  const subP = d.price >= 0.10 && d.price < 2;
+  const pFull = (d.price >= 2 && d.price <= 20) || (subP && rvolHot);
+  const pHalf = (subP && !rvolHot) || (d.price > 20 && d.price <= 30);
+  reasons.push({cls: pFull ? 'ok' : pHalf ? 'warn' : 'bad',
+    t: '$' + (d.price!=null?d.price.toFixed(2):'?') + (subP ? (rvolHot ? ' penny — volume proves build-up' : ' penny — needs RVOL ≥5 to qualify') : pFull ? ' in $2–20' : pHalf ? ' edge of band' : ' out of band')});
+  const gainOk = d.gain != null && d.gain >= 10;
+  reasons.push({cls: gainOk ? 'ok' : 'bad', t: (d.gain!=null?(d.gain>=0?'+':'')+d.gain.toFixed(1):'?') + '% today'});
   reasons.push({cls: !rvolKnown ? 'warn' : rvolHot ? 'ok' : rvolOk ? 'warn' : 'bad', t: rvolKnown ? 'RVOL ' + d.rvol.toFixed(1) + '×' : 'volume unknown yet'});
   const fKnown = d.floatM != null;
   const fOk = fKnown && d.floatM <= 20, fBig = fKnown && d.floatM > 50;
   reasons.push({cls: !fKnown ? 'warn' : fOk ? 'ok' : fBig ? 'bad' : 'warn', t: fKnown ? '~' + Math.round(d.floatM) + 'M shares (approx float)' : 'float unknown'});
   reasons.push({cls: d.news ? 'ok' : 'bad', t: d.news ? 'news ' + d.newsAge : 'no fresh news'});
-  if (d.offering) reasons.push({cls:'bad', t:'⚠ OFFERING headline — dilution risk'});
+  if (d.offering) reasons.push({cls:'bad', t:'⚠ OFFERING headline — dilution risk (pennies dilute MOST)'});
   const core = (pFull || pHalf) && gainOk && (rvolOk || !rvolKnown);
   let q = 0; if (rvolHot) q++; if (fOk) q++; if (d.news) q++;
   let v = (core && q === 3) ? 'STRONG' : (core && q >= 1) ? 'MEDIUM' : 'WEAK';
