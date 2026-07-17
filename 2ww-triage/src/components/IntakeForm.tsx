@@ -259,11 +259,13 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
             <select
               id="priorBowelSurgery"
               className="select"
-              value={value.priorBowelSurgery ?? 'none'}
-              onChange={(e) =>
-                set('priorBowelSurgery', e.target.value as Intake['priorBowelSurgery'])
-              }
+              value={nd?.has('priorBowelSurgery') ? '__nd' : (value.priorBowelSurgery ?? 'none')}
+              onChange={(e) => {
+                if (e.target.value === '__nd') { onNd?.('priorBowelSurgery', true); set('priorBowelSurgery', 'none') }
+                else { onNd?.('priorBowelSurgery', false); set('priorBowelSurgery', e.target.value as Intake['priorBowelSurgery']) }
+              }}
             >
+              {onNd && <option value="__nd">Not documented</option>}
               {PRIOR_BOWEL_SURGERY.map((s) => (
                 <option key={s} value={s}>
                   {PRIOR_BOWEL_SURGERY_LABELS[s]}
@@ -280,7 +282,7 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
             <PidWarning text={value.surgicalHistory} />
           </div>
           <Row label="Anticoagulants">
-            <YesNoToggle value={value.onAnticoag} onChange={(v) => set('onAnticoag', v)} />
+            <YesNoToggle value={value.onAnticoag} onChange={(v) => set('onAnticoag', v)} {...ndp('onAnticoag')} />
             {value.onAnticoag === 'yes' && (
               <input
                 aria-label="Anticoagulant details"
@@ -292,7 +294,7 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
             )}
           </Row>
           <Row label="Antiplatelets">
-            <YesNoToggle value={value.onAntiplatelet} onChange={(v) => set('onAntiplatelet', v)} />
+            <YesNoToggle value={value.onAntiplatelet} onChange={(v) => set('onAntiplatelet', v)} {...ndp('onAntiplatelet')} />
             {value.onAntiplatelet === 'yes' && (
               <input
                 aria-label="Antiplatelet details"
@@ -337,9 +339,13 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
           <Row label="Have you had any rectal bleeding?">
             <select
               className="select w-40"
-              value={value.prBleed}
-              onChange={(e) => set('prBleed', e.target.value as Intake['prBleed'])}
+              value={nd?.has('prBleed') ? '__nd' : value.prBleed}
+              onChange={(e) => {
+                if (e.target.value === '__nd') { onNd?.('prBleed', true); set('prBleed', 'none') }
+                else { onNd?.('prBleed', false); set('prBleed', e.target.value as Intake['prBleed']) }
+              }}
             >
+              {onNd && <option value="__nd">Not documented</option>}
               {PR_BLEED.map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
@@ -432,6 +438,7 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
             <YesNoToggle
               value={value.priorCtvcWithin2y ?? 'no'}
               onChange={(v) => set('priorCtvcWithin2y', v)}
+              {...ndp('priorCtvcWithin2y')}
             />
           </Row>
           {value.priorCtvcWithin2y === 'yes' && (
@@ -472,11 +479,13 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
             <select
               id="abnormalCt"
               className="select"
-              value={value.abnormalCt ?? 'no'}
-              onChange={(e) =>
-                set('abnormalCt', e.target.value as Intake['abnormalCt'])
-              }
+              value={nd?.has('abnormalCt') ? '__nd' : (value.abnormalCt ?? 'no')}
+              onChange={(e) => {
+                if (e.target.value === '__nd') { onNd?.('abnormalCt', true); set('abnormalCt', 'no') }
+                else { onNd?.('abnormalCt', false); set('abnormalCt', e.target.value as Intake['abnormalCt']) }
+              }}
             >
+              {onNd && <option value="__nd">Not documented</option>}
               {ABNORMAL_CT.map((c) => (
                 <option key={c} value={c}>
                   {ABNORMAL_CT_LABELS[c]}
@@ -495,10 +504,10 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
         <h2 className="mb-1 text-lg font-semibold text-nhs-dark-blue">Social</h2>
         <div className="space-y-3">
           <Row label="Do you smoke?">
-            <YesNoToggle value={value.smoker} onChange={(v) => set('smoker', v)} />
+            <YesNoToggle value={value.smoker} onChange={(v) => set('smoker', v)} {...ndp('smoker')} />
           </Row>
           <Row label="Do you consume any alcohol?">
-            <YesNoToggle value={value.alcohol} onChange={(v) => set('alcohol', v)} />
+            <YesNoToggle value={value.alcohol} onChange={(v) => set('alcohol', v)} {...ndp('alcohol')} />
           </Row>
         </div>
       </section>
@@ -533,10 +542,10 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
         </p>
         <div className="space-y-3">
           <Row label="Are you independent in your activities of daily living?">
-            <YesNoToggle value={value.independentADLs} onChange={(v) => set('independentADLs', v)} />
+            <YesNoToggle value={value.independentADLs} onChange={(v) => set('independentADLs', v)} {...ndp('independentADLs')} />
           </Row>
           <Row label="Do you use any mobility aids?">
-            <YesNoToggle value={value.mobilityAids} onChange={(v) => set('mobilityAids', v)} />
+            <YesNoToggle value={value.mobilityAids} onChange={(v) => set('mobilityAids', v)} {...ndp('mobilityAids')} />
             {value.mobilityAids === 'yes' && (
               <input
                 aria-label="Mobility aids details"
@@ -548,16 +557,16 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
             )}
           </Row>
           <Row label="Can someone stay overnight and accompany you home after the procedure?">
-            <YesNoToggle value={value.overnightEscort} onChange={(v) => set('overnightEscort', v)} />
+            <YesNoToggle value={value.overnightEscort} onChange={(v) => set('overnightEscort', v)} {...ndp('overnightEscort')} />
           </Row>
           <Row label="Fit for bowel prep (clinical judgement)">
             <YesNoToggle value={value.fitForBowelPrep} onChange={(v) => set('fitForBowelPrep', v)} {...ndp('fitForBowelPrep')} />
           </Row>
           <Row label="Fit for sedation (clinical judgement)">
-            <YesNoToggle value={value.fitForSedation} onChange={(v) => set('fitForSedation', v)} />
+            <YesNoToggle value={value.fitForSedation} onChange={(v) => set('fitForSedation', v)} {...ndp('fitForSedation')} />
           </Row>
           <Row label="Patient lacks capacity / unable to comply with tel clinic">
-            <YesNoToggle value={value.lacksCapacity} onChange={(v) => set('lacksCapacity', v)} />
+            <YesNoToggle value={value.lacksCapacity} onChange={(v) => set('lacksCapacity', v)} {...ndp('lacksCapacity')} />
           </Row>
         </div>
       </section>
@@ -599,6 +608,7 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
               <YesNoToggle
                 value={value.rectalMassLowAndTender}
                 onChange={(v) => set('rectalMassLowAndTender', v)}
+                {...ndp('rectalMassLowAndTender')}
               />
             </Row>
           )}
@@ -612,10 +622,10 @@ export function IntakeForm({ value, onChange, nd, onNd }: Props) {
         </h2>
         <div className="space-y-3">
           <Row label="Have the investigations required been explained to the patient?">
-            <YesNoToggle value={value.investigationsExplained} onChange={(v) => set('investigationsExplained', v)} />
+            <YesNoToggle value={value.investigationsExplained} onChange={(v) => set('investigationsExplained', v)} {...ndp('investigationsExplained')} />
           </Row>
           <Row label="Has the patient received all the necessary information?">
-            <YesNoToggle value={value.infoGiven} onChange={(v) => set('infoGiven', v)} />
+            <YesNoToggle value={value.infoGiven} onChange={(v) => set('infoGiven', v)} {...ndp('infoGiven')} />
           </Row>
         </div>
       </section>

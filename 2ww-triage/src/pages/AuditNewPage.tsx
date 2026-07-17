@@ -58,6 +58,14 @@ const ND_FIELDS: [string, string][] = [
   ['fhxCrcOrIbd', 'FHx CRC/IBD'], ['previousCRC', 'Previous CRC'], ['ibd', 'IBD'],
   ['priorColonoscopyWithin2y', 'Prior colonoscopy <2y'], ['fitForBowelPrep', 'Fit for bowel prep'],
 ]
+// ND everywhere (Ali, 17 Jul — a real letter showed fitness/history items equally
+// undocumented: "no mention of someone to stay overnight"). These are recorded as
+// "ND" in the row and default to ND, but stay OUT of the on-screen caveat — they
+// never alter the recommendation, so there is no assumption to disclose.
+const ND_EXTRA = ['prBleed', 'rectalMassLowAndTender', 'abnormalCt', 'priorCtvcWithin2y',
+  'priorBowelSurgery', 'lacksCapacity', 'onAnticoag', 'onAntiplatelet', 'smoker', 'alcohol',
+  'independentADLs', 'mobilityAids', 'overnightEscort', 'fitForSedation',
+  'investigationsExplained', 'infoGiven']
 
 // small tri-state toggle for the referral-record metadata (not engine inputs)
 function TriToggle({ value, onChange, labels = ['Yes', 'No', 'Not documented'] }: {
@@ -98,7 +106,7 @@ export function AuditNewPage() {
   const [excluded, setExcluded] = useState(false)
   const [exclusionReason, setExclusionReason] = useState<ExclusionReason | ''>('')
   const [exclusionNotes, setExclusionNotes] = useState('')
-  const [ndSet, setNdSet] = useState<Set<string>>(new Set(ND_FIELDS.map(([k]) => k)))
+  const [ndSet, setNdSet] = useState<Set<string>>(new Set([...ND_FIELDS.map(([k]) => k), ...ND_EXTRA]))
   const setNd = (f: string, v: boolean) =>
     setNdSet((p) => { const n = new Set(p); if (v) n.add(f); else n.delete(f); return n })
   const ndLabels = ND_FIELDS.filter(([k]) => ndSet.has(k)).map(([, l]) => l)
@@ -150,7 +158,7 @@ export function AuditNewPage() {
       excluded ? '' : v(intake.gfr),
       excluded ? '' : tri('cibh', intake.cibh),
       excluded ? '' : v(intake.cibhDurationWeeks),
-      excluded ? '' : intake.prBleed,
+      excluded ? '' : tri('prBleed', intake.prBleed),
       excluded ? '' : tri('tenesmus', intake.tenesmus),
       excluded ? '' : tri('mucusPR', intake.mucusPR),
       excluded ? '' : tri('abdominalPain', intake.abdominalPain),
@@ -181,22 +189,22 @@ export function AuditNewPage() {
       excluded ? '' : triTxt(bloodsWithin3mo),
       excluded ? '' : (fitDoneEff === 'nd' ? 'ND' : fitDoneEff === 'done' ? 'Done' : 'Not done'),
       excluded ? '' : intake.bleedingSourceVisible,
-      excluded ? '' : intake.rectalMassLowAndTender,
+      excluded ? '' : tri('rectalMassLowAndTender', intake.rectalMassLowAndTender),
       excluded ? '' : triTxt(dreDocumented),
-      excluded ? '' : intake.abnormalCt,
-      excluded ? '' : intake.priorCtvcWithin2y,
-      excluded ? '' : intake.priorBowelSurgery,
-      excluded ? '' : intake.lacksCapacity,
-      excluded ? '' : intake.onAnticoag,
-      excluded ? '' : intake.onAntiplatelet,
-      excluded ? '' : intake.smoker,
-      excluded ? '' : intake.alcohol,
-      excluded ? '' : intake.independentADLs,
-      excluded ? '' : intake.mobilityAids,
-      excluded ? '' : intake.overnightEscort,
-      excluded ? '' : intake.fitForSedation,
-      excluded ? '' : intake.investigationsExplained,
-      excluded ? '' : intake.infoGiven,
+      excluded ? '' : tri('abnormalCt', intake.abnormalCt),
+      excluded ? '' : tri('priorCtvcWithin2y', intake.priorCtvcWithin2y),
+      excluded ? '' : tri('priorBowelSurgery', intake.priorBowelSurgery),
+      excluded ? '' : tri('lacksCapacity', intake.lacksCapacity),
+      excluded ? '' : tri('onAnticoag', intake.onAnticoag),
+      excluded ? '' : tri('onAntiplatelet', intake.onAntiplatelet),
+      excluded ? '' : tri('smoker', intake.smoker),
+      excluded ? '' : tri('alcohol', intake.alcohol),
+      excluded ? '' : tri('independentADLs', intake.independentADLs),
+      excluded ? '' : tri('mobilityAids', intake.mobilityAids),
+      excluded ? '' : tri('overnightEscort', intake.overnightEscort),
+      excluded ? '' : tri('fitForSedation', intake.fitForSedation),
+      excluded ? '' : tri('investigationsExplained', intake.investigationsExplained),
+      excluded ? '' : tri('infoGiven', intake.infoGiven),
       excluded ? '' : decisionGrade,
       excluded ? '' : timeTakenMin,
       // scan-hit CATEGORIES only — the structured signal from free text, never the
