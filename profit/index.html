@@ -486,7 +486,7 @@ async function runGauge(sym){
     const ageH = newest ? Math.max(0, Math.round((Date.now() - newest) / 3600e3)) : null;
     const r = rateStock({
       price: (q && q.c > 0) ? q.c : (parseFloat($('cur').value) || null),
-      gain: q?.dp ?? null,
+      gain: (q && q.pc > 0) ? (((sym===liveSym && parseFloat($('cur').value)>0) ? parseFloat($('cur').value) : q.c) - q.pc)/q.pc*100 : (q?.dp ?? null),   // vs prev close with live price — sees pre/AH moves
       rvol, floatM: st.soM,
       news: fresh.length > 0,
       newsAge: ageH != null ? (ageH === 0 ? 'just now' : ageH + 'h ago') : '',
@@ -537,32 +537,40 @@ function emaCalc(vals, n){
   return e;
 }
 function computeSetup(res, last, dp, nowSec){
+  // Session-aware (Ali 17 Jul): works in PRE (from 4:15am ET) and AFTER-HOURS too.
+  // VWAP + HOD anchored from the 4am pre-market start (Warrior-style); day gain computed
+  // from candles vs previous close, so a stock dead in RTH but ripping extended still counts.
   try {
-    if (dp == null || dp <= 0 || !(last > 0)) return false;
+    if (!(last > 0)) return false;
     const ts = res.timestamp || [], q = res.indicators.quote[0];
-    const reg0 = res.meta.currentTradingPeriod.regular.start, reg1 = res.meta.currentTradingPeriod.regular.end;
+    const ctp = res.meta.currentTradingPeriod;
+    const reg0 = ctp.regular.start, reg1 = ctp.regular.end;
+    const pre0 = (ctp.pre && ctp.pre.start) || reg0 - 19800;
+    const post1 = (ctp.post && ctp.post.end) || reg1 + 14400;
     const now = nowSec || (Date.now() / 1000);
-    if (now < reg0 + 900 || now > reg1) return false;          // pre-9:45 ET or closed
+    if (now < pre0 + 900 || now > post1) return false;     // 15-min warmup after 4am; overnight = off
+    if (now >= reg0 && now < reg0 + 900) return false;     // still skip the open's first 15 min (noise)
+    const prevC = res.meta.chartPreviousClose || res.meta.previousClose || null;
+    const gain = (prevC > 0) ? (last - prevC) / prevC * 100 : dp;   // sees extended moves (Finnhub dp freezes at close)
+    if (gain == null || gain <= 0) return false;
     const cands = [];
     for (let i = 0; i < ts.length; i++)
       if (q.close[i] != null) cands.push({t: ts[i], h: q.high[i], l: q.low[i], c: q.close[i], v: q.volume[i] || 0});
-    if (cands.length < 25) return false;
-    const reg = cands.filter(c => c.t >= reg0 && c.t < reg1);
-    if (reg.length < 3) return false;
+    if (cands.length < 12) return false;                   // ~1h of prints today minimum
     let pv = 0, vv = 0;
-    reg.forEach(c => { if (c.v > 0){ pv += ((c.h + c.l + c.c) / 3) * c.v; vv += c.v; } });
+    cands.forEach(c => { if (c.v > 0){ pv += ((c.h + c.l + c.c) / 3) * c.v; vv += c.v; } });
     if (!vv) return false;
     const vwap = pv / vv;
     const e9 = emaCalc(cands.map(c => c.c), 9), e20 = emaCalc(cands.map(c => c.c), 20);
     if (e9 == null || e20 == null) return false;
-    const hod = Math.max(...reg.map(c => c.h));
-    const lastC = reg[reg.length - 1];
+    const hod = Math.max(...cands.map(c => c.h));
+    const lastC = cands[cands.length - 1];
     const elapsed = now - lastC.t;
-    if (elapsed > 600) return false;              // candles stale (cached proxy) — no signal
+    if (elapsed > 600) return false;                       // candles stale (cached proxy) — no signal
     let curVol;
-    if (elapsed < 60 && reg.length >= 2) curVol = reg[reg.length - 2].v;   // candle too young: use prior
-    else curVol = lastC.v * (300 / Math.min(Math.max(elapsed, 60), 300));  // pro-rate in-progress candle
-    const prior = reg.slice(-11, -1);
+    if (elapsed < 60 && cands.length >= 2) curVol = cands[cands.length - 2].v;
+    else curVol = lastC.v * (300 / Math.min(Math.max(elapsed, 60), 300));
+    const prior = cands.slice(-11, -1);
     if (prior.length < 5) return false;
     const avg = prior.reduce((a,c) => a + c.v, 0) / prior.length;
     if (!(avg > 0)) return false;
@@ -751,11 +759,18 @@ async function refreshMkt(force){
   const cached=mktLoad();
   if(!force && cached && Date.now()-cached.t<5*60*1000){ MKT=cached; renderMkt(); return; }
   const [a,b]=await Promise.all([mktScreen('day_gainers'), mktScreen('small_cap_gainers')]);
+  const sess=(typeof etSession==='function'&&etSession())||'RTH';
   const seen={}, movers=[];
   a.concat(b).forEach(x=>{
-    const p=x.regularMarketPrice, c=x.regularMarketChangePercent, v=x.regularMarketVolume||0;
     if(seen[x.symbol]) return; seen[x.symbol]=1;
-    if(p>=0.1&&p<=20&&c>=10&&(v*p)>=1e6) movers.push({s:x.symbol,c:Math.round(c),p:p});   // $-volume >= $1M so sub-$1 junk is filtered by liquidity, not price
+    const v=x.regularMarketVolume||0;
+    // rank by what is moving NOW in this session — a day-gainer that is flat after hours is yesterday's party
+    let p,c,tag='';
+    if(sess==='PRE'&&x.preMarketChangePercent!=null){ p=x.preMarketPrice||x.regularMarketPrice; c=x.preMarketChangePercent; tag='PRE'; }
+    else if(sess==='AH'&&x.postMarketChangePercent!=null){ p=x.postMarketPrice||x.regularMarketPrice; c=x.postMarketChangePercent; tag='AH'; }
+    else { p=x.regularMarketPrice; c=x.regularMarketChangePercent; }
+    const bar = tag ? 5 : 10;                               // extended sessions: +5% NOW is a real move
+    if(p>=0.1&&p<=20&&c>=bar&&(v*p)>=1e6) movers.push({s:x.symbol,c:Math.round(c),p:p,tag:tag});
   });
   movers.sort((x,y)=>y.c-x.c);
   if(!a.length&&!b.length){ MKT={t:Date.now(),temp:'UNKNOWN',n:0,top:[]}; }
@@ -770,7 +785,7 @@ function renderMkt(){
   const cls=MKT.temp==='HOT'?'hot':MKT.temp==='WARM'?'warm':'cold';
   let h='MARKET: <b class="'+cls+'">'+MKT.temp+'</b> · '+MKT.n+' in play';
   if(MKT.temp==='COLD') h+=' — best trade today may be none';
-  MKT.top.forEach(m=>{ h+='<span class="msym" data-s="'+m.s+'">'+m.s+' $'+(m.p<1?m.p.toFixed(2):m.p.toFixed(0))+' +'+m.c+'%</span>'; });
+  MKT.top.forEach(m=>{ h+='<span class="msym" data-s="'+m.s+'">'+m.s+' $'+(m.p<1?m.p.toFixed(2):m.p.toFixed(0))+' +'+m.c+'%'+(m.tag?' '+m.tag:'')+'</span>'; });
   el.innerHTML=h; el.hidden=false;
   el.querySelectorAll('.msym').forEach(x=>x.addEventListener('click',()=>{ $('ticker').value=x.dataset.s; $('fetchBtn').click(); }));
 }
