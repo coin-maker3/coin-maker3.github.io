@@ -157,6 +157,18 @@ body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayL
 .deplan{font-size:14px;color:#aab8ae;margin:10px 0}
 .deok{width:100%;padding:15px;font-size:17px;font-weight:800;margin-top:8px}
 .devi{width:100%;padding:9px;font-size:12px;opacity:.55;margin-top:10px}
+
+.rok{color:var(--green)}.rbad{color:var(--red)}
+.peakbig{font-size:26px;font-weight:800;text-align:center;margin:4px 0}
+.peakbig .ppk{font-size:15px;font-weight:600;color:#8a8577}
+.fuel{height:11px;background:#1c1c1c;border-radius:6px;overflow:hidden;margin:6px 0}
+.fuelfill{height:100%;transition:width .3s,background .3s}
+.isub{font-size:13px;color:#9a978c;text-align:center;margin:2px 0}
+.extbadge{font-size:10px;color:#d9a520;border:1px solid #6a5410;border-radius:4px;padding:1px 5px;font-weight:700}
+.iotake{border-color:var(--green)!important;color:var(--green)!important;animation:pulseb .7s infinite}
+.iostop{border-color:var(--red)!important;color:var(--red)!important;animation:pulseb .5s infinite}
+@keyframes pulseb{50%{opacity:.55}}
+body.intrade main>*:not(#inTrade){display:none!important}
 </style>
 </head>
 <body>
@@ -855,34 +867,68 @@ refreshMkt(); setInterval(()=>refreshMkt(), 5*60*1000);
 
 
 // ================= ENTRY RHYTHM (pullback-zone recommendation — honest: a limit zone, never "buy now") =================
+// ---- SECOND-LEG HEALTH: reads volume + structure, decides if a pulled-back stock can rip again ----
+// Core rule (expert): don't buy the dip — buy the RECLAIM. Volume must dry up on the dip, then
+// expand on a candle that closes back above VWAP. Volume is invisible to the user; it's baked in here.
+function secondLegHealth(cands, vwap, last, e9){
+  const n=cands.length;
+  const highs=cands.map(c=>c.h);
+  const hod=Math.max.apply(null,highs);
+  let hi=highs.lastIndexOf(hod);
+  const zone=Math.max(e9||0, vwap);
+  if(hi>=n-1) return {state:'HIGHS', entry:zone, trigger:hod, note:'making new highs'};
+  const leg=cands.slice(Math.max(0,hi-10), hi+1);
+  const pb=cands.slice(hi+1);
+  if(pb.length<1) return {state:'HIGHS', entry:zone, trigger:hod, note:'at highs'};
+  const legAvgV=(leg.reduce((a,c)=>a+c.v,0)/leg.length)||1;
+  const pbAvgV=pb.reduce((a,c)=>a+c.v,0)/pb.length;
+  const contraction=pbAvgV/legAvgV;                       // <1 = volume dried up on the dip (healthy)
+  const legLow=Math.min.apply(null,leg.map(c=>c.l));
+  const pbLow=Math.min.apply(null,pb.map(c=>c.l));
+  const range=hod-legLow;
+  const retr= range>0 ? (hod-last)/range : 1;             // pullback depth vs the first leg
+  const higherLow= pbLow >= legLow*0.999;                 // held above the origin of leg 1
+  const closesBelow=pb.filter(c=>c.c<vwap).length;
+  const accepted= closesBelow>=5;                         // living below VWAP = broken, not a wick
+  const trigger=Math.max(vwap, pb.length>1?Math.max.apply(null,pb.slice(0,-1).map(c=>c.c)):vwap);
+  const recent=cands.slice(-4,-1);
+  const recentAvgV=recent.length?recent.reduce((a,c)=>a+c.v,0)/recent.length:legAvgV;
+  const expansion= cands[n-1].v >= 1.3*recentAvgV;        // reclaim bar prints on volume
+  if(retr>0.80 || !higherLow || accepted)
+    return {state:'BROKEN', entry:trigger, trigger, note: !higherLow?'lower low — no bid':accepted?'living below VWAP':'gave back the whole move'};
+  const above=last>=vwap, dried=contraction<0.9;
+  if(above && dried && expansion)
+    return {state:'HEALTHY', entry:zone, trigger, note:'volume dried on the dip, reclaim on volume'};
+  return {state:'WAIT', entry:zone, trigger, note: !dried?'volume still heavy on the dip':(!above?'still below VWAP':'reclaim not confirmed (needs volume)')};
+}
+
 async function planEntry(sym){
   const el=$('entryLine'); el.hidden=true;
   try{
     if(Date.now()<COOL){ el.innerHTML='RHYTHM: cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'; el.hidden=false; return; }
-    if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market (09:00 UK)'; el.hidden=false; return; }
+    if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market'; el.hidden=false; return; }
     const res=await fetchCandles(sym); if(!res||sym!==liveSym) return;
-    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>1800){ el.innerHTML='RHYTHM: data stale — no zone'; el.hidden=false; return; }
+    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>1800){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; return; }
     const q=res.indicators.quote[0], ts=res.timestamp||[];
     const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
     if(cands.length<10) return;
-    const e9=emaCalc(cands.map(c=>c.c),9);
     let pv=0,vv=0; cands.forEach(c=>{ if(c.v>0){ pv+=((c.h+c.l+c.c)/3)*c.v; vv+=c.v; } });
     const vwap=vv?pv/vv:null;
+    const e9=emaCalc(cands.map(c=>c.c),9);
     const last=parseFloat($('cur').value)||cands[cands.length-1].c;
-    if(!(e9>0)||!(vwap>0)||!(last>0)) return;
+    if(!(vwap>0)||!(last>0)) return;
     const dp=(x)=>x<1?x.toFixed(3):x.toFixed(2);
-    const zone=Math.max(e9,vwap);              // rhythm entry = pullback to the faster of 9EMA/VWAP
-    const stop=+(zone*0.95).toFixed(zone<1?3:2);
-    const tgt=+(zone+2*(zone-stop)).toFixed(zone<1?3:2);
-    const tenN=limitFor(zone,0.10);
-    let h;
-    if(last<vwap){ h='RHYTHM: <b>below VWAP — no entry</b>. Wait for a reclaim of $'+dp(vwap)+'.'; }
-    else if(last<=zone*1.005){ h='RHYTHM: <b>IN THE ZONE</b> — pullback entry ~$'+dp(zone)+' · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); }
-    else if(last<=zone*1.02){ h='RHYTHM: near the zone — bid $'+dp(zone)+' (9EMA/VWAP) · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); }
-    else { h='RHYTHM: <b>extended +'+((last/zone-1)*100).toFixed(1)+'% above the zone — chasing</b>. Bid the pullback at $'+dp(zone)+' or skip.'; }
+    const H=secondLegHealth(cands, vwap, last, e9);
+    const entry=H.entry, stop=+(entry*0.95).toFixed(entry<1?3:2);
+    const tgt=+(entry+2*(entry-stop)).toFixed(entry<1?3:2), tenN=limitFor(entry,0.10);
+    let h, armable=false;
+    if(H.state==='BROKEN'){ h='RHYTHM: <b class="rbad">BROKEN — stay out</b>. '+H.note+'.'; }
+    else if(H.state==='WAIT'){ h='RHYTHM: <b>WAIT — no reclaim</b>. Trigger $'+dp(H.trigger)+' · '+H.note+'.'; }
+    else if(H.state==='HIGHS'){ h='RHYTHM: <b>at highs / extended</b> — let it pull back, then watch for the reclaim.'; }
+    else { h='RHYTHM: <b class="rok">RECLAIM CONFIRMED</b> — enter ~$'+dp(entry)+' · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); armable=true; }
     el.innerHTML=h+' <span style="color:#667">· your call</span>'
-      +(last>=vwap?' <button class="btn abtn afill" id="armBtn">ARM</button><button class="btn abtn" id="declBtn" title="log the pick without trading">DECLARE</button>':'');
-    window._lastZone={sym:sym, zone:+dp(zone), stop:stop, target:tgt, tenNet:tenN};
+      +(armable?' <button class="btn abtn afill" id="armBtn">ARM</button><button class="btn abtn" id="declBtn" title="log the pick without trading">DECLARE</button>':'');
+    window._lastZone={sym:sym, zone:+dp(entry), stop:stop, target:tgt, tenNet:tenN};
     el.hidden=false;
     const ab=$('armBtn'), db=$('declBtn');
     if(ab) ab.onclick=armTrade;
@@ -1021,22 +1067,36 @@ function renderInTrade(){
   const held=Math.round((Date.now()-new Date(o.filledAt).getTime())/1000);
   const mm=Math.floor(held/60), ss=String(held%60).padStart(2,'0');
   const tcls=held<120?'tg':held<360?'ta':'tr';
+  const ext=etSession()!=='RTH';
   const pl=px?netNow(o.fillPx,px,o.sh):null;
   const nowPct=px?((px-o.fillPx)/o.fillPx*100):null;
   const peakPct=(o.peak-o.fillPx)/o.fillPx*100;
   const gb=(peakPct>0&&nowPct!=null)?Math.max(0,peakPct-nowPct):0;
-  it.innerHTML='<div class="itop"><b>'+o.sym+'</b> '+o.sh+' sh @ $'+o.fillPx+' <span class="ttimer '+tcls+'">⏱ '+mm+':'+ss+'</span></div>'
-    +'<div class="imid">stop <b>$'+o.stop+'</b> · 2:1 <b>$'+o.target+'</b> · +10% net $'+o.tenNet+'</div>'
-    +(px?'<div class="ipl" style="color:'+(pl>=0?'var(--green)':'var(--red)')+'">'+(pl>=0?'+':'−')+'£'+fmt(Math.abs(pl))+' <span class="ipct">('+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'%)</span></div>'
-      +(gb>0.3?'<div class="igb">giving back '+gb.toFixed(1)+'% from peak +'+peakPct.toFixed(1)+'%</div>':'<div class="igb ok">peak +'+peakPct.toFixed(1)+'%</div>')
-      :'<div class="igb">switch to '+o.sym+' to see live</div>')
-    +'<button class="btn iout" id="btnOut">I\'M OUT → LOG</button>';
+  // allowed give-back tightens as profit grows; extended hours = ruthless (no halt to save you)
+  let allowed = peakPct>=10?12 : peakPct>=7?20 : peakPct>=5?30 : peakPct>=3?40 : 60;
+  if(ext) allowed*=0.7;
+  const used = allowed>0 ? Math.min(1, gb/allowed) : 0;
+  const col = used<0.5?'var(--green)' : used<0.8?'#d9a520' : 'var(--red)';
+  const atPeak = gb<0.3;
+  const takeNow = px!=null && (peakPct>=10 || used>=1);
+  const stopHit = px!=null && px<=o.stop;
+  const barW=Math.round(used*100);
+  const bigTxt = px==null ? 'switch to '+o.sym+' to manage'
+    : atPeak ? 'AT PEAK +'+peakPct.toFixed(1)+'%'
+    : '&#9660; '+gb.toFixed(1)+'% from peak <span class="ppk">(+'+peakPct.toFixed(1)+'%)</span>';
+  it.innerHTML=
+    '<div class="itop"><b>'+o.sym+'</b> '+o.sh+'sh @ $'+o.fillPx+' <span class="ttimer '+tcls+'">&#9201; '+mm+':'+ss+'</span>'
+      +(ext?' <span class="extbadge">EXT · no halt · manual stop</span>':'')+'</div>'
+    +'<div class="peakbig" style="color:'+(px==null?'#8a8577':col)+'">'+bigTxt+'</div>'
+    +(px!=null?'<div class="fuel"><div class="fuelfill" style="width:'+barW+'%;background:'+col+'"></div></div>':'')
+    +'<div class="isub">'+(px!=null?'now '+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'% · '+(pl>=0?'+':'&minus;')+'&pound;'+fmt(Math.abs(pl))+' · ':'')+'stop $'+o.stop+' · target $'+o.target+'</div>'
+    +'<button class="btn iout'+(stopHit?' iostop':takeNow?' iotake':'')+'" id="btnOut">'
+      +(stopHit?'&#128721; STOP — SELL NOW':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>';
   $('btnOut').onclick=exitArm;
-  if(px){
-    if(px<=o.stop&&!o._sb){ o._sb=1; tost('🛑 STOP HIT — SELL NOW on T212',[100,60,100,60,100]); }
-    if(px>o.stop) o._sb=0;
-    if(px>=o.target&&!o._tb){ o._tb=1; tost('🎯 TARGET — take it (2:1)',[40,40,40]); }
-    if(held>360&&held<363) tost('⏱ 6 min — edge window over. Exit.',[60]);
+  if(px!=null){
+    if(stopHit&&!o._sb){ o._sb=1; tost('STOP HIT — SELL NOW on T212',[100,60,100,60,100]); } if(!stopHit) o._sb=0;
+    if(takeNow&&!o._tb){ o._tb=1; tost(ext?'TAKE IT — no halt to save you':'TAKE IT — giving back the gain',[60,50,60,50,120]); } if(used<0.8) o._tb=0;
+    if(held>360&&held<363) tost('6 min — edge window over',[60]);
   }
 }
 setInterval(()=>{ if(ARM&&ARM.state==='in') renderInTrade(); },1000);
