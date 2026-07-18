@@ -97,6 +97,7 @@ footer{text-align:center;margin-top:10px;font-size:12px}
 /* ---- market hotness ---- */
 #mktLine{font-size:12px;padding:4px 2px;color:#8a8577}
 #mktLine b.hot{color:#2ecc71}#mktLine b.warm{color:#d9a520}#mktLine b.cold{color:#7f8c9b}
+.mfade{color:#7f8c9b}.mlive{color:#2ecc71}
 #mktLine .msym{color:#cfc9b8;text-decoration:underline dotted;cursor:pointer;margin-left:6px}
 
 /* SIM on: reclaim vertical space — second target card + % selector hidden (sim shows its own 1:1/2:1 target) */
@@ -118,6 +119,8 @@ body.simon .tcard{padding:10px 14px}
 /* entry-rhythm recommendation */
 #entryLine{font-size:12px;color:#9fb3c8;border-left:3px solid #3b6ea5;padding:4px 8px;margin:4px 0;line-height:1.45}
 #entryLine b{color:#cfe3f5}
+#wallLine{font-size:11.5px;color:#9a978c;padding:2px 8px}
+#wallLine b{color:#e0c088}
 /* IN-TRADE MODE: discovery UI disappears — the screen asks "why haven't you sold?" */
 body.intrade .recents, body.intrade #mktLine, body.intrade #gauge, body.intrade #entryLine,
 body.intrade #card5, body.intrade #card10, body.intrade .ghosts, body.intrade #dayLog,
@@ -187,6 +190,7 @@ body.intrade main>*:not(#inTrade){display:none!important}
   <div class="greasons" id="gReasons"></div>
 </div>
 <div id="entryLine" class="mono" hidden></div>
+<div id="wallLine" class="mono" hidden></div>
 <div id="armLine" class="mono" hidden></div>
 <div id="inTrade" class="mono" hidden></div>
 <input id="cur" type="hidden">
@@ -838,18 +842,23 @@ async function refreshMkt(force){
   a.concat(b).forEach(x=>{
     if(seen[x.symbol]) return; seen[x.symbol]=1;
     const v=x.regularMarketVolume||0;
-    // rank by what is moving NOW in this session — a day-gainer that is flat after hours is yesterday's party
     let p,c,tag='';
     if(sess==='PRE'&&x.preMarketChangePercent!=null){ p=x.preMarketPrice||x.regularMarketPrice; c=x.preMarketChangePercent; tag='PRE'; }
     else if(sess==='AH'&&x.postMarketChangePercent!=null){ p=x.postMarketPrice||x.regularMarketPrice; c=x.postMarketChangePercent; tag='AH'; }
     else { p=x.regularMarketPrice; c=x.regularMarketChangePercent; }
-    const bar = tag ? 5 : 10;                               // extended sessions: +5% NOW is a real move
-    if(p>=0.1&&p<=20&&c>=bar&&(v*p)>=1e6) movers.push({s:x.symbol,c:Math.round(c),p:p,tag:tag});
+    // "still moving vs dead gapper": position in the day's range. Near 1 = pinned at highs (live). Near 0 = faded.
+    const dH=x.regularMarketDayHigh, dL=x.regularMarketDayLow;
+    let pos=null, offHigh=null;
+    if(sess==='RTH' && dH>dL){ pos=(x.regularMarketPrice-dL)/(dH-dL); offHigh=(dH-x.regularMarketPrice)/dH*100; }
+    const bar = tag ? 5 : 10;
+    if(p>=0.1&&p<=20&&c>=bar&&(v*p)>=1e6) movers.push({s:x.symbol,c:Math.round(c),p:p,tag:tag,pos:pos,off:offHigh});
   });
-  movers.sort((x,y)=>y.c-x.c);
+  // live (near highs / unknown) first, then by gain; faded gappers sink
+  const isLive=m=>m.pos==null||m.pos>=0.6;
+  movers.sort((x,y)=>{ const d=(isLive(y)?1:0)-(isLive(x)?1:0); return d!==0?d:y.c-x.c; });
+  const liveN=movers.filter(isLive).length;                // temp counts stocks ACTUALLY at their highs, not dead gappers
   if(!a.length&&!b.length){ MKT={t:Date.now(),temp:'UNKNOWN',n:0,top:[]}; }
-  else{ const n=movers.length;
-        MKT={t:Date.now(), temp:n>=5?'HOT':n>=2?'WARM':'COLD', n:n, top:movers.slice(0,3)}; }
+  else{ MKT={t:Date.now(), temp:liveN>=5?'HOT':liveN>=2?'WARM':'COLD', n:liveN, top:movers.slice(0,3)}; }
   try{ localStorage.setItem('mkt_v1',JSON.stringify(MKT)); }catch(e){}
   renderMkt();
 }
@@ -859,7 +868,9 @@ function renderMkt(){
   const cls=MKT.temp==='HOT'?'hot':MKT.temp==='WARM'?'warm':'cold';
   let h='MARKET: <b class="'+cls+'">'+MKT.temp+'</b> · '+MKT.n+' in play';
   if(MKT.temp==='COLD') h+=' — maybe no trade';
-  MKT.top.forEach(m=>{ h+='<span class="msym" data-s="'+m.s+'">'+m.s+' $'+(m.p<1?m.p.toFixed(2):m.p.toFixed(0))+' +'+m.c+'%'+(m.tag?' '+m.tag:'')+'</span>'; });
+  MKT.top.forEach(m=>{ const faded=m.pos!=null&&m.pos<0.6;
+    const mark = faded?'<span class="mfade"> faded '+(m.off!=null?'-'+Math.round(m.off)+'%':'')+'</span>' : (m.pos!=null&&m.pos>=0.8?'<span class="mlive"> ▲</span>':'');
+    h+='<span class="msym" data-s="'+m.s+'">'+m.s+' $'+(m.p<1?m.p.toFixed(2):m.p.toFixed(0))+' +'+m.c+'%'+(m.tag?' '+m.tag:'')+mark+'</span>'; });
   el.innerHTML=h; el.hidden=false;
   el.querySelectorAll('.msym').forEach(x=>x.addEventListener('click',()=>{ $('ticker').value=x.dataset.s; $('fetchBtn').click(); }));
 }
@@ -904,13 +915,31 @@ function secondLegHealth(cands, vwap, last, e9){
     return {state:'HEALTHY', entry:last, trigger, note:'volume dried, reclaim on real volume'};
   return {state:'WAIT', entry:last, trigger, note: !dried?'volume still heavy on the dip':(!above?'still below VWAP':'reclaim not confirmed (needs volume)')};
 }
+function nextWalls(last, hod){
+  // psychological levels a rip tends to stall at (half/whole dollars) + high-of-day. Guide, not a target.
+  const out=[];
+  if(last>=1){
+    const half=Math.ceil(last*2)/2;                        // next .50 or whole above
+    const whole=Math.ceil(last);
+    out.push({v:half, t: (Math.abs(half-Math.round(half))<0.01?'whole $':'half $')});
+    if(Math.abs(whole-half)>0.001) out.push({v:whole, t:'whole $'});
+  } else {
+    [0.5,1.0].forEach(k=>{ if(k>last) out.push({v:k, t:k===1?'whole $':'half $'}); });   // round levels first (best labels win dedup)
+    const dime=Math.ceil(last*10)/10;                      // then the next dime
+    out.push({v:+dime.toFixed(2), t:'dime'});
+  }
+  if(hod>last*1.001) out.push({v:hod, t:'HOD'});
+  // nearest first, unique, keep 2-3
+  const seen={}, u=out.filter(w=>w.v>last*1.001).sort((a,b)=>a.v-b.v).filter(w=>{ const k=w.v.toFixed(3); if(seen[k])return false; seen[k]=1; return true; });
+  return u.slice(0,3);
+}
 async function planEntry(sym){
   const el=$('entryLine'); el.hidden=true;
   try{
-    if(Date.now()<COOL){ el.innerHTML='RHYTHM: cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'; el.hidden=false; return; }
-    if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market'; el.hidden=false; return; }
+    if(Date.now()<COOL){ el.innerHTML='RHYTHM: cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'; el.hidden=false; $('wallLine').hidden=true; return; }
+    if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market'; el.hidden=false; $('wallLine').hidden=true; return; }
     const res=await fetchCandles(sym); if(!res||sym!==liveSym) return;
-    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>1800){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; return; }
+    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>1800){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }
     const q=res.indicators.quote[0], ts=res.timestamp||[];
     const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
     if(cands.length<10) return;
@@ -920,6 +949,10 @@ async function planEntry(sym){
     const last=parseFloat($('cur').value)||cands[cands.length-1].c;
     if(!(vwap>0)||!(last>0)) return;
     const dp=(x)=>x<1?x.toFixed(3):x.toFixed(2);
+    (function(){ const wl=$('wallLine'); const hod=Math.max.apply(null,cands.map(c=>c.h));
+      const ws=nextWalls(last,hod); if(!ws.length){ wl.hidden=true; return; }
+      wl.innerHTML='Walls above: '+ws.map(w=>'<b>$'+dp(w.v)+'</b> '+w.t).join(' · ')+' <span style="color:#667">(likely stall)</span>';
+      wl.hidden=false; })();
     const H=secondLegHealth(cands, vwap, last, e9);
     const entry=H.entry, stop=+(entry*0.95).toFixed(entry<1?3:2);
     const tgt=+(entry+2*(entry-stop)).toFixed(entry<1?3:2), tenN=limitFor(entry,0.10);
