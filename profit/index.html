@@ -877,9 +877,11 @@ if(!SIM){
 function simPlan(){ return SIM_START*Math.pow(1+SIM_GOALPCT, SIM.tradedDays); }
 function simSave(){ try{ localStorage.setItem('sim_v3', JSON.stringify(SIM)); }catch(e){} }
 function simToast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
-function etParts(){ const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false,year:'numeric',month:'2-digit',day:'2-digit'}); const p={}; f.formatToParts(new Date()).forEach(x=>p[x.type]=x.value); return p; }
+function etParts(){ const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false,year:'numeric',month:'2-digit',day:'2-digit'}); const p={}; f.formatToParts(new Date()).forEach(x=>p[x.type]=x.value); return p; }
 function etDay(){ const p=etParts(); return p.year+'-'+p.month+'-'+p.day; }
-function etSession(){ const p=etParts(); const m=(+p.hour)*60+(+p.minute);
+function etSession(){ const p=etParts();
+  if(p.weekday==='Sat'||p.weekday==='Sun') return null;          // weekends: no market, no sessions
+  const m=(+p.hour)*60+(+p.minute);
   if(m>=240&&m<570) return 'PRE'; if(m>=570&&m<960) return 'RTH'; if(m>=960&&m<1200) return 'AH'; return null; }
 function slipFor(px){ const base = px<1 ? Math.max(0.003, px*0.006) : Math.max(0.02, px*0.0025);
   return etSession()==='RTH'?base:base*2; }
