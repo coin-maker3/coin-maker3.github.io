@@ -158,7 +158,7 @@ body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayL
 .deok{width:100%;padding:15px;font-size:17px;font-weight:800;margin-top:8px}
 .devi{width:100%;padding:9px;font-size:12px;opacity:.55;margin-top:10px}
 
-.rok{color:var(--green)}.rbad{color:var(--red)}
+.rok{color:var(--green)}.rbad{color:var(--red)}.rwarn{color:#d9a520}
 .peakbig{font-size:26px;font-weight:800;text-align:center;margin:4px 0}
 .peakbig .ppk{font-size:15px;font-weight:600;color:#8a8577}
 .fuel{height:11px;background:#1c1c1c;border-radius:6px;overflow:hidden;margin:6px 0}
@@ -923,14 +923,20 @@ async function planEntry(sym){
     const H=secondLegHealth(cands, vwap, last, e9);
     const entry=H.entry, stop=+(entry*0.95).toFixed(entry<1?3:2);
     const tgt=+(entry+2*(entry-stop)).toFixed(entry<1?3:2), tenN=limitFor(entry,0.10);
-    let h, armable=false;
+    let h, armable=false, fresh=false, uEntry=entry, uStop=stop, uTgt=tgt;
     if(H.state==='BROKEN'){ h='RHYTHM: <b class="rbad">BROKEN — stay out</b>. '+H.note+'.'; }
     else if(H.state==='WAIT'){ h='RHYTHM: <b>WAIT — no reclaim</b>. Trigger $'+dp(H.trigger)+' · '+H.note+'.'; }
-    else if(H.state==='HIGHS'){ h='RHYTHM: <b>at highs / extended</b> — let it pull back, then watch for the reclaim.'; }
+    else if(H.state==='HIGHS'){
+      const e20=emaCalc(cands.map(c=>c.c),20);
+      const mom = last>=vwap && (e20==null || e9>=e20);          // fresh entry only with real momentum
+      if(mom){ uEntry=last; uStop=+(last*0.95).toFixed(last<1?3:2); uTgt=+(uEntry+2*(uEntry-uStop)).toFixed(last<1?3:2);
+        h='RHYTHM: <b class="rwarn">FRESH — new highs, no pullback</b> (higher-risk chase) · enter ~$'+dp(uEntry)+' · stop $'+dp(uStop)+' · 2:1 $'+dp(uTgt); armable=true; fresh=true; }
+      else { h='RHYTHM: <b>at highs</b> — momentum not confirmed; wait for the pullback.'; }
+    }
     else { h='RHYTHM: <b class="rok">RECLAIM CONFIRMED</b> — enter ~$'+dp(entry)+' · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); armable=true; }
     el.innerHTML=h+' <span style="color:#667">· your call</span>'
       +(armable?' <button class="btn abtn afill" id="armBtn">ARM</button><button class="btn abtn" id="declBtn" title="log the pick without trading">DECLARE</button>':'');
-    window._lastZone={sym:sym, zone:+dp(entry), stop:stop, target:tgt, tenNet:tenN};
+    window._lastZone={sym:sym, zone:+dp(uEntry), stop:uStop, target:uTgt, tenNet:limitFor(uEntry,0.10), fresh:fresh};
     el.hidden=false;
     const ab=$('armBtn'), db=$('declBtn');
     if(ab) ab.onclick=armTrade;
@@ -1006,7 +1012,7 @@ function armTrade(){
   const z=window._lastZone; if(!z||z.sym!==liveSym){ tost('Zone not ready'); return; }
   declarePick(true);
   ARM={state:'armed', sym:z.sym, zone:z.zone, stop:z.stop, target:z.target, tenNet:z.tenNet,
-       declaredAt:new Date().toISOString()};
+       fresh:!!z.fresh, declaredAt:new Date().toISOString()};
   if(etSession()!=='RTH') tost('⚠ Extended hours: T212 can NOT rest a stop — half size, sell-limit pre-typed', [60,40,60]);
   armSave(); renderArm();
 }
@@ -1026,7 +1032,7 @@ function exitArm(){
   const px=parseFloat($('cur').value)||ARM.target;
   const g=netNow(ARM.fillPx,px,ARM.sh);
   window._pendingTrade={d:new Date().toISOString(), sym:ARM.sym, entry:ARM.fillPx, exit:px, sh:ARM.sh,
-    netGBP:+g.toFixed(2), sess:etSession()||'', decl:1,
+    netGBP:+g.toFixed(2), sess:etSession()||'', decl:1, fresh:ARM.fresh?1:0,
     heldSec:Math.round((Date.now()-new Date(ARM.filledAt).getTime())/1000),
     peakPct:+(((ARM.peak-ARM.fillPx)/ARM.fillPx)*100).toFixed(2)};
   $('chipsBox').style.display='flex';
@@ -1053,7 +1059,7 @@ function renderArm(){
   if(!ARM){ al.hidden=true; it.hidden=true; return; }
   if(ARM.state==='armed'){
     it.hidden=true;
-    al.innerHTML='ARMED <b>'+ARM.sym+'</b> · zone $'+ARM.zone+' · stop $'+ARM.stop+' · 2:1 $'+ARM.target
+    al.innerHTML='ARMED <b>'+ARM.sym+'</b>'+(ARM.fresh?' <span class="rwarn">FRESH</span>':'')+' · zone $'+ARM.zone+' · stop $'+ARM.stop+' · 2:1 $'+ARM.target
       +' <button class="btn abtn afill" id="btnFilled">FILLED</button><button class="btn abtn" id="btnCancelArm">✕</button>'
       +'<br><span class="sub">buy on T212, then tap FILLED (adjust entry price box to your real fill first)</span>';
     al.hidden=false;
