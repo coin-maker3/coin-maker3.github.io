@@ -830,7 +830,9 @@ refreshMkt(); setInterval(()=>refreshMkt(), 5*60*1000);
 async function planEntry(sym){
   const el=$('entryLine'); el.hidden=true;
   try{
+    if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market (09:00 UK)'; el.hidden=false; return; }
     const res=await fetchCandles(sym); if(!res||sym!==liveSym) return;
+    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>1800){ el.innerHTML='RHYTHM: data stale — no zone'; el.hidden=false; return; }
     const q=res.indicators.quote[0], ts=res.timestamp||[];
     const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
     if(cands.length<10) return;
