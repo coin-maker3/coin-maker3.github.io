@@ -129,6 +129,34 @@ body.simon .bigprice{font-size:38px}
 body.simon .tcard{padding:8px 12px}
 body.simon #mktLine{font-size:11px;padding:2px}
 body.simon .gbadge{padding:6px}
+
+/* ---- ARM / in-trade / chips / day-end (expert package) ---- */
+#armLine{border-left:3px solid var(--green);padding:6px 8px;margin:4px 0;font-size:13px}
+.abtn{padding:6px 12px;margin-left:8px;font-size:12px}
+.afill{border-color:var(--green);color:var(--green);font-weight:800}
+#inTrade{padding:8px 4px;border-top:1px solid #333;border-bottom:1px solid #333;margin:6px 0}
+.itop{font-size:16px}.imid{font-size:13px;color:#cfc9b8;margin:4px 0}
+.ipl{font-size:34px;font-weight:800}.ipct{font-size:16px;font-weight:600}
+.igb{color:var(--red);font-weight:700;font-size:14px;margin:2px 0}.igb.ok{color:#8a8577;font-weight:600}
+.ttimer{font-weight:800;margin-left:10px}.tg{color:var(--green)}.ta{color:#d9a520}.tr{color:var(--red)}
+.iout{width:100%;padding:16px;margin-top:8px;border-color:var(--red);color:var(--red);font-weight:800;font-size:17px}
+body.intrade .recents,body.intrade #mktLine,body.intrade #gauge,body.intrade #entryLine,
+body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayLog{display:none}
+/* greed cuts: extra target card + % selector gone for good */
+#card10,.ghosts{display:none}
+#chipsBox{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:60;align-items:center;justify-content:center}
+.chipwrap{display:flex;flex-direction:column;gap:10px;width:78%;max-width:320px}
+.chiphead{color:#cfc9b8;font-weight:700;text-align:center;font-size:15px}
+.dchip{padding:13px;font-size:15px}.dskip{opacity:.6}
+.deover{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center}
+.degood{background:rgba(10,46,28,.97)}.debad{background:rgba(56,14,14,.97)}
+.debox{text-align:center;width:82%}
+.debig{font-size:30px;font-weight:800;color:#fff}
+.denum{font-size:44px;font-weight:800;margin:8px 0;color:#fff}
+.destreak{font-size:16px;color:#d9e5dc;margin:6px 0}
+.deplan{font-size:14px;color:#aab8ae;margin:10px 0}
+.deok{width:100%;padding:15px;font-size:17px;font-weight:800;margin-top:8px}
+.devi{width:100%;padding:9px;font-size:12px;opacity:.55;margin-top:10px}
 </style>
 </head>
 <body>
@@ -146,6 +174,8 @@ body.simon .gbadge{padding:6px}
   <div class="greasons" id="gReasons"></div>
 </div>
 <div id="entryLine" class="mono" hidden></div>
+<div id="armLine" class="mono" hidden></div>
+<div id="inTrade" class="mono" hidden></div>
 <input id="cur" type="hidden">
 
 <div class="lbl">My entry price ($) · shares</div>
@@ -186,6 +216,14 @@ body.simon .gbadge{padding:6px}
 
 
 </main>
+<div id="chipsBox" style="display:none">
+  <div class="chipwrap"><div class="chiphead">How did you trade it?</div>
+    <button class="btn dchip" data-t="followed plan">✅ followed plan</button>
+    <button class="btn dchip" data-t="chased">🏃 chased</button>
+    <button class="btn dchip" data-t="held past peak">🎈 held past peak</button>
+    <button class="btn dchip" data-t="froze in loser">🧊 froze in loser</button>
+    <button class="btn dchip dskip" data-t="">skip</button></div></div>
+<div id="dayEnd" style="display:none"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -644,8 +682,8 @@ $('dayLog').addEventListener('click', () => {
   const t = loadTrades();
   if (!t.length) return;
   const NL = String.fromCharCode(10);
-  const csv = 'date,symbol,entry,exit,shares,net_gbp' + NL + t.map(x =>
-    [x.d, x.sym, x.entry, x.exit, x.sh, x.netGBP.toFixed(2)].join(',')).join(NL);
+  const csv = 'date,symbol,entry,exit,shares,net_gbp,session,tag,declared' + NL + t.map(x =>
+    [x.d, x.sym, x.entry, x.exit, x.sh, x.netGBP.toFixed(2), x.sess||'', x.tag||'', x.decl?'Y':''].join(',')).join(NL);
   (navigator.clipboard ? navigator.clipboard.writeText(csv) : Promise.reject()).then(() => {
     const toast = $('toast'); toast.textContent = 'Trade log copied (CSV)';
     toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600);
@@ -820,6 +858,7 @@ refreshMkt(); setInterval(()=>refreshMkt(), 5*60*1000);
 async function planEntry(sym){
   const el=$('entryLine'); el.hidden=true;
   try{
+    if(Date.now()<COOL){ el.innerHTML='RHYTHM: cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'; el.hidden=false; return; }
     if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market (09:00 UK)'; el.hidden=false; return; }
     const res=await fetchCandles(sym); if(!res||sym!==liveSym) return;
     const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>1800){ el.innerHTML='RHYTHM: data stale — no zone'; el.hidden=false; return; }
@@ -841,8 +880,13 @@ async function planEntry(sym){
     else if(last<=zone*1.005){ h='RHYTHM: <b>IN THE ZONE</b> — pullback entry ~$'+dp(zone)+' · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); }
     else if(last<=zone*1.02){ h='RHYTHM: near the zone — bid $'+dp(zone)+' (9EMA/VWAP) · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); }
     else { h='RHYTHM: <b>extended +'+((last/zone-1)*100).toFixed(1)+'% above the zone — chasing</b>. Bid the pullback at $'+dp(zone)+' or skip.'; }
-    el.innerHTML=h+' <span style="color:#667">· your call</span>';
+    el.innerHTML=h+' <span style="color:#667">· your call</span>'
+      +(last>=vwap?' <button class="btn abtn afill" id="armBtn">ARM</button><button class="btn abtn" id="declBtn" title="log the pick without trading">DECLARE</button>':'');
+    window._lastZone={sym:sym, zone:+dp(zone), stop:stop, target:tgt, tenNet:tenN};
     el.hidden=false;
+    const ab=$('armBtn'), db=$('declBtn');
+    if(ab) ab.onclick=armTrade;
+    if(db) db.onclick=()=>{ if(declarePick(false)) tost('Pick declared — timestamped for the edge test'); };
   }catch(e){}
 }
 let _erTimer=null;
@@ -889,11 +933,163 @@ function renderPlan(){
 }
 renderPlan(); setInterval(renderPlan, 30000);
 
+// ================= ARM → FILLED → I'M OUT (expert package, 18 Jul) =================
+// Pre-trade declaration is the law: ARM pins the planned trade before you touch T212.
+// DECLARE logs a pick you're not trading (the honest test of "I find them early").
+// FILLED flips to the in-trade takeover (timer, give-back, alarms). I'M OUT logs the
+// round trip with a discipline chip. Losing trade => 5-min cool-down. Goal / max-loss
+// => full-screen day-end takeover with streak; "continue anyway" is journaled.
+let ARM=null; try{ ARM=JSON.parse(localStorage.getItem('arm_v1')||'null'); }catch(e){}
+let DECL=[]; try{ DECL=JSON.parse(localStorage.getItem('decl_v1')||'[]'); }catch(e){}
+let COOL=0; try{ COOL=+localStorage.getItem('cool_v1')||0; }catch(e){}
+function armSave(){ try{ localStorage.setItem('arm_v1',JSON.stringify(ARM)); localStorage.setItem('decl_v1',JSON.stringify(DECL.slice(-300))); localStorage.setItem('cool_v1',String(COOL)); }catch(e){} }
+function tost(m,vib){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); if(vib&&navigator.vibrate) navigator.vibrate(vib); }
+function netNow(entry,px,sh){ return ((sh*px*(1-S)-sh*T)*(1-F)-sh*entry*(1+F))/GBPUSD; }
+
+function declarePick(traded){
+  const z=window._lastZone; if(!z||z.sym!==liveSym){ tost('Zone not ready'); return null; }
+  const d={d:new Date().toISOString(), sym:z.sym, px:parseFloat($('cur').value)||null,
+           zone:z.zone, stop:z.stop, target:z.target, traded:!!traded};
+  DECL.push(d); armSave(); if(typeof syncJournal==='function') syncJournal();
+  return d;
+}
+function armTrade(){
+  if(Date.now()<COOL){ tost('Cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'); return; }
+  const z=window._lastZone; if(!z||z.sym!==liveSym){ tost('Zone not ready'); return; }
+  declarePick(true);
+  ARM={state:'armed', sym:z.sym, zone:z.zone, stop:z.stop, target:z.target, tenNet:z.tenNet,
+       declaredAt:new Date().toISOString()};
+  if(etSession()!=='RTH') tost('⚠ Extended hours: T212 can NOT rest a stop — half size, sell-limit pre-typed', [60,40,60]);
+  armSave(); renderArm();
+}
+function cancelArm(){ ARM=null; armSave(); renderArm(); }
+function fillArm(){
+  const px=parseFloat($('avg').value)||parseFloat($('cur').value)||ARM.zone;
+  let sh=parseFloat($('shares').value);
+  if(!(sh>0)){ const eq=(typeof PLAN!=='undefined'?PLAN.eq0:200)+loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start).reduce((a,x)=>a+x.netGBP,0);
+               sh=Math.max(1,Math.floor(eq*(GBPUSD||1.3)/px)); $('shares').value=sh; }
+  $('avg').value=px;
+  ARM.state='in'; ARM.fillPx=px; ARM.sh=sh; ARM.filledAt=new Date().toISOString(); ARM.peak=px;
+  armSave(); renderArm();
+  try{ navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{}); }catch(e){}
+  tost('IN — timer running. Stop $'+ARM.stop+' · target $'+ARM.target);
+}
+function exitArm(){
+  const px=parseFloat($('cur').value)||ARM.target;
+  const g=netNow(ARM.fillPx,px,ARM.sh);
+  window._pendingTrade={d:new Date().toISOString(), sym:ARM.sym, entry:ARM.fillPx, exit:px, sh:ARM.sh,
+    netGBP:+g.toFixed(2), sess:etSession()||'', decl:1,
+    heldSec:Math.round((Date.now()-new Date(ARM.filledAt).getTime())/1000),
+    peakPct:+(((ARM.peak-ARM.fillPx)/ARM.fillPx)*100).toFixed(2)};
+  $('chipsBox').style.display='flex';
+}
+function finishTrade(tag){
+  const tr=window._pendingTrade; if(!tr) return;
+  tr.tag=tag||'';
+  const t=loadTrades(); t.push(tr);
+  try{ localStorage.setItem('trades', JSON.stringify(t.slice(-500))); }catch(e){}
+  $('chipsBox').style.display='none'; window._pendingTrade=null;
+  if(tr.netGBP<0){ COOL=Date.now()+5*60*1000; }
+  ARM=null; armSave();
+  $('avg').value=''; $('shares').value=''; $('stop').value='';
+  try{ savePosition(); }catch(e){}
+  calc(); renderDayLog(); renderPlan(); if(typeof syncJournal==='function') syncJournal();
+  renderArm();
+  tost('Logged: '+(tr.netGBP>=0?'+':'−')+'£'+fmt(Math.abs(tr.netGBP))+(tag?' · '+tag:''), 30);
+}
+
+function renderArm(){
+  const al=$('armLine'), it=$('inTrade');
+  const inTrade=!!(ARM&&ARM.state==='in');
+  document.body.classList.toggle('intrade', inTrade);
+  if(!ARM){ al.hidden=true; it.hidden=true; return; }
+  if(ARM.state==='armed'){
+    it.hidden=true;
+    al.innerHTML='ARMED <b>'+ARM.sym+'</b> · zone $'+ARM.zone+' · stop $'+ARM.stop+' · 2:1 $'+ARM.target
+      +' <button class="btn abtn afill" id="btnFilled">FILLED</button><button class="btn abtn" id="btnCancelArm">✕</button>'
+      +'<br><span class="sub">buy on T212, then tap FILLED (adjust entry price box to your real fill first)</span>';
+    al.hidden=false;
+    $('btnFilled').onclick=fillArm; $('btnCancelArm').onclick=cancelArm;
+  } else {
+    al.hidden=true; it.hidden=false; renderInTrade();
+  }
+}
+function renderInTrade(){
+  const it=$('inTrade'); const o=ARM; if(!o||o.state!=='in'){ it.hidden=true; return; }
+  const px=(liveSym===o.sym)?parseFloat($('cur').value):null;
+  if(px&&px>o.peak){ o.peak=px; armSave(); }
+  const held=Math.round((Date.now()-new Date(o.filledAt).getTime())/1000);
+  const mm=Math.floor(held/60), ss=String(held%60).padStart(2,'0');
+  const tcls=held<120?'tg':held<360?'ta':'tr';
+  const pl=px?netNow(o.fillPx,px,o.sh):null;
+  const nowPct=px?((px-o.fillPx)/o.fillPx*100):null;
+  const peakPct=(o.peak-o.fillPx)/o.fillPx*100;
+  const gb=(peakPct>0&&nowPct!=null)?Math.max(0,peakPct-nowPct):0;
+  it.innerHTML='<div class="itop"><b>'+o.sym+'</b> '+o.sh+' sh @ $'+o.fillPx+' <span class="ttimer '+tcls+'">⏱ '+mm+':'+ss+'</span></div>'
+    +'<div class="imid">stop <b>$'+o.stop+'</b> · 2:1 <b>$'+o.target+'</b> · +10% net $'+o.tenNet+'</div>'
+    +(px?'<div class="ipl" style="color:'+(pl>=0?'var(--green)':'var(--red)')+'">'+(pl>=0?'+':'−')+'£'+fmt(Math.abs(pl))+' <span class="ipct">('+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'%)</span></div>'
+      +(gb>0.3?'<div class="igb">giving back '+gb.toFixed(1)+'% from peak +'+peakPct.toFixed(1)+'%</div>':'<div class="igb ok">peak +'+peakPct.toFixed(1)+'%</div>')
+      :'<div class="igb">switch to '+o.sym+' to see live</div>')
+    +'<button class="btn iout" id="btnOut">I\'M OUT → LOG</button>';
+  $('btnOut').onclick=exitArm;
+  if(px){
+    if(px<=o.stop&&!o._sb){ o._sb=1; tost('🛑 STOP HIT — SELL NOW on T212',[100,60,100,60,100]); }
+    if(px>o.stop) o._sb=0;
+    if(px>=o.target&&!o._tb){ o._tb=1; tost('🎯 TARGET — take it (2:1)',[40,40,40]); }
+    if(held>360&&held<363) tost('⏱ 6 min — edge window over. Exit.',[60]);
+  }
+}
+setInterval(()=>{ if(ARM&&ARM.state==='in') renderInTrade(); },1000);
+
+// ---- day-end takeover + streak ----
+let _deShown='';
+function dayStreak(){
+  const t=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
+  const days={}; t.forEach(x=>{ const k=x.d.slice(0,10); days[k]=(days[k]||0)+x.netGBP; });
+  const keys=Object.keys(days).sort();
+  let eq=PLAN.eq0, streak=0;
+  const goals=keys.map(k=>{ const g=days[k]>=eq*0.05-0.005; eq+=days[k]; return g; });
+  for(let i=goals.length-1;i>=0;i--){ if(goals[i]) streak++; else break; }
+  return streak;
+}
+function showDayEnd(kind, todayNet, eq){
+  const id=new Date().toISOString().slice(0,10)+kind;
+  if(_deShown===id) return; _deShown=id;
+  const de=$('dayEnd');
+  const tomorrow=(eq*1.05).toFixed(2);
+  de.className='deover '+(kind==='goal'?'degood':'debad');
+  de.innerHTML='<div class="debox"><div class="debig">'+(kind==='goal'?'🎯 DAY DONE':'STOPPED')+'</div>'
+    +'<div class="denum">'+(todayNet>=0?'+':'−')+'£'+fmt(Math.abs(todayNet))+'</div>'
+    +(kind==='goal'?'<div class="destreak">'+dayStreak()+' day streak at goal</div>':'<div class="destreak">−5% floor. Tomorrow resets.</div>')
+    +'<div class="deplan">stop now → tomorrow\'s target £'+tomorrow+'</div>'
+    +'<button class="btn deok" id="deOk">Computer OFF</button>'
+    +'<button class="btn devi" id="deGo">Continue anyway (journaled)</button></div>';
+  de.style.display='flex';
+  $('deOk').onclick=()=>{ de.style.display='none'; };
+  $('deGo').onclick=()=>{ de.style.display='none';
+    DECL.push({d:new Date().toISOString(), type:'plan-deviation', kind:kind}); armSave();
+    if(typeof syncJournal==='function') syncJournal();
+    tost('Deviation journaled — Claude will see it.'); };
+}
+// hook into plan state transitions
+const _origRenderPlan=renderPlan;
+renderPlan=function(){
+  _origRenderPlan();
+  if(_planState){
+    const t=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
+    const today=new Date().toISOString().slice(0,10);
+    const todayNet=t.filter(x=>x.d.slice(0,10)===today).reduce((a,x)=>a+x.netGBP,0);
+    const eq=PLAN.eq0+t.reduce((a,x)=>a+x.netGBP,0);
+    showDayEnd(_planState, todayNet, eq);
+  }
+};
+document.querySelectorAll('.dchip').forEach(b=>b.addEventListener('click',()=>finishTrade(b.dataset.t)));
+renderArm();
 // ---- journal sync: mirrors the LOG journal to a tiny cloud doc so Claude can read the calculator ----
 const SYNC_URL='https://profit-sync-ali-default-rtdb.firebaseio.com/j/ali-q7x2mk.json';
 function syncJournal(){
   try{ fetch(SYNC_URL,{method:'PUT',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({t:loadTrades().slice(-300), plan:PLAN, up:new Date().toISOString()})}).catch(()=>{}); }catch(e){}
+    body:JSON.stringify({t:loadTrades().slice(-300), plan:PLAN, decl:(typeof DECL!=='undefined'?DECL.slice(-300):[]), up:new Date().toISOString()})}).catch(()=>{}); }catch(e){}
 }
 setTimeout(syncJournal, 4000);
 
