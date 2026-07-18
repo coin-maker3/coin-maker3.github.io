@@ -163,6 +163,7 @@ body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayL
 .peakbig .ppk{font-size:15px;font-weight:600;color:#8a8577}
 .fuel{height:11px;background:#1c1c1c;border-radius:6px;overflow:hidden;margin:6px 0}
 .fuelfill{height:100%;transition:width .3s,background .3s}
+.stopdist{font-size:14px;font-weight:700;text-align:center;margin:2px 0}
 .isub{font-size:13px;color:#9a978c;text-align:center;margin:2px 0}
 .extbadge{font-size:10px;color:#d9a520;border:1px solid #6a5410;border-radius:4px;padding:1px 5px;font-weight:700}
 .iotake{border-color:var(--green)!important;color:var(--green)!important;animation:pulseb .7s infinite}
@@ -872,36 +873,37 @@ refreshMkt(); setInterval(()=>refreshMkt(), 5*60*1000);
 // expand on a candle that closes back above VWAP. Volume is invisible to the user; it's baked in here.
 function secondLegHealth(cands, vwap, last, e9){
   const n=cands.length;
+  if(n<12 || !(vwap>0) || !(last>0)) return {state:'WAIT', entry:last||vwap, trigger:vwap||last, note:'not enough data yet'};
   const highs=cands.map(c=>c.h);
   const hod=Math.max.apply(null,highs);
   let hi=highs.lastIndexOf(hod);
-  const zone=Math.max(e9||0, vwap);
-  if(hi>=n-1) return {state:'HIGHS', entry:zone, trigger:hod, note:'making new highs'};
-  const leg=cands.slice(Math.max(0,hi-10), hi+1);
+  if(hi>=n-1) return {state:'HIGHS', entry:last, trigger:hod, note:'making new highs'};
   const pb=cands.slice(hi+1);
-  if(pb.length<1) return {state:'HIGHS', entry:zone, trigger:hod, note:'at highs'};
+  if(pb.length<2) return {state:'HIGHS', entry:last, trigger:hod, note:'just off the high'};
+  const leg=cands.slice(Math.max(0,hi-10), hi+1);
+  const launch=leg.slice(-5);                              // the launch pad, not the whole run's base (bug fix)
   const legAvgV=(leg.reduce((a,c)=>a+c.v,0)/leg.length)||1;
-  const pbAvgV=pb.reduce((a,c)=>a+c.v,0)/pb.length;
-  const contraction=pbAvgV/legAvgV;                       // <1 = volume dried up on the dip (healthy)
-  const legLow=Math.min.apply(null,leg.map(c=>c.l));
+  const pbDip=pb.length>1?pb.slice(0,-1):pb;                // exclude the reclaim bar from the dip average
+  const pbAvgV=pbDip.reduce((a,c)=>a+c.v,0)/pbDip.length;
+  const contraction=pbAvgV/legAvgV;
+  const launchLow=Math.min.apply(null,launch.map(c=>c.l));
   const pbLow=Math.min.apply(null,pb.map(c=>c.l));
-  const range=hod-legLow;
-  const retr= range>0 ? (hod-last)/range : 1;             // pullback depth vs the first leg
-  const higherLow= pbLow >= legLow*0.999;                 // held above the origin of leg 1
+  const rise=hod-launchLow;
+  const retr= rise>0 ? (hod-pbLow)/rise : 1;               // depth vs the launch, not the far base
+  const higherLow= pbLow >= launchLow*0.997;
   const closesBelow=pb.filter(c=>c.c<vwap).length;
-  const accepted= closesBelow>=5;                         // living below VWAP = broken, not a wick
+  const accepted= closesBelow>=3 && closesBelow>=pb.length*0.6;   // scales to short pullbacks
   const trigger=Math.max(vwap, pb.length>1?Math.max.apply(null,pb.slice(0,-1).map(c=>c.c)):vwap);
   const recent=cands.slice(-4,-1);
   const recentAvgV=recent.length?recent.reduce((a,c)=>a+c.v,0)/recent.length:legAvgV;
-  const expansion= cands[n-1].v >= 1.3*recentAvgV;        // reclaim bar prints on volume
-  if(retr>0.80 || !higherLow || accepted)
-    return {state:'BROKEN', entry:trigger, trigger, note: !higherLow?'lower low — no bid':accepted?'living below VWAP':'gave back the whole move'};
-  const above=last>=vwap, dried=contraction<0.9;
+  const expansion= cands[n-1].v >= 2.0*recentAvgV;        // a real reclaim thrust, not noise
+  if(retr>0.75 || !higherLow || accepted)
+    return {state:'BROKEN', entry:trigger, trigger, note: !higherLow?'lower low — no bid':accepted?'living below VWAP':'gave back the move'};
+  const above=last>=vwap, dried=contraction<0.6;
   if(above && dried && expansion)
-    return {state:'HEALTHY', entry:zone, trigger, note:'volume dried on the dip, reclaim on volume'};
-  return {state:'WAIT', entry:zone, trigger, note: !dried?'volume still heavy on the dip':(!above?'still below VWAP':'reclaim not confirmed (needs volume)')};
+    return {state:'HEALTHY', entry:last, trigger, note:'volume dried, reclaim on real volume'};
+  return {state:'WAIT', entry:last, trigger, note: !dried?'volume still heavy on the dip':(!above?'still below VWAP':'reclaim not confirmed (needs volume)')};
 }
-
 async function planEntry(sym){
   const el=$('entryLine'); el.hidden=true;
   try{
@@ -1089,9 +1091,10 @@ function renderInTrade(){
       +(ext?' <span class="extbadge">EXT · no halt · manual stop</span>':'')+'</div>'
     +'<div class="peakbig" style="color:'+(px==null?'#8a8577':col)+'">'+bigTxt+'</div>'
     +(px!=null?'<div class="fuel"><div class="fuelfill" style="width:'+barW+'%;background:'+col+'"></div></div>':'')
+    +(px!=null?'<div class="stopdist" style="color:'+(((px-o.stop)/px*100)<0.8?'var(--red)':'#c98a3a')+'">▲ '+((px-o.stop)/px*100).toFixed(1)+'% to stop · risk £'+fmt(Math.abs(netNow(o.fillPx,o.stop,o.sh)))+'</div>':'')
     +'<div class="isub">'+(px!=null?'now '+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'% · '+(pl>=0?'+':'&minus;')+'&pound;'+fmt(Math.abs(pl))+' · ':'')+'stop $'+o.stop+' · target $'+o.target+'</div>'
     +'<button class="btn iout'+(stopHit?' iostop':takeNow?' iotake':'')+'" id="btnOut">'
-      +(stopHit?'&#128721; STOP — SELL NOW':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>';
+      +(stopHit?'&#128721; STOP HIT &rarr; LOG':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>';
   $('btnOut').onclick=exitArm;
   if(px!=null){
     if(stopHit&&!o._sb){ o._sb=1; tost('STOP HIT — SELL NOW on T212',[100,60,100,60,100]); } if(!stopHit) o._sb=0;
@@ -1099,7 +1102,14 @@ function renderInTrade(){
     if(held>360&&held<363) tost('6 min — edge window over',[60]);
   }
 }
-setInterval(()=>{ if(ARM&&ARM.state==='in') renderInTrade(); },1000);
+setInterval(()=>{
+  if(!ARM) return;
+  if(ARM.state==='in'){ renderInTrade(); return; }
+  if(ARM.state==='armed'){
+    if(!ARM.armedAt){ ARM.armedAt=Date.now(); armSave(); }
+    if(Date.now()-ARM.armedAt>90000 && !ARM._nudged){ ARM._nudged=1; tost('Still in T212? If you filled, tap FILLED so the timer + stop alarm start',[60,40,60]); }
+  }
+},1000);
 
 // ---- day-end takeover + streak ----
 let _deShown='';
