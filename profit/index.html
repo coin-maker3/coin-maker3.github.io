@@ -352,20 +352,26 @@ async function fetchQuote(symbol){
     if (r.ok){
       const j = await r.json();
       if (j && typeof j.c === 'number' && j.c > 0){
-        if (!j.t || Date.now() / 1000 - j.t < 120) return { p: j.c, tag: '' };   // fresh regular-hours trade
-        fhClose = j.c;                                         // stale = frozen close; try extended first
+        // a MISSING timestamp is not evidence of freshness - it used to short-circuit to
+        // "LIVE (3s)" and skip the whole extended-hours path built to avoid exactly that
+        if (j.t && Date.now() / 1000 - j.t < 120) return { p: j.c, tag: '', asOf: j.t*1000 };
+        fhClose = j.c;                                         // stale/unknown = treat as frozen close
       }
     }
   } catch(e){}
   const ext = await fetchExtended(symbol);
-  if (ext && ext.p > 0) return { p: ext.p, tag: ext.tag };
+  if (ext && ext.p > 0) return { p: ext.p, tag: ext.tag, asOf: ext.at };
   if (fhClose > 0) return { p: fhClose, tag: 'LAST CLOSE' };
   throw new Error('no price');
 }
 
 let ws = null, pollTimer = null, liveSym = null, lastTickAt = 0, prevPrice = null, lastUpdateAt = 0, haltBuzzed = false;
-function setPrice(price, tag){
-  lastUpdateAt = Date.now(); haltBuzzed = false;
+function setPrice(price, tag, asOf){
+  // asOf = when the PRINT happened, not when we drew it. Without this the staleness
+  // watchdog can never fire while a cached price is being re-served every poll.
+  const stamp = (asOf && asOf > 0 && asOf <= Date.now()) ? asOf : Date.now();
+  if (stamp > lastUpdateAt) haltBuzzed = false;
+  lastUpdateAt = stamp;
   if (window._simTickHook) window._simTickHook(price);
   $('cur').value = price;
   const bp = $('bigPrice');
@@ -387,7 +393,7 @@ function startPolling(sym){
     if (Date.now() - lastTickAt < 5000) return;        // stream healthy: don't double-write (no kill/restart flapping)
     try { const q = await fetchQuote(sym); if (q.p > 0 && sym === liveSym)
       // "(3s)" only when genuinely 3s-fresh; extended prints refresh ~every 10s post cache-bust
-      setPrice(q.p, q.tag === '' ? 'LIVE (3s)' : q.tag === 'LAST CLOSE' ? q.tag : q.tag + ' ~10s'); } catch(e){}
+      setPrice(q.p, q.tag === '' ? 'LIVE (3s)' : q.tag === 'LAST CLOSE' ? q.tag : q.tag + ' ~10s', q.asOf); } catch(e){}
   }, 3000);
 }
 function startStream(sym){
@@ -565,7 +571,10 @@ async function runGauge(sym){
     let rvol = null;
     if (vol && st.avgM){
       const sess = etSession();
-      if (sess === 'RTH'){
+      // holiday/half-day proof: the calendar says RTH, but if nothing has printed in 5
+      // minutes the market is not actually open — don't manufacture a volume ratio
+      const printing = q && q.t && (Date.now()/1000 - q.t) < 300;
+      if (sess === 'RTH' && printing){
         const frac = Math.min(1, Math.max(0.08, rthFractionElapsed()));   // floor stops a 9:31 divide-by-nearly-zero
         rvol = vol / (st.avgM * 1e6 * frac);
       }
@@ -727,8 +736,8 @@ function loadTrades(){
   return arr.filter(x=>x&&typeof x.netGBP==='number'&&isFinite(x.netGBP));
 }
 function renderDayLog(){
-  const today = new Date().toISOString().slice(0,10);
-  const t = loadTrades(), mine = t.filter(x => x.d.slice(0,10) === today);
+  const today = etDayKey();
+  const t = loadTrades(), mine = t.filter(x => tradeDay(x) === today);
   const el = $('dayLog');
   if (!mine.length){ el.hidden = true; return; }
   const net = mine.reduce((a,x) => a + x.netGBP, 0);
@@ -864,7 +873,14 @@ calc();
 // Merges Yahoo day_gainers (has a $5 price floor) + small_cap_gainers (covers $1-5).
 // Mover = price $1-20, up >=10%, volume >=500k. HOT >=5 movers / WARM 2-4 / COLD 0-1.
 let MKT = null;
-function mktLoad(){ try{ return JSON.parse(localStorage.getItem('mkt_v1')||'null'); }catch(e){ return null; } }
+function mktLoad(){ try{
+  const m=JSON.parse(localStorage.getItem('mkt_v1')||'null');
+  // An old cached temperature is exactly the lie this whole area keeps telling: opening the
+  // app on a Sunday used to paint Friday's "HOT - 6 in play" from here, before any of the
+  // market-hours logic ran. A stale reading is worth nothing — drop it.
+  if(!m || !m.t || Date.now()-m.t > 10*60*1000) return null;
+  return m;
+}catch(e){ return null; } }
 async function mktScreen(scr){
   const Y='https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds='+scr+'&count=50';
   const urls=['https://corsproxy.io/?url='+encodeURIComponent(Y)+'&cb='+Date.now(),
@@ -882,7 +898,12 @@ async function refreshMkt(force){
   // realSess is null when the market is CLOSED (weekend/overnight). The old code collapsed
   // that to 'RTH', so on a Sunday the scanner read Friday's day high/low and happily printed
   // HOT off dead data. Keep the 'RTH' default only for picking which price field to read.
-  const realSess=(typeof etSession==='function')?etSession():null;
+  let realSess=(typeof etSession==='function')?etSession():null;
+  // The calendar can't know about Thanksgiving, Christmas Eve or a half-day close. The
+  // quotes carry their own print time — if nothing has printed for 15 minutes the market
+  // is shut whatever the clock says. Data beats calendar.
+  const freshest=a.concat(b).reduce((mx,x)=>Math.max(mx, x.regularMarketTime||0), 0);
+  if(realSess && freshest && (Date.now()/1000 - freshest) > 900) realSess=null;
   const sess=realSess||'RTH';
   const seen={}, movers=[];
   a.concat(b).forEach(x=>{
@@ -891,6 +912,7 @@ async function refreshMkt(force){
     let p,c,tag='';
     if(sess==='PRE'&&x.preMarketChangePercent!=null){ p=x.preMarketPrice||x.regularMarketPrice; c=x.preMarketChangePercent; tag='PRE'; }
     else if(sess==='AH'&&x.postMarketChangePercent!=null){ p=x.postMarketPrice||x.regularMarketPrice; c=x.postMarketChangePercent; tag='AH'; }
+    else if(realSess==='PRE'||realSess==='AH'){ return; }   // no extended move = not running NOW; yesterday's gain is not a mover
     else { p=x.regularMarketPrice; c=x.regularMarketChangePercent; }
     // "still moving vs dead gapper": position in the day's range. Near 1 = pinned at highs (live). Near 0 = faded.
     const dH=x.regularMarketDayHigh, dL=x.regularMarketDayLow;
@@ -900,7 +922,7 @@ async function refreshMkt(force){
     if(p>=0.1&&p<=20&&c>=bar&&(v*p)>=1e6) movers.push({s:x.symbol,c:Math.round(c),p:p,tag:tag,pos:pos,off:offHigh});
   });
   // live (near highs / unknown) first, then by gain; faded gappers sink
-  const isLive=m=>m.pos==null||m.pos>=0.6;
+  const isLive=m=>m.pos!=null&&m.pos>=0.6;      // unknown position doesn't get a vote
   movers.sort((x,y)=>{ const d=(isLive(y)?1:0)-(isLive(x)?1:0); return d!==0?d:y.c-x.c; });
   const liveN=movers.filter(isLive).length;                // temp counts stocks ACTUALLY at their highs, not dead gappers
   // BUGFIX 19 Jul: pos is only computed in RTH, and isLive counts pos==null as live — so in
@@ -1037,6 +1059,10 @@ function entryRhythmStart(sym){ if(_erTimer) clearInterval(_erTimer); planEntry(
 // No sim. You trade real money on T212; every round trip goes in via LOG; this strip
 // tracks equity vs the plan (£200 × 1.05^tradedDay), today's +5% goal and −5% floor.
 function etParts(){ const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false,year:'numeric',month:'2-digit',day:'2-digit'}); const p={}; f.formatToParts(new Date()).forEach(x=>p[x.type]=x.value); return p; }
+// The TRADING day in New York. Using UTC here meant the day rolled at 19:00 ET - mid
+// after-hours - so today's loss floor reset while he was still able to trade.
+function etDayKey(){ const p=etParts(); return p.year+'-'+p.month+'-'+p.day; }
+function tradeDay(x){ return (x && x.tday) ? x.tday : String((x&&x.d)||'').slice(0,10); }  // old rows fall back to UTC
 function etSession(){ const p=etParts();
   if(p.weekday==='Sat'||p.weekday==='Sun') return null;
   const m=(+p.hour)*60+(+p.minute);
@@ -1053,8 +1079,8 @@ function renderPlan(){
   const t=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
   // Day goal / max-loss are about the day's SCALPING. A HOLD closed today may have been
   // running for a week, so it counts in the balance but not against today's limits.
-  const days={}; t.forEach(x=>{ if(x.mode!=='hold'){ const k=x.d.slice(0,10); days[k]=(days[k]||0)+x.netGBP; } });
-  const today=new Date().toISOString().slice(0,10);
+  const days={}; t.forEach(x=>{ if(x.mode!=='hold'){ const k=tradeDay(x); days[k]=(days[k]||0)+x.netGBP; } });
+  const today=etDayKey();
   const todayNet=days[today]||0;
   const eq=PLAN.eq0+t.reduce((a,x)=>a+x.netGBP,0);
   const priorDays=Object.keys(days).filter(k=>k<today).length;
@@ -1141,7 +1167,7 @@ function exitArm(){
   const g=netNow(ARM.fillPx,px,ARM.sh);
   if(!isFinite(g)){ tost('Couldn’t work out the profit — not logging a wrong number', [60,40,60]); return; }
   window._pendingTrade={d:new Date().toISOString(), sym:ARM.sym, entry:ARM.fillPx, exit:px, sh:ARM.sh,
-    netGBP:+g.toFixed(2), sess:etSession()||'', decl:1, fresh:ARM.fresh?1:0, mode:(ARM.mode||'quick'),
+    netGBP:+g.toFixed(2), sess:etSession()||'', decl:1, fresh:ARM.fresh?1:0, mode:(ARM.mode||'quick'), tday:etDayKey(),
     heldSec:Math.round((Date.now()-new Date(ARM.filledAt).getTime())/1000),
     peakPct:+(((ARM.peak-ARM.fillPx)/ARM.fillPx)*100).toFixed(2)};
   $('chipsBox').style.display='flex';
@@ -1283,7 +1309,7 @@ function dayStreak(){
   return streak;
 }
 function showDayEnd(kind, todayNet, eq){
-  const id=new Date().toISOString().slice(0,10)+kind;
+  const id=etDayKey()+kind;
   if(_deShown===id) return; _deShown=id;
   const de=$('dayEnd');
   const tomorrow=(eq*1.05).toFixed(2);
@@ -1307,7 +1333,7 @@ renderPlan=function(){
   _origRenderPlan();
   if(_planState){
     const t=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
-    const today=new Date().toISOString().slice(0,10);
+    const today=etDayKey();
     const todayNet=t.filter(x=>x.d.slice(0,10)===today).reduce((a,x)=>a+x.netGBP,0);
     const eq=PLAN.eq0+t.reduce((a,x)=>a+x.netGBP,0);
     showDayEnd(_planState, todayNet, eq);
