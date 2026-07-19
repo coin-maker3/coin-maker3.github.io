@@ -145,8 +145,7 @@ body.simon .gbadge{padding:6px}
 .iout{width:100%;padding:16px;margin-top:8px;border-color:var(--red);color:var(--red);font-weight:800;font-size:17px}
 body.intrade .recents,body.intrade #mktLine,body.intrade #gauge,body.intrade #entryLine,
 body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayLog{display:none}
-/* greed cuts: extra target card + % selector gone for good */
-#card10,.ghosts{display:none}
+/* +5% and +10% both shown: taking profit at 5-10% is what the tool is for */
 #chipsBox{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:60;align-items:center;justify-content:center}
 .chipwrap{display:flex;flex-direction:column;gap:10px;width:78%;max-width:320px}
 .chiphead{color:#cfc9b8;font-weight:700;text-align:center;font-size:15px}
@@ -558,7 +557,19 @@ async function runGauge(sym){
       jget('https://finnhub.io/api/v1/company-news?symbol=' + sym + '&from=' + dstr(fr) + '&to=' + dstr(to) + '&token=' + FINNHUB_KEY, 8000).catch(()=>[]),
       todayVolume(sym)]);
     if (sym !== liveSym) return;                      // user moved on — drop stale rating
-    const rvol = (vol && st.avgM) ? vol / (st.avgM * 1e6) : null;
+    // RVOL honestly, or not at all (fixed 19 Jul):
+    //  - regularMarketVolume is CUMULATIVE-so-far, but avgM is a FULL-DAY average, so a raw
+    //    ratio understates a real monster early in the session. Scale by how much of RTH has run.
+    //  - outside RTH that field holds the LAST COMPLETED session's total, so the ratio is
+    //    always ~1.0 — a real-looking number carrying zero information. Report unknown instead.
+    let rvol = null;
+    if (vol && st.avgM){
+      const sess = etSession();
+      if (sess === 'RTH'){
+        const frac = Math.min(1, Math.max(0.08, rthFractionElapsed()));   // floor stops a 9:31 divide-by-nearly-zero
+        rvol = vol / (st.avgM * 1e6 * frac);
+      }
+    }
     const fresh = (news || []).filter(n => n.datetime * 1000 >= Date.now() - 48*3600e3);
     const newest = fresh.length ? Math.max(...fresh.map(n => n.datetime * 1000)) : null;
     const ageH = newest ? Math.max(0, Math.round((Date.now() - newest) / 3600e3)) : null;
@@ -655,7 +666,15 @@ function computeSetup(res, last, dp, nowSec){
     return last > vwap && e9 > e20 && last >= 0.995 * hod && curVol >= 1.5 * avg;
   } catch(e){ return false; }
 }
-try { window.computeSetup = computeSetup; } catch(e){}
+// last real print from a candle set — same clock as the candles themselves
+function lastCandleClose(res){
+  try {
+    const cl = res.indicators.quote[0].close;
+    for (let i = cl.length - 1; i >= 0; i--) if (cl[i] > 0) return cl[i];
+  } catch(e){}
+  return null;
+}
+try { window.computeSetup = computeSetup; window.lastCandleClose = lastCandleClose; } catch(e){}
 async function fetchCandles(sym){
   const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=5m&includePrePost=true&cb=' + Date.now();   // bust proxy cache — same freeze the "candles stale" guard kept firing on
   const enc = encodeURIComponent(y);
@@ -674,17 +693,34 @@ setInterval(async () => {
   if (!list.length) return;
   const sym = list[setupIdx % list.length]; setupIdx++;
   try {
-    const [res, q] = await Promise.all([
-      fetchCandles(sym),
-      jget('https://finnhub.io/api/v1/quote?symbol=' + sym + '&token=' + FINNHUB_KEY, 8000).catch(() => null)]);
-    const live = (sym === liveSym && prevPrice) ? prevPrice : (q && q.c > 0 ? q.c : null);
-    const on = (res && live) ? computeSetup(res, live, q ? q.dp : null) : false;
+    const res = await fetchCandles(sym);
+    // BUGFIX 19 Jul: this used Finnhub /quote for the price, which FREEZES at the 16:00 ET
+    // close (see fetchQuote) — so every evening it compared a 4pm price against live
+    // extended candles: two different clocks, and every after-hours SETUP badge was wrong.
+    // The candles already carry the current print; read the price from the SAME data.
+    const live = (sym === liveSym && prevPrice) ? prevPrice : lastCandleClose(res);
+    const on = (res && live) ? computeSetup(res, live, null) : false;
     if (chipSetup[sym] !== on){ chipSetup[sym] = on; renderRecents(); }
   } catch(e){ if (chipSetup[sym]){ chipSetup[sym] = false; renderRecents(); } }
 }, 9000);
 
 // ---- trade journal: SOLD logs the round trip; strip shows today's net; tap = copy CSV ----
-function loadTrades(){ try { return JSON.parse(localStorage.getItem('trades') || '[]'); } catch(e){ return []; } }
+// If the stored journal is ever unreadable, KEEP the raw text under a dated key instead of
+// silently returning [] — an empty read used to look identical to "no trades yet".
+// Also drops any entry whose profit isn't a real number, so one bad row can't poison every total.
+let _journalBroken=false;
+function loadTrades(){
+  const raw=localStorage.getItem('trades');
+  if(!raw) return [];
+  let arr=null;
+  try { arr=JSON.parse(raw); } catch(e){
+    _journalBroken=true;
+    try{ localStorage.setItem('trades_corrupt_'+Date.now(), raw); }catch(e2){}
+    return [];
+  }
+  if(!Array.isArray(arr)) { _journalBroken=true; return []; }
+  return arr.filter(x=>x&&typeof x.netGBP==='number'&&isFinite(x.netGBP));
+}
 function renderDayLog(){
   const today = new Date().toISOString().slice(0,10);
   const t = loadTrades(), mine = t.filter(x => x.d.slice(0,10) === today);
@@ -699,8 +735,9 @@ $('dayLog').addEventListener('click', () => {
   const t = loadTrades();
   if (!t.length) return;
   const NL = String.fromCharCode(10);
-  const csv = 'date,symbol,entry,exit,shares,net_gbp,session,tag,declared' + NL + t.map(x =>
-    [x.d, x.sym, x.entry, x.exit, x.sh, x.netGBP.toFixed(2), x.sess||'', x.tag||'', x.decl?'Y':''].join(',')).join(NL);
+  const csv = 'date,symbol,entry,exit,shares,net_gbp,session,mode,held_sec,peak_pct,tag,declared' + NL + t.map(x =>
+    [x.d, x.sym, x.entry, x.exit, x.sh, x.netGBP.toFixed(2), x.sess||'', x.mode||'', x.heldSec!=null?x.heldSec:'',
+     x.peakPct!=null?x.peakPct:'', x.tag||'', x.decl?'Y':''].join(',')).join(NL);
   (navigator.clipboard ? navigator.clipboard.writeText(csv) : Promise.reject()).then(() => {
     const toast = $('toast'); toast.textContent = 'Trade log copied (CSV)';
     toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600);
@@ -857,7 +894,13 @@ async function refreshMkt(force){
   const isLive=m=>m.pos==null||m.pos>=0.6;
   movers.sort((x,y)=>{ const d=(isLive(y)?1:0)-(isLive(x)?1:0); return d!==0?d:y.c-x.c; });
   const liveN=movers.filter(isLive).length;                // temp counts stocks ACTUALLY at their highs, not dead gappers
+  // BUGFIX 19 Jul: pos is only computed in RTH, and isLive counts pos==null as live — so in
+  // PRE/AH every faded gapper counted and the temperature read HOT off a wall of dead stock.
+  // Yahoo gives no extended-session high/low, so outside RTH we cannot tell live from faded:
+  // say UNKNOWN rather than print a confident HOT we can't back.
+  const canJudge = (sess==='RTH');
   if(!a.length&&!b.length){ MKT={t:Date.now(),temp:'UNKNOWN',n:0,top:[]}; }
+  else if(!canJudge){ MKT={t:Date.now(), temp:'UNKNOWN', n:movers.length, top:movers.slice(0,3), why:'extended hours — can’t tell live from faded'}; }
   else{ MKT={t:Date.now(), temp:liveN>=5?'HOT':liveN>=2?'WARM':'COLD', n:liveN, top:movers.slice(0,3)}; }
   try{ localStorage.setItem('mkt_v1',JSON.stringify(MKT)); }catch(e){}
   renderMkt();
@@ -987,6 +1030,9 @@ function etSession(){ const p=etParts();
   if(p.weekday==='Sat'||p.weekday==='Sun') return null;
   const m=(+p.hour)*60+(+p.minute);
   if(m>=240&&m<570) return 'PRE'; if(m>=570&&m<960) return 'RTH'; if(m>=960&&m<1200) return 'AH'; return null; }
+// how much of the 9:30-16:00 ET session has run (0-1) — used to make RVOL comparable to a full-day average
+function rthFractionElapsed(){ const p=etParts(); const m=(+p.hour)*60+(+p.minute);
+  return Math.min(1, Math.max(0, (m-570)/390)); }
 let PLAN=null; try{ PLAN=JSON.parse(localStorage.getItem('plan_v1')||'null'); }catch(e){}
 if(!PLAN){ PLAN={start:new Date().toISOString().slice(0,10), eq0:200};
   try{ localStorage.setItem('plan_v1',JSON.stringify(PLAN)); }catch(e){} }
@@ -994,26 +1040,31 @@ let _planState='';
 function renderPlan(){
   const el=$('planLine'); if(!el) return;
   const t=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
-  const days={}; t.forEach(x=>{ const k=x.d.slice(0,10); days[k]=(days[k]||0)+x.netGBP; });
+  // Day goal / max-loss are about the day's SCALPING. A HOLD closed today may have been
+  // running for a week, so it counts in the balance but not against today's limits.
+  const days={}; t.forEach(x=>{ if(x.mode!=='hold'){ const k=x.d.slice(0,10); days[k]=(days[k]||0)+x.netGBP; } });
   const today=new Date().toISOString().slice(0,10);
   const todayNet=days[today]||0;
   const eq=PLAN.eq0+t.reduce((a,x)=>a+x.netGBP,0);
   const priorDays=Object.keys(days).filter(k=>k<today).length;
   const dayStartEq=eq-todayNet;
   const goal=dayStartEq*0.05, floor=-dayStartEq*0.05;
-  const plan=PLAN.eq0*Math.pow(1.05,priorDays);
+  // The "vs plan £X / behind" curve is GONE (19 Jul, Ali's call). £200 x 1.05^day reaches
+  // £44m in a year — a line he was guaranteed to be behind on, in red, where the only way to
+  // clear it was to trade bigger. This shows where he actually is instead.
+  const allNet=eq-PLAN.eq0;
   let st='';
   if(todayNet>=goal) st=' · <b style="color:var(--green)">GOAL HIT — walk away</b>';
   else if(todayNet<=floor) st=' · <b class="simbad">MAX LOSS — stop</b>';
-  el.innerHTML='£200 PLAN <span class="sub">day '+(priorDays+1)+'</span> · £'+fmt(eq)
-    +' <span class="sub">vs plan £'+fmt(plan)+'</span> '
-    +(eq>=plan?'<b style="color:var(--green)">✓</b>':'<b class="simbad">behind</b>')
+  el.innerHTML='<b>£'+fmt(eq)+'</b> <span class="sub">balance</span>'
     +' · today <b style="color:'+(todayNet>=0?'var(--green)':'var(--red)')+'">'+(todayNet>=0?'+':'−')+'£'+fmt(Math.abs(todayNet))+'</b>'
-    +' <span class="sub">/ goal £'+fmt(goal)+'</span>'+st;
+    +' <span class="sub">/ goal £'+fmt(goal)+'</span>'
+    +' · overall <b style="color:'+(allNet>=0?'var(--green)':'var(--red)')+'">'+(allNet>=0?'+':'−')+'£'+fmt(Math.abs(allNet))+'</b>'
+    +' <span class="sub">day '+(priorDays+1)+'</span>'+st;
   el.hidden=false;
   const ns=todayNet>=goal?'goal':todayNet<=floor?'loss':'';
   if(ns&&ns!==_planState){ const tt=$('toast');
-    tt.textContent=ns==='goal'?'🎯 GOAL +£'+fmt(todayNet)+' — computer OFF. The curve compounds.':'MAX LOSS — computer OFF. Tomorrow resets.';
+    tt.textContent=ns==='goal'?'🎯 GOAL +£'+fmt(todayNet)+' — computer OFF.':'MAX LOSS — computer OFF. Tomorrow resets.';
     tt.classList.add('show'); setTimeout(()=>tt.classList.remove('show'),3200);
     if(navigator.vibrate) navigator.vibrate(ns==='goal'?[40,40,40]:[80,60,80]); }
   _planState=ns;
@@ -1031,7 +1082,9 @@ let DECL=[]; try{ DECL=JSON.parse(localStorage.getItem('decl_v1')||'[]'); }catch
 let COOL=0; try{ COOL=+localStorage.getItem('cool_v1')||0; }catch(e){}
 function armSave(){ try{ localStorage.setItem('arm_v1',JSON.stringify(ARM)); localStorage.setItem('decl_v1',JSON.stringify(DECL.slice(-300))); localStorage.setItem('cool_v1',String(COOL)); }catch(e){} }
 function tost(m,vib){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); if(vib&&navigator.vibrate) navigator.vibrate(vib); }
-function netNow(entry,px,sh){ return ((sh*px*(1-S)-sh*T)*(1-F)-sh*entry*(1+F))/GBPUSD; }
+// returns null (not Infinity) when the FX rate hasn't loaded — an Infinity here used to be
+// stored as JSON null and turned every later total into NaN, permanently, with no way back
+function netNow(entry,px,sh){ if(!(GBPUSD>0)) return null; return ((sh*px*(1-S)-sh*T)*(1-F)-sh*entry*(1+F))/GBPUSD; }
 
 function declarePick(traded){
   const z=window._lastZone; if(!z||z.sym!==liveSym){ tost('Zone not ready'); return null; }
@@ -1050,22 +1103,34 @@ function armTrade(){
   armSave(); renderArm();
 }
 function cancelArm(){ ARM=null; armSave(); renderArm(); }
-function fillArm(){
+function fillArm(mode){
   const px=parseFloat($('avg').value)||parseFloat($('cur').value)||ARM.zone;
   let sh=parseFloat($('shares').value);
-  if(!(sh>0)){ const eq=(typeof PLAN!=='undefined'?PLAN.eq0:200)+loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start).reduce((a,x)=>a+x.netGBP,0);
-               sh=Math.max(1,Math.floor(eq*(GBPUSD||1.3)/px)); $('shares').value=sh; }
+  // This used to auto-fill your WHOLE account and type the number in as if you'd chosen it —
+  // one 5%-stop loss then equalled the entire daily loss limit. Now: you say how many.
+  if(!(sh>0)){ tost('Type how many shares you bought first', [60,40,60]); return; }
   $('avg').value=px;
-  ARM.state='in'; ARM.fillPx=px; ARM.sh=sh; ARM.filledAt=new Date().toISOString(); ARM.peak=px;
+  ARM.state='in'; ARM.mode=(mode==='hold'?'hold':'quick');
+  ARM.fillPx=px; ARM.sh=sh; ARM.filledAt=new Date().toISOString(); ARM.peak=px;
   armSave(); renderArm();
-  try{ navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{}); }catch(e){}
-  tost('IN — timer running. Stop $'+ARM.stop+' · target $'+ARM.target);
+  if(ARM.mode==='quick'){
+    try{ navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{}); }catch(e){}
+    tost('IN — timer running. Stop $'+ARM.stop+' · target $'+ARM.target);
+  } else {
+    tost('HOLDING '+ARM.sym+' — no timer. Close it whenever you decide.');
+  }
 }
 function exitArm(){
-  const px=parseFloat($('cur').value)||ARM.target;
+  // NEVER invent an exit price. This used to fall back to ARM.target, which wrote a
+  // fabricated WINNING trade into the permanent journal whenever the live price was missing.
+  if(liveSym!==ARM.sym){ tost('Switch back to '+ARM.sym+' before logging', [60,40,60]); return; }
+  const px=parseFloat($('cur').value);
+  if(!(px>0)){ tost('No live price — can’t log. Type your real fill in the entry box.', [60,40,60]); return; }
+  if(!(GBPUSD>0)){ tost('Waiting for £/$ rate — can’t work out your profit yet', [60,40,60]); return; }
   const g=netNow(ARM.fillPx,px,ARM.sh);
+  if(!isFinite(g)){ tost('Couldn’t work out the profit — not logging a wrong number', [60,40,60]); return; }
   window._pendingTrade={d:new Date().toISOString(), sym:ARM.sym, entry:ARM.fillPx, exit:px, sh:ARM.sh,
-    netGBP:+g.toFixed(2), sess:etSession()||'', decl:1, fresh:ARM.fresh?1:0,
+    netGBP:+g.toFixed(2), sess:etSession()||'', decl:1, fresh:ARM.fresh?1:0, mode:(ARM.mode||'quick'),
     heldSec:Math.round((Date.now()-new Date(ARM.filledAt).getTime())/1000),
     peakPct:+(((ARM.peak-ARM.fillPx)/ARM.fillPx)*100).toFixed(2)};
   $('chipsBox').style.display='flex';
@@ -1076,7 +1141,7 @@ function finishTrade(tag){
   const t=loadTrades(); t.push(tr);
   try{ localStorage.setItem('trades', JSON.stringify(t.slice(-500))); }catch(e){}
   $('chipsBox').style.display='none'; window._pendingTrade=null;
-  if(tr.netGBP<0){ COOL=Date.now()+5*60*1000; }
+  if(tr.netGBP<0 && tr.mode!=='hold'){ COOL=Date.now()+5*60*1000; }
   ARM=null; armSave();
   $('avg').value=''; $('shares').value=''; $('stop').value='';
   try{ savePosition(); }catch(e){}
@@ -1085,18 +1150,48 @@ function finishTrade(tag){
   tost('Logged: '+(tr.netGBP>=0?'+':'−')+'£'+fmt(Math.abs(tr.netGBP))+(tag?' · '+tag:''), 30);
 }
 
+// QUICK vs HOLD (Ali, 19 Jul): a scalp and a trade he sits on for days are different animals.
+// QUICK = timer, alarms, full-screen takeover, counts toward the day's goal.
+// HOLD  = no timer, no nagging, no takeover (the app stays usable so he can keep looking) —
+//         it just tracks the position and the money until he closes it, however long that takes.
+function isHold(){ return !!(ARM && ARM.mode==='hold'); }
+function heldLabel(ms){
+  const s=Math.round(ms/1000);
+  if(s<3600) return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  if(s<86400) return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m';
+  return Math.floor(s/86400)+'d '+Math.floor((s%86400)/3600)+'h';
+}
 function renderArm(){
   const al=$('armLine'), it=$('inTrade');
-  const inTrade=!!(ARM&&ARM.state==='in');
-  document.body.classList.toggle('intrade', inTrade);
+  const inQuick=!!(ARM&&ARM.state==='in'&&!isHold());
+  document.body.classList.toggle('intrade', inQuick);      // HOLD must NOT take the screen over
   if(!ARM){ al.hidden=true; it.hidden=true; return; }
   if(ARM.state==='armed'){
     it.hidden=true;
     al.innerHTML='ARMED <b>'+ARM.sym+'</b>'+(ARM.fresh?' <span class="rwarn">FRESH</span>':'')+' · zone $'+ARM.zone+' · stop $'+ARM.stop+' · 2:1 $'+ARM.target
-      +' <button class="btn abtn afill" id="btnFilled">FILLED</button><button class="btn abtn" id="btnCancelArm">✕</button>'
-      +'<br><span class="sub">buy on T212, then tap FILLED (adjust entry price box to your real fill first)</span>';
+      +' <button class="btn abtn afill" id="btnQuick">FILLED · QUICK</button>'
+      +'<button class="btn abtn afill" id="btnHold">FILLED · HOLD</button>'
+      +'<button class="btn abtn" id="btnCancelArm">✕</button>'
+      +'<br><span class="sub">buy on T212, put your share count in, then tap how you\'re playing it — '
+      +'QUICK = timer + alarms · HOLD = no nagging, tracks for days</span>';
     al.hidden=false;
-    $('btnFilled').onclick=fillArm; $('btnCancelArm').onclick=cancelArm;
+    $('btnQuick').onclick=()=>fillArm('quick'); $('btnHold').onclick=()=>fillArm('hold');
+    $('btnCancelArm').onclick=cancelArm;
+  } else if(isHold()){
+    it.hidden=true;                                        // compact strip, app stays usable
+    const px=(liveSym===ARM.sym)?parseFloat($('cur').value):null;
+    const pl=(px>0)?netNow(ARM.fillPx,px,ARM.sh):null;
+    const pct=(px>0)?((px-ARM.fillPx)/ARM.fillPx*100):null;
+    al.innerHTML='HOLDING <b>'+ARM.sym+'</b> <span class="sub">'+ARM.sh+'sh @ $'+ARM.fillPx+' · '
+      +heldLabel(Date.now()-new Date(ARM.filledAt).getTime())+'</span>'
+      +(pct!=null?' · <b style="color:'+(pct>=0?'var(--green)':'var(--red)')+'">'+(pct>=0?'+':'')+pct.toFixed(1)+'%</b>':'')
+      +(pl!=null?' <b style="color:'+(pl>=0?'var(--green)':'var(--red)')+'">'+(pl>=0?'+':'−')+'£'+fmt(Math.abs(pl))+'</b>':'')
+      +(px==null?' <span class="sub">(switch to '+ARM.sym+' for live)</span>':'')
+      +' <button class="btn abtn" id="btnHoldOut">CLOSE → LOG</button>'
+      +'<br><span class="sub">stop ref $'+ARM.stop+' · +5% $'+limitFor(ARM.fillPx,0.05).toFixed(ARM.fillPx<1?3:2)
+      +' · +10% $'+limitFor(ARM.fillPx,0.10).toFixed(ARM.fillPx<1?3:2)+' — advisory, you decide</span>';
+    al.hidden=false;
+    $('btnHoldOut').onclick=exitArm;
   } else {
     al.hidden=true; it.hidden=false; renderInTrade();
   }
@@ -1110,6 +1205,7 @@ function renderInTrade(){
   const tcls=held<120?'tg':held<360?'ta':'tr';
   const ext=etSession()!=='RTH';
   const pl=px?netNow(o.fillPx,px,o.sh):null;
+  const riskAtStop=netNow(o.fillPx,o.stop,o.sh);        // null until the £/$ rate loads — show nothing rather than £NaN
   const nowPct=px?((px-o.fillPx)/o.fillPx*100):null;
   const peakPct=(o.peak-o.fillPx)/o.fillPx*100;
   const gb=(peakPct>0&&nowPct!=null)?Math.max(0,peakPct-nowPct):0;
@@ -1130,23 +1226,28 @@ function renderInTrade(){
       +(ext?' <span class="extbadge">EXT · no halt · manual stop</span>':'')+'</div>'
     +'<div class="peakbig" style="color:'+(px==null?'#8a8577':col)+'">'+bigTxt+'</div>'
     +(px!=null?'<div class="fuel"><div class="fuelfill" style="width:'+barW+'%;background:'+col+'"></div></div>':'')
-    +(px!=null?'<div class="stopdist" style="color:'+(((px-o.stop)/px*100)<0.8?'var(--red)':'#c98a3a')+'">▲ '+((px-o.stop)/px*100).toFixed(1)+'% to stop · risk £'+fmt(Math.abs(netNow(o.fillPx,o.stop,o.sh)))+'</div>':'')
-    +'<div class="isub">'+(px!=null?'now '+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'% · '+(pl>=0?'+':'&minus;')+'&pound;'+fmt(Math.abs(pl))+' · ':'')+'stop $'+o.stop+' · target $'+o.target+'</div>'
+    +(px!=null?'<div class="stopdist" style="color:'+(((px-o.stop)/px*100)<0.8?'var(--red)':'#c98a3a')+'">▲ '+((px-o.stop)/px*100).toFixed(1)+'% to stop'+(riskAtStop!=null?' · risk £'+fmt(Math.abs(riskAtStop)):'')+'</div>':'')
+    +'<div class="isub">'+(px!=null?'now '+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'%'+(pl!=null?' · '+(pl>=0?'+':'&minus;')+'&pound;'+fmt(Math.abs(pl)):'')+' · ':'')+'stop $'+o.stop+' · target $'+o.target+'</div>'
     +'<button class="btn iout'+(stopHit?' iostop':takeNow?' iotake':'')+'" id="btnOut">'
       +(stopHit?'&#128721; STOP HIT &rarr; LOG':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>';
   $('btnOut').onclick=exitArm;
   if(px!=null){
-    if(stopHit&&!o._sb){ o._sb=1; tost('STOP HIT — SELL NOW on T212',[100,60,100,60,100]); } if(!stopHit) o._sb=0;
+    // repeat while it's still below the stop: he's in the T212 app by now and the only
+    // thing that reaches him there is the buzz in his pocket — one pulse gets missed
+    if(stopHit){ if(!o._sb||Date.now()-o._sb>5000){ o._sb=Date.now(); tost('STOP HIT — SELL NOW on T212',[100,60,100,60,100]); } } else o._sb=0;
     if(takeNow&&!o._tb){ o._tb=1; tost(ext?'TAKE IT — no halt to save you':'TAKE IT — giving back the gain',[60,50,60,50,120]); } if(used<0.8) o._tb=0;
     if(held>360&&held<363) tost('6 min — edge window over',[60]);
   }
 }
 setInterval(()=>{
   if(!ARM) return;
-  if(ARM.state==='in'){ renderInTrade(); return; }
+  if(ARM.state==='in'){
+    if(isHold()){ if(!ARM._ht||Date.now()-ARM._ht>5000){ ARM._ht=Date.now(); renderArm(); } return; }
+    renderInTrade(); return;
+  }
   if(ARM.state==='armed'){
     if(!ARM.armedAt){ ARM.armedAt=Date.now(); armSave(); }
-    if(Date.now()-ARM.armedAt>90000 && !ARM._nudged){ ARM._nudged=1; tost('Still in T212? If you filled, tap FILLED so the timer + stop alarm start',[60,40,60]); }
+    if(Date.now()-ARM.armedAt>90000 && !ARM._nudged){ ARM._nudged=1; tost('Still in T212? If you filled, tap FILLED · QUICK or FILLED · HOLD',[60,40,60]); }
   }
 },1000);
 
@@ -1196,11 +1297,36 @@ document.querySelectorAll('.dchip').forEach(b=>b.addEventListener('click',()=>fi
 renderArm();
 // ---- journal sync: mirrors the LOG journal to a tiny cloud doc so Claude can read the calculator ----
 const SYNC_URL='https://profit-sync-ali-default-rtdb.firebaseio.com/j/ali-q7x2mk.json';
-function syncJournal(){
-  try{ fetch(SYNC_URL,{method:'PUT',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({t:loadTrades().slice(-300), plan:PLAN, decl:(typeof DECL!=='undefined'?DECL.slice(-300):[]), up:new Date().toISOString()})}).catch(()=>{}); }catch(e){}
+// SAFETY (19 Jul): this used to PUT (full replace) 4s after EVERY page load. Opening the app
+// on a second device, in a private tab, or after one corrupt-JSON read (loadTrades returns [])
+// silently overwrote the only off-device copy with nothing. It now:
+//   1. never syncs an empty journal,
+//   2. reads the remote copy first and MERGES, so the mirror only ever grows,
+//   3. only runs after a real log, not on page load.
+function tradeKey(x){ return (x&&x.d||'')+'|'+(x&&x.sym||'')+'|'+(x&&x.entry||'')+'|'+(x&&x.exit||''); }
+function mergeByKey(remote, local, keyFn){
+  const out=[], seen=new Set();
+  [...(Array.isArray(remote)?remote:[]), ...(Array.isArray(local)?local:[])].forEach(x=>{
+    const k=keyFn(x); if(!k||seen.has(k)) return; seen.add(k); out.push(x);
+  });
+  out.sort((a,b)=>String(a&&a.d).localeCompare(String(b&&b.d)));
+  return out;
 }
-setTimeout(syncJournal, 4000);
+async function syncJournal(){
+  try{
+    const local=loadTrades();
+    const localDecl=(typeof DECL!=='undefined'&&Array.isArray(DECL))?DECL:[];
+    if(_journalBroken) return;                                   // local copy is damaged — do not let it near the mirror
+    if(!local.length && !localDecl.length) return;               // nothing to say — never wipe the mirror
+    let remote=null;
+    try{ remote=await jget(SYNC_URL,8000); }catch(e){ return; }  // can't read = can't merge = don't write
+    const mt=mergeByKey(remote&&remote.t, local, tradeKey);
+    const md=mergeByKey(remote&&remote.decl, localDecl, x=>(x&&x.d||'')+'|'+(x&&x.sym||''));
+    if(remote&&Array.isArray(remote.t)&&mt.length<remote.t.length) return;   // never shrink history
+    await fetch(SYNC_URL,{method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({t:mt.slice(-1000), plan:PLAN, decl:md.slice(-1000), up:new Date().toISOString()})});
+  }catch(e){}
+}
 
 
 
