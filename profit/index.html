@@ -1210,12 +1210,21 @@ function renderInTrade(){
   const peakPct=(o.peak-o.fillPx)/o.fillPx*100;
   const gb=(peakPct>0&&nowPct!=null)?Math.max(0,peakPct-nowPct):0;
   // allowed give-back tightens as profit grows; extended hours = ruthless (no halt to save you)
-  let allowed = peakPct>=10?12 : peakPct>=7?20 : peakPct>=5?30 : peakPct>=3?40 : 60;
-  if(ext) allowed*=0.7;
+  // BUGFIX 19 Jul: these were authored as "give back at most N% OF THE GAIN" but were being
+  // divided into percentage POINTS, so the bar drained ~10x too slowly. At a +4% peak it took
+  // a fall to −36% to turn red — the whole anti-greed warning was dead below a +10% peak.
+  // Now a real fraction of the gain, floored so tiny peaks don't hair-trigger and capped so
+  // a huge runner still can't hand back more than 3 points unwarned.
+  const frac = peakPct>=10?0.12 : peakPct>=7?0.20 : peakPct>=5?0.30 : peakPct>=3?0.40 : 0.60;
+  let allowed = Math.max(0.4, Math.min(3, peakPct*frac));
+  if(ext) allowed*=0.7;                                   // extended hours: no halt to save you
   const used = allowed>0 ? Math.min(1, gb/allowed) : 0;
   const col = used<0.5?'var(--green)' : used<0.8?'#d9a520' : 'var(--red)';
   const atPeak = gb<0.3;
-  const takeNow = px!=null && (peakPct>=10 || used>=1);
+  // Don't shout below a +3% peak: there's no real gain to protect yet, and an alarm that
+  // cries wolf on noise is one he'll learn to ignore by the time it matters. The bar still
+  // fills so he can see it building; only the escalation waits.
+  const takeNow = px!=null && (peakPct>=10 || (used>=1 && peakPct>=3));
   const stopHit = px!=null && px<=o.stop;
   const barW=Math.round(used*100);
   const bigTxt = px==null ? 'switch to '+o.sym+' to manage'
