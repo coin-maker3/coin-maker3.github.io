@@ -583,7 +583,12 @@ async function runGauge(sym){
     });
     badge.className = 'gbadge ' + r.verdict.toLowerCase();
     badge.textContent = r.verdict;
-    rs.innerHTML = r.reasons.map(x => '<span class="' + x.cls + '">' + x.t + '</span>').join('');
+    // Market-hours honesty: a grade computed while the market is shut is last session's
+    // picture, not a live read. Say so rather than letting it look current.
+    const gs = etSession();
+    const gnote = !gs ? '<span class="warn">market closed — data from last session</span>'
+                : (gs!=='RTH' ? '<span class="warn">'+gs+' — volume/float from last session</span>' : '');
+    rs.innerHTML = gnote + r.reasons.map(x => '<span class="' + x.cls + '">' + x.t + '</span>').join('');
   } catch(e){
     badge.className = 'gbadge loading'; badge.textContent = 'rating unavailable';
   }
@@ -874,7 +879,11 @@ async function refreshMkt(force){
   const cached=mktLoad();
   if(!force && cached && Date.now()-cached.t<5*60*1000){ MKT=cached; renderMkt(); return; }
   const [a,b]=await Promise.all([mktScreen('day_gainers'), mktScreen('small_cap_gainers')]);
-  const sess=(typeof etSession==='function'&&etSession())||'RTH';
+  // realSess is null when the market is CLOSED (weekend/overnight). The old code collapsed
+  // that to 'RTH', so on a Sunday the scanner read Friday's day high/low and happily printed
+  // HOT off dead data. Keep the 'RTH' default only for picking which price field to read.
+  const realSess=(typeof etSession==='function')?etSession():null;
+  const sess=realSess||'RTH';
   const seen={}, movers=[];
   a.concat(b).forEach(x=>{
     if(seen[x.symbol]) return; seen[x.symbol]=1;
@@ -886,7 +895,7 @@ async function refreshMkt(force){
     // "still moving vs dead gapper": position in the day's range. Near 1 = pinned at highs (live). Near 0 = faded.
     const dH=x.regularMarketDayHigh, dL=x.regularMarketDayLow;
     let pos=null, offHigh=null;
-    if(sess==='RTH' && dH>dL){ pos=(x.regularMarketPrice-dL)/(dH-dL); offHigh=(dH-x.regularMarketPrice)/dH*100; }
+    if(realSess==='RTH' && dH>dL){ pos=(x.regularMarketPrice-dL)/(dH-dL); offHigh=(dH-x.regularMarketPrice)/dH*100; }
     const bar = tag ? 5 : 10;
     if(p>=0.1&&p<=20&&c>=bar&&(v*p)>=1e6) movers.push({s:x.symbol,c:Math.round(c),p:p,tag:tag,pos:pos,off:offHigh});
   });
@@ -898,8 +907,9 @@ async function refreshMkt(force){
   // PRE/AH every faded gapper counted and the temperature read HOT off a wall of dead stock.
   // Yahoo gives no extended-session high/low, so outside RTH we cannot tell live from faded:
   // say UNKNOWN rather than print a confident HOT we can't back.
-  const canJudge = (sess==='RTH');
+  const canJudge = (realSess==='RTH');
   if(!a.length&&!b.length){ MKT={t:Date.now(),temp:'UNKNOWN',n:0,top:[]}; }
+  else if(realSess===null){ MKT={t:Date.now(), temp:'CLOSED', n:0, top:[], why:'market closed'}; }
   else if(!canJudge){ MKT={t:Date.now(), temp:'UNKNOWN', n:movers.length, top:movers.slice(0,3), why:'extended hours — can’t tell live from faded'}; }
   else{ MKT={t:Date.now(), temp:liveN>=5?'HOT':liveN>=2?'WARM':'COLD', n:liveN, top:movers.slice(0,3)}; }
   try{ localStorage.setItem('mkt_v1',JSON.stringify(MKT)); }catch(e){}
@@ -907,7 +917,8 @@ async function refreshMkt(force){
 }
 function renderMkt(){
   const el=$('mktLine'); if(!MKT){ el.hidden=true; return; }
-  if(MKT.temp==='UNKNOWN'){ el.innerHTML='MARKET: <b class="cold">temp unknown</b> (screener unreachable)'; el.hidden=false; return; }
+  if(MKT.temp==='CLOSED'){ el.innerHTML='MARKET: <b class="cold">closed</b> — scanner resumes in pre-market'; el.hidden=false; return; }
+  if(MKT.temp==='UNKNOWN'){ el.innerHTML='MARKET: <b class="cold">temp unknown</b> ('+(MKT.why||'screener unreachable')+')'; el.hidden=false; return; }
   const cls=MKT.temp==='HOT'?'hot':MKT.temp==='WARM'?'warm':'cold';
   let h='MARKET: <b class="'+cls+'">'+MKT.temp+'</b> · '+MKT.n+' in play';
   if(MKT.temp==='COLD') h+=' — maybe no trade';
