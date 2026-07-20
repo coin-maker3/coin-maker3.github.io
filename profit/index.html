@@ -195,7 +195,10 @@ body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayL
 .iotake{border-color:var(--green)!important;color:var(--green)!important;animation:pulseb .7s infinite}
 .iostop{border-color:var(--red)!important;color:var(--red)!important;animation:pulseb .5s infinite}
 @keyframes pulseb{50%{opacity:.55}}
-body.intrade main>*:not(#inTrade){display:none!important}
+/* keep the symbol row visible even in the takeover — it's the always-there escape hatch
+   (switch symbol / tap away), so the in-trade screen can never trap you */
+body.intrade main>*:not(#inTrade):not(.tickrow){display:none!important}
+body.intrade .tickrow{margin-bottom:6px;opacity:.7}
 </style>
 </head>
 <body>
@@ -324,7 +327,7 @@ async function refreshFx(){
     if (r > 0){ GBPUSD = r; FX_AT = Date.now(); calc(); return; }
   } catch(e){}
   try {
-    const r = await fetch('https://api.frankfurter.dev/v1/latest?base=GBP&symbols=USD');
+    const r = await fetch('https://api.frankfurter.dev/v1/latest?base=GBP&symbols=USD', {signal: AbortSignal.timeout(6000)});
     const j = await r.json();
     if (j && j.rates && j.rates.USD){ GBPUSD = j.rates.USD; FX_AT = Date.now(); calc(); }
   } catch(e){}
@@ -374,7 +377,16 @@ async function fetchExtended(symbol){
 async function fetchQuote(symbol){
   let fhClose = 0;
   try {
-    const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(symbol) + '&token=' + FINNHUB_KEY);
+    // 6s cap — this was the ONLY fetch in the app with no timeout. When a stock HALTS
+    // (ZYBT, 18 Jul) or the cell signal drops, Finnhub's socket hangs open; a new hung
+    // request fired every 3s exhausted the browser's ~6-connection pool and froze the
+    // WHOLE app ("stuck, press anything and it hangs"). Now it aborts and falls through
+    // to the Yahoo extended path, so the price keeps flowing and the button re-enables.
+    const ctl = new AbortController();
+    const tm = setTimeout(() => ctl.abort(), 6000);
+    let r;
+    try { r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(symbol) + '&token=' + FINNHUB_KEY, {signal: ctl.signal}); }
+    finally { clearTimeout(tm); }
     if (r.ok){
       const j = await r.json();
       if (j && typeof j.c === 'number' && j.c > 0){
@@ -414,14 +426,18 @@ function stopLive(){
   if (ws){ try { ws.close(); } catch(e){} ws = null; }
   if (pollTimer){ clearInterval(pollTimer); pollTimer = null; }
 }
+let _pollBusy = false;
 function startPolling(sym){
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
     if (document.hidden) return;
     if (Date.now() - lastTickAt < 5000) return;        // stream healthy: don't double-write (no kill/restart flapping)
+    if (_pollBusy) return;                             // a slow/halted fetch must never let 3s polls stack into a pile-up
+    _pollBusy = true;
     try { const q = await fetchQuote(sym); if (q.p > 0 && sym === liveSym)
       // "(3s)" only when genuinely 3s-fresh; extended prints refresh ~every 10s post cache-bust
       setPrice(q.p, q.tag === '' ? 'LIVE (3s)' : q.tag === 'LAST CLOSE' ? q.tag : q.tag + ' ~10s', q.asOf); } catch(e){}
+    finally { _pollBusy = false; }
   }, 3000);
 }
 function startStream(sym){
@@ -512,8 +528,9 @@ async function getPrice(){
     pushRecent(sym);                                 // remember for one-tap circle-back
   } catch(e){
     $('quote').innerHTML = '<span class="err">No price for ' + sym + ' — check the symbol.</span>';
+  } finally {
+    btn.disabled = false;                            // ALWAYS re-enable — a stuck "Go live" was the whole complaint
   }
-  btn.disabled = false;
 }
 // ================= Ross Cameron momentum gauge =================
 // Criteria per Warrior Trading / "How to Day Trade" (verified Jul 2026):
@@ -733,8 +750,9 @@ function lastCandleClose(res){
   return null;
 }
 try { window.computeSetup = computeSetup; window.lastCandleClose = lastCandleClose; } catch(e){}
-async function fetchCandles(sym){
-  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=5m&includePrePost=true&cb=' + Date.now();   // bust proxy cache — same freeze the "candles stale" guard kept firing on
+async function fetchCandles(sym, interval){
+  const iv = interval || '5m';   // pullback/rhythm read passes '1m' (finest — Ali 20 Jul); SETUP badge keeps 5m
+  const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=' + iv + '&includePrePost=true&cb=' + Date.now();   // bust proxy cache — same freeze the "candles stale" guard kept firing on
   const enc = encodeURIComponent(y);
   const tries = [
     jget('https://corsproxy.io/?url=' + enc, 8000),
@@ -981,7 +999,10 @@ async function refreshMkt(force){
   if(!a.length&&!b.length){ MKT={t:Date.now(),temp:'UNKNOWN',n:0,top:[]}; }
   else if(realSess===null){ MKT={t:Date.now(), temp:'CLOSED', n:0, top:[], why:'market closed'}; }
   else if(!canJudge){ MKT={t:Date.now(), temp:'UNKNOWN', n:movers.length, top:movers.slice(0,3), why:'extended hours — can’t tell live from faded'}; }
-  else{ MKT={t:Date.now(), temp:liveN>=5?'HOT':liveN>=2?'WARM':'COLD', n:liveN, top:movers.slice(0,3)}; }
+  // BUGFIX 20 Jul (Ali: "suggests stock that isn't actually moving"): the top-3 used to be
+  // padded with faded gappers when fewer than 3 were live. Suggest ONLY the ones still at/near
+  // their highs — a dead stock up on the day is not a trade. Empty list = honestly nothing running.
+  else{ MKT={t:Date.now(), temp:liveN>=5?'HOT':liveN>=2?'WARM':'COLD', n:liveN, top:movers.filter(isLive).slice(0,3)}; }
   try{ localStorage.setItem('mkt_v1',JSON.stringify(MKT)); }catch(e){}
   renderMkt();
 }
@@ -1062,8 +1083,8 @@ async function planEntry(sym){
   try{
     if(Date.now()<COOL){ el.innerHTML='RHYTHM: cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'; el.hidden=false; $('wallLine').hidden=true; return; }
     if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market'; el.hidden=false; $('wallLine').hidden=true; return; }
-    const res=await fetchCandles(sym); if(!res||sym!==liveSym) return;
-    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>1800){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }
+    const res=await fetchCandles(sym,'1m'); if(!res||sym!==liveSym) return;   // 1-min candles: the finest pullback read (Ali 20 Jul)
+    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>600){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }   // 1m data: 10-min staleness cutoff, not 30
     const q=res.indicators.quote[0], ts=res.timestamp||[];
     const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
     if(cands.length<10) return;
@@ -1092,7 +1113,9 @@ async function planEntry(sym){
     }
     else { h='RHYTHM: <b class="rok">RECLAIM CONFIRMED</b> — enter ~$'+dp(entry)+' · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); armable=true; }
     el.innerHTML=h+' <span style="color:var(--muted2)">· your call</span>'
-      +(armable?' <button class="btn abtn afill" id="armBtn">ARM</button><button class="btn abtn" id="declBtn" title="log the pick without trading">DECLARE</button>':'');
+      +(armable?' <button class="btn abtn afill" id="armBtn" title="I just BOUGHT this on T212 — start the timer + exit coach">ARM</button>'
+        +'<button class="btn abtn" id="declBtn" title="I spotted it but did NOT buy — just log the pick">DECLARE</button>'
+        +'<br><span class="sub">ARM = I bought it (track + exit coach) · DECLARE = only spotted it (no trade)</span>':'');
     window._lastZone={sym:sym, zone:+dp(uEntry), stop:uStop, target:uTgt, tenNet:limitFor(uEntry,0.10), fresh:fresh};
     el.hidden=false;
     const ab=$('armBtn'), db=$('declBtn');
@@ -1250,14 +1273,18 @@ function heldLabel(ms){
 function renderArm(){
   const al=$('armLine'), it=$('inTrade');
   const inQuick=!!(ARM&&ARM.state==='in'&&!isHold());
-  document.body.classList.toggle('intrade', inQuick);      // HOLD must NOT take the screen over
+  // Only blank the screen when there's a LIVE price to actually manage. During a halt or
+  // after switching symbols there's no price, so the takeover would leave a dead screen with
+  // no way back (the exact "click ARM and it hangs"). No price => keep the full app usable.
+  const hasLive=inQuick && ARM && liveSym===ARM.sym && parseFloat($('cur').value)>0;
+  document.body.classList.toggle('intrade', hasLive);      // HOLD must NOT take the screen over
   if(!ARM){ al.hidden=true; it.hidden=true; return; }
   if(ARM.state==='armed'){
     it.hidden=true;
     al.innerHTML='ARMED <b>'+ARM.sym+'</b>'+(ARM.fresh?' <span class="rwarn">FRESH</span>':'')+' · zone $'+ARM.zone+' · stop $'+ARM.stop+' · 2:1 $'+ARM.target
-      +' <button class="btn abtn afill" id="btnQuick">FILLED · QUICK</button>'
-      +'<button class="btn abtn afill" id="btnHold">FILLED · HOLD</button>'
-      +'<button class="btn abtn" id="btnCancelArm">✕</button>'
+      +' <button class="btn abtn afill" id="btnQuick" title="scalp: timer + give-back alarms, counts toward today\'s goal">FILLED · QUICK</button>'
+      +'<button class="btn abtn afill" id="btnHold" title="swing: no timer, no nagging — just tracks P/L for days">FILLED · HOLD</button>'
+      +'<button class="btn abtn" id="btnCancelArm" title="I did not actually fill — cancel">✕</button>'
       +'<br><span class="sub">buy on T212, put your share count in, then tap how you\'re playing it — '
       +'QUICK = timer + alarms · HOLD = no nagging, tracks for days</span>';
     al.hidden=false;
@@ -1285,6 +1312,10 @@ function renderArm(){
 function renderInTrade(){
   const it=$('inTrade'); const o=ARM; if(!o||o.state!=='in'){ it.hidden=true; return; }
   const px=(liveSym===o.sym)?parseFloat($('cur').value):null;
+  // Own the takeover toggle here (runs every second): ON only when there's a live price to
+  // manage, OFF the moment it's lost. renderArm runs once at load before the price arrives, so
+  // if it owned this the takeover would never engage — and a halt would leave a blank trap.
+  document.body.classList.toggle('intrade', !isHold() && px>0);
   if(px&&px>o.peak){ o.peak=px; armSave(); }
   const held=Math.round((Date.now()-new Date(o.filledAt).getTime())/1000);
   const mm=Math.floor(held/60), ss=String(held%60).padStart(2,'0');
@@ -1329,8 +1360,13 @@ function renderInTrade(){
     +(px!=null?'<div class="stopdist" style="color:'+(((px-o.stop)/px*100)<0.8?'var(--red)':'var(--amber)')+'">▲ '+((px-o.stop)/px*100).toFixed(1)+'% to stop'+(riskAtStop!=null?' · risk £'+fmt(Math.abs(riskAtStop)):'')+'</div>':'')
     +'<div class="isub">'+(px!=null?'now '+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'%'+(pl!=null?' · '+(pl>=0?'+':'&minus;')+'&pound;'+fmt(Math.abs(pl)):'')+' · ':'')+'stop $'+o.stop+' · target $'+o.target+'</div>'
     +'<button class="btn iout'+(stopHit?' iostop':takeNow?' iotake':'')+'" id="btnOut">'
-      +(stopHit?'&#128721; STOP HIT &rarr; LOG':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>';
+      +(stopHit?'&#128721; STOP HIT &rarr; LOG':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>'
+    +(px==null?'<div class="isub" style="color:var(--amber)">no live price for '+o.sym+' — type '+o.sym+' above to reconnect</div>':'')
+    // ALWAYS an exit that never traps: stops the coach without logging. You still log the sale
+    // the normal way (entry + shares + LOG) whenever you want. This is the fix for "it hangs".
+    +'<button class="btn" id="btnBack" style="width:100%;margin-top:8px;font-size:12px;opacity:.7" title="stop the timer/alarms — does NOT log; you can still LOG normally">&larr; back (stop timer · don\'t log)</button>';
   $('btnOut').onclick=exitArm;
+  $('btnBack').onclick=()=>{ ARM=null; armSave(); document.body.classList.remove('intrade'); renderArm(); tost('Exit coach off — log your sale the normal way when ready'); };
   if(px!=null){
     // repeat while it's still below the stop: he's in the T212 app by now and the only
     // thing that reaches him there is the buzz in his pocket — one pulse gets missed
