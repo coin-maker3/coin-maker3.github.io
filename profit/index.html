@@ -926,8 +926,12 @@ async function refreshMkt(force){
   // The calendar can't know about Thanksgiving, Christmas Eve or a half-day close. The
   // quotes carry their own print time — if nothing has printed for 15 minutes the market
   // is shut whatever the clock says. Data beats calendar.
+  // BUGFIX 20 Jul: this guard is only meaningful IN RTH. regularMarketTime is the last
+  // REGULAR session's print, so in PRE/AH it is legitimately hours old (Friday's close on a
+  // Monday morning) — applying it there declared the market CLOSED during the very sessions
+  // Ali trades. Caught live at 09:24 BST with pre-market open.
   const freshest=a.concat(b).reduce((mx,x)=>Math.max(mx, x.regularMarketTime||0), 0);
-  if(realSess && freshest && (Date.now()/1000 - freshest) > 900) realSess=null;
+  if(realSess==='RTH' && freshest && (Date.now()/1000 - freshest) > 900) realSess=null;
   const sess=realSess||'RTH';
   const seen={}, movers=[];
   a.concat(b).forEach(x=>{
