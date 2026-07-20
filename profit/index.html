@@ -1396,6 +1396,20 @@ renderPlan=function(){
 };
 document.querySelectorAll('.dchip').forEach(b=>b.addEventListener('click',()=>finishTrade(b.dataset.t)));
 renderArm();
+// ---- hard reset via ?reset — deliberately URL-only so it can never be tapped by accident.
+// Clears the journal, the plan, positions and any armed state, then reloads clean at £200.
+if (location.search.indexOf('reset') >= 0) {
+  if (confirm('Reset the cockpit? This deletes ALL logged trades and starts the plan again at £200. It cannot be undone from here.')) {
+    ['trades','plan_v1','arm_v1','positions_v1','decl_v1','profit_state_v3','mkt_v1']
+      .forEach(k => { try { localStorage.removeItem(k); } catch(e){} });
+    Object.keys(localStorage).forEach(k => {
+      if (k.indexOf('gauge_') === 0 || k.indexOf('sau_') === 0) { try { localStorage.removeItem(k); } catch(e){} }
+    });
+    location.replace(location.pathname);
+  } else {
+    location.replace(location.pathname);
+  }
+}
 // ---- journal sync: mirrors the LOG journal to a tiny cloud doc so Claude can read the calculator ----
 const SYNC_URL='https://profit-sync-ali-default-rtdb.firebaseio.com/j/ali-q7x2mk.json';
 // SAFETY (19 Jul): this used to PUT (full replace) 4s after EVERY page load. Opening the app
