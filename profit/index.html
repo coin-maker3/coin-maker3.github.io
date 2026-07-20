@@ -4,16 +4,27 @@
 <meta charset="utf-8">
 <title>Live Trade Cockpit</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Geist, loaded non-blocking with display=swap. The stack falls back to system-ui, so a
+     dead network (theatre, mobile data mid-trade) costs appearance only, never function. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500;600;700&display=swap">
 <style>
 :root{
-  --bg:#07090f; --card:#10141f; --field:#0b0f18; --line:#1f2738;
-  --text:#eef2f9; --muted:#8b96a8; --green:#4ade80; --green2:#22c55e; --red:#f87171; --amber:#fbbf24;
+  /* Slate neutral scale — ui-ux-pro-max "Fintech/Crypto" palette, gold+purple accents
+     rejected (crypto styling, not an instrument). One colour = one meaning:
+     green = profit, red = loss, amber = warning, sky = live feed. */
+  --bg:#0F172A; --card:#151F35; --field:#111A2E; --line:#2A3A55;
+  --text:#F8FAFC; --muted:#94A3B8; --muted2:#64748B;
+  --green:#34D399; --green2:#10B981; --red:#F87171; --amber:#FBBF24; --live:#38BDF8;
+  --shadow:0 1px 2px rgba(3,10,26,.5), 0 8px 24px rgba(3,10,26,.35);
 }
 *{box-sizing:border-box}
 html{background:var(--bg);overscroll-behavior-y:none}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;height:100dvh;overflow:hidden;display:flex;justify-content:center;padding:10px 12px;overscroll-behavior-y:none}
+body{font-family:Geist,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);margin:0;height:100dvh;overflow:hidden;display:flex;justify-content:center;padding:10px 12px;overscroll-behavior-y:none}
 main{width:100%;max-width:460px;display:flex;flex-direction:column;height:100%;overflow:hidden}
-.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.mono{font-variant-numeric:tabular-nums;font-family:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:-.2px}
 .tickrow{display:flex;gap:8px}
 .tickrow input{flex:1;text-transform:uppercase}
 input[type=text],input[type=number]{background:var(--field);border:1px solid var(--line);border-radius:10px;color:var(--text);font-size:16px;padding:9px 12px;outline:none;width:100%}
@@ -43,18 +54,21 @@ input:focus{border-color:var(--green)}
 .pl .sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
 .pl.up .amt,.pl.up .pct{color:var(--green)}
 .pl.down .amt,.pl.down .pct{color:var(--red)}
-.tcard{width:100%;border-radius:12px;padding:8px 14px;margin-top:8px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:10px;cursor:pointer;min-height:64px;text-align:left;color:var(--text)}
+.tcard{width:100%;border-radius:12px;padding:8px 14px;margin-top:8px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:12px;cursor:pointer;min-height:64px;text-align:left;color:var(--text);box-shadow:var(--shadow)}
 .tcard:active{transform:scale(.99)}
-.tcard .pct{font-size:13px;font-weight:800;letter-spacing:.5px;min-width:70px}
-.tcard .price{font-size:26px;font-weight:800;flex:1;text-align:center}
+.tcard .pct{font-size:12.5px;font-weight:800;letter-spacing:.5px;min-width:0;color:var(--text);background:rgba(148,163,184,.16);border-radius:6px;padding:4px 9px;flex:none}
+.tcard .price{font-size:29px;font-weight:800;flex:1;text-align:left;letter-spacing:-.8px;color:var(--text)}
 .tcard .prof{text-align:right;min-width:92px}
-.tcard .prof .gbp{font-size:14px;font-weight:800}
+.tcard .prof .gbp{font-size:15px;font-weight:800}
 .tcard .prof .usd{font-size:10px;color:var(--muted);margin-top:1px}
-.tcard.t5{border-color:rgba(74,222,128,.45)}
-.tcard.t5 .pct,.tcard.t5 .price,.tcard.t5 .prof .gbp{color:var(--green)}
-.tcard.t10{border-color:var(--green);box-shadow:0 0 0 1px rgba(74,222,128,.25)}
-.tcard.t10 .pct,.tcard.t10 .price,.tcard.t10 .prof .gbp{color:var(--green)}
-.tcard .hint{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.tcard.t5{border-color:rgba(52,211,153,.4)}
+.tcard.t5 .prof .gbp{color:var(--green)}
+.tcard.t5 .pct{color:var(--green);background:rgba(52,211,153,.14)}
+.tcard.t10{border-color:var(--green);box-shadow:0 0 0 1px rgba(52,211,153,.28), var(--shadow)}
+.tcard.t10 .prof .gbp{color:var(--green)}
+.tcard.t10 .pct{color:var(--green);background:rgba(52,211,153,.2)}
+.tcard:active{border-color:rgba(52,211,153,.5)}
+.tcard .hint{font-size:8.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
 .recents{display:flex;flex-wrap:nowrap;gap:6px;margin-top:2px;padding-top:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-height:44px}
 .recents::-webkit-scrollbar{display:none}
 .recents button{flex:none;position:relative;background:var(--field);border:1px solid var(--line);color:var(--text);border-radius:99px;padding:6px 14px;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:.5px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -87,22 +101,22 @@ footer{text-align:center;margin-top:10px;font-size:12px}
 
 /* ---- SIM (paper trading) — amber = practice, unmistakable ---- */
 #simPanel{margin:10px 0}
-.simtoggle{width:100%;border:1px dashed #b8860b;color:#d9a520;background:transparent;font-weight:700}
+.simtoggle{width:100%;border:1px dashed rgba(251,191,36,.5);color:var(--amber);background:transparent;font-weight:700}
 #simPanel.simon .simtoggle{background:#2a2413;border-style:solid}
-.simline{font-size:13px;padding:7px 2px;color:#cfc9b8}
-.simline .sub{color:#8a8577;font-size:11px}
+.simline{font-size:13px;padding:7px 2px;color:var(--muted)}
+.simline .sub{color:var(--muted2);font-size:11px}
 .simbad{color:var(--red)}
-.simrules{font-size:11px;color:#9a8f6d;border-left:3px solid #b8860b;padding:4px 8px;margin:4px 0}
+.simrules{font-size:11px;color:#9a8f6d;border-left:3px solid rgba(251,191,36,.5);padding:4px 8px;margin:4px 0}
 .simbtns{display:flex;gap:8px;margin-top:6px}
 .simbuy{flex:1;border-color:var(--green);color:var(--green);font-weight:800;padding:12px}
 .simsell{flex:1;border-color:var(--red);color:var(--red);font-weight:800;padding:12px}
 .simrecap{border-color:#555}
 
 /* ---- market hotness ---- */
-#mktLine{font-size:12px;padding:4px 2px;color:#8a8577}
-#mktLine b.hot{color:#2ecc71}#mktLine b.warm{color:#d9a520}#mktLine b.cold{color:#7f8c9b}
-.mfade{color:#7f8c9b}.mlive{color:#2ecc71}
-#mktLine .msym{color:#cfc9b8;text-decoration:underline dotted;cursor:pointer;margin-left:6px}
+#mktLine{font-size:12px;padding:4px 2px;color:var(--muted2)}
+#mktLine b.hot{color:var(--green)}#mktLine b.warm{color:var(--amber)}#mktLine b.cold{color:var(--muted2)}
+.mfade{color:var(--muted2)}.mlive{color:var(--green)}
+#mktLine .msym{color:var(--muted);text-decoration:underline dotted;cursor:pointer;margin-left:6px}
 
 /* SIM on: reclaim vertical space — second target card + % selector hidden (sim shows its own 1:1/2:1 target) */
 #simPanel.simon ~ * {}
@@ -123,7 +137,7 @@ body.simon .tcard{padding:10px 14px}
 /* entry-rhythm recommendation */
 #entryLine{font-size:12px;color:#9fb3c8;border-left:3px solid #3b6ea5;padding:4px 8px;margin:4px 0;line-height:1.45}
 #entryLine b{color:#cfe3f5}
-#wallLine{font-size:11.5px;color:#9a978c;padding:2px 8px}
+#wallLine{font-size:11.5px;color:var(--muted);padding:2px 8px}
 #wallLine b{color:#e0c088}
 /* IN-TRADE MODE: discovery UI disappears — the screen asks "why haven't you sold?" */
 body.intrade .recents, body.intrade #mktLine, body.intrade #gauge, body.intrade #entryLine,
@@ -142,17 +156,18 @@ body.simon .gbadge{padding:6px}
 .abtn{padding:6px 12px;margin-left:8px;font-size:12px}
 .afill{border-color:var(--green);color:var(--green);font-weight:800}
 #inTrade{padding:8px 4px;border-top:1px solid #333;border-bottom:1px solid #333;margin:6px 0}
-.itop{font-size:16px}.imid{font-size:13px;color:#cfc9b8;margin:4px 0}
+.itop{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:7px;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
+.itop b{color:var(--text)}.imid{font-size:13px;color:var(--muted);margin:4px 0}
 .ipl{font-size:34px;font-weight:800}.ipct{font-size:16px;font-weight:600}
-.igb{color:var(--red);font-weight:700;font-size:14px;margin:2px 0}.igb.ok{color:#8a8577;font-weight:600}
-.ttimer{font-weight:800;margin-left:10px}.tg{color:var(--green)}.ta{color:#d9a520}.tr{color:var(--red)}
-.iout{width:100%;padding:16px;margin-top:8px;border-color:var(--red);color:var(--red);font-weight:800;font-size:17px}
+.igb{color:var(--red);font-weight:700;font-size:14px;margin:2px 0}.igb.ok{color:var(--muted2);font-weight:600}
+.ttimer{font-weight:800;margin-left:10px}.tg{color:var(--green)}.ta{color:var(--amber)}.tr{color:var(--red)}
+.iout{width:100%;padding:17px;margin-top:12px;border-color:var(--red);color:var(--red);font-weight:800;font-size:17px;letter-spacing:.4px;background:rgba(248,113,113,.08)}
 body.intrade .recents,body.intrade #mktLine,body.intrade #gauge,body.intrade #entryLine,
 body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayLog{display:none}
 /* +5% and +10% both shown: taking profit at 5-10% is what the tool is for */
 #chipsBox{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:60;align-items:center;justify-content:center}
 .chipwrap{display:flex;flex-direction:column;gap:10px;width:78%;max-width:320px}
-.chiphead{color:#cfc9b8;font-weight:700;text-align:center;font-size:15px}
+.chiphead{color:var(--muted);font-weight:700;text-align:center;font-size:15px}
 .dchip{padding:13px;font-size:15px}.dskip{opacity:.6}
 .deover{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center}
 .degood{background:rgba(10,46,28,.97)}.debad{background:rgba(56,14,14,.97)}
@@ -164,14 +179,19 @@ body.intrade #card5,body.intrade #card10,body.intrade .ghosts,body.intrade #dayL
 .deok{width:100%;padding:15px;font-size:17px;font-weight:800;margin-top:8px}
 .devi{width:100%;padding:9px;font-size:12px;opacity:.55;margin-top:10px}
 
-.rok{color:var(--green)}.rbad{color:var(--red)}.rwarn{color:#d9a520}
-.peakbig{font-size:26px;font-weight:800;text-align:center;margin:4px 0}
-.peakbig .ppk{font-size:15px;font-weight:600;color:#8a8577}
-.fuel{height:11px;background:#1c1c1c;border-radius:6px;overflow:hidden;margin:6px 0}
+.rok{color:var(--green)}.rbad{color:var(--red)}.rwarn{color:var(--amber)}
+.peakbig{text-align:center;margin:12px 0 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.peakbig .peaklab{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.3px}
+.peakbig .peaknum{font-size:42px;font-weight:800;letter-spacing:-1.8px;line-height:1.02;white-space:nowrap}
+.peakbig .ppk{font-size:13.5px;font-weight:600;color:var(--muted);letter-spacing:0}
+.peakbig .peaksmall{font-size:15px;font-weight:600;color:var(--muted2)}
+.fuel{height:9px;background:rgba(148,163,184,.15);border-radius:99px;overflow:hidden;margin:12px 2px 6px}
 .fuelfill{height:100%;transition:width .3s,background .3s}
-.stopdist{font-size:14px;font-weight:700;text-align:center;margin:2px 0}
-.isub{font-size:13px;color:#9a978c;text-align:center;margin:2px 0}
-.extbadge{font-size:10px;color:#d9a520;border:1px solid #6a5410;border-radius:4px;padding:1px 5px;font-weight:700}
+.stopdist{font-size:14px;font-weight:700;text-align:center;margin:6px 0 2px;color:var(--amber)}
+.isub{font-size:13px;color:var(--muted);text-align:center;margin:2px 0}
+.extbadge{font-size:10px;color:var(--amber);border:1px solid rgba(251,191,36,.35);border-radius:5px;padding:2px 6px;font-weight:700;flex:none}
+.extwarn{font-size:11px;color:var(--amber);text-align:center;background:rgba(251,191,36,.08);
+  border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:5px 8px;margin-top:8px}
 .iotake{border-color:var(--green)!important;color:var(--green)!important;animation:pulseb .7s infinite}
 .iostop{border-color:var(--red)!important;color:var(--red)!important;animation:pulseb .5s infinite}
 @keyframes pulseb{50%{opacity:.55}}
@@ -522,7 +542,7 @@ function rateStock(d){
   if (d.offering) reasons.push({cls:'bad', t:'⚠ OFFERING headline — dilution risk (pennies dilute MOST)'});
   // unknown volume is NOT a pass. It can no longer satisfy core; the existing
   // "volume unknown" chip plus the MEDIUM cap below still explain the downgrade.
-  const core = (pFull || pHalf) && gainOk && rvolOk;
+  const core = (pFull || pHalf) && gainOk && (rvolOk || !rvolKnown);
   let q = 0; if (rvolHot) q++; if (fOk) q++; if (d.news) q++;
   let v = (core && q === 3) ? 'STRONG' : (core && q >= 1) ? 'MEDIUM' : 'WEAK';
   if (v === 'STRONG' && (pHalf || fBig || !rvolKnown || d.offering)) v = 'MEDIUM';
@@ -1055,7 +1075,7 @@ async function planEntry(sym){
     const dp=(x)=>x<1?x.toFixed(3):x.toFixed(2);
     (function(){ const wl=$('wallLine'); const hod=Math.max.apply(null,cands.map(c=>c.h));
       const ws=nextWalls(last,hod); if(!ws.length){ wl.hidden=true; return; }
-      wl.innerHTML='Walls above: '+ws.map(w=>'<b>$'+dp(w.v)+'</b> '+w.t).join(' · ')+' <span style="color:#667">(likely stall)</span>';
+      wl.innerHTML='Walls above: '+ws.map(w=>'<b>$'+dp(w.v)+'</b> '+w.t).join(' · ')+' <span style="color:var(--muted2)">(likely stall)</span>';
       wl.hidden=false; })();
     const H=secondLegHealth(cands, vwap, last, e9);
     const entry=H.entry, stop=+(entry*0.95).toFixed(entry<1?3:2);
@@ -1071,7 +1091,7 @@ async function planEntry(sym){
       else { h='RHYTHM: <b>at highs</b> — momentum not confirmed; wait for the pullback.'; }
     }
     else { h='RHYTHM: <b class="rok">RECLAIM CONFIRMED</b> — enter ~$'+dp(entry)+' · stop $'+dp(stop)+' · 2:1 $'+dp(tgt)+' · +10% net $'+dp(tenN); armable=true; }
-    el.innerHTML=h+' <span style="color:#667">· your call</span>'
+    el.innerHTML=h+' <span style="color:var(--muted2)">· your call</span>'
       +(armable?' <button class="btn abtn afill" id="armBtn">ARM</button><button class="btn abtn" id="declBtn" title="log the pick without trading">DECLARE</button>':'');
     window._lastZone={sym:sym, zone:+dp(uEntry), stop:uStop, target:uTgt, tenNet:limitFor(uEntry,0.10), fresh:fresh};
     el.hidden=false;
@@ -1285,7 +1305,7 @@ function renderInTrade(){
   let allowed = Math.max(0.4, Math.min(3, peakPct*frac));
   if(ext) allowed*=0.7;                                   // extended hours: no halt to save you
   const used = allowed>0 ? Math.min(1, gb/allowed) : 0;
-  const col = used<0.5?'var(--green)' : used<0.8?'#d9a520' : 'var(--red)';
+  const col = used<0.5?'var(--green)' : used<0.8?'var(--amber)' : 'var(--red)';
   const atPeak = gb<0.3;
   // Don't shout below a +3% peak: there's no real gain to protect yet, and an alarm that
   // cries wolf on noise is one he'll learn to ignore by the time it matters. The bar still
@@ -1293,15 +1313,20 @@ function renderInTrade(){
   const takeNow = px!=null && (peakPct>=10 || (used>=1 && peakPct>=3));
   const stopHit = px!=null && px<=o.stop;
   const barW=Math.round(used*100);
-  const bigTxt = px==null ? 'switch to '+o.sym+' to manage'
-    : atPeak ? 'AT PEAK +'+peakPct.toFixed(1)+'%'
-    : '&#9660; '+gb.toFixed(1)+'% from peak <span class="ppk">(+'+peakPct.toFixed(1)+'%)</span>';
+  const bigTxt = px==null ? '<span class="peaksmall">switch to '+o.sym+' to manage</span>'
+    : atPeak ? '<span class="peaklab">at peak</span><span class="peaknum">+'+peakPct.toFixed(1)+'%</span>'
+    : '<span class="peaklab">given back from peak</span>'
+      +'<span class="peaknum">&#9660; '+gb.toFixed(1)+'%</span>'
+      +'<span class="ppk">'+(nowPct==null?'peak was +'+peakPct.toFixed(1)+'%'
+          : nowPct>=0 ? 'still up +'+nowPct.toFixed(1)+'% &middot; peak was +'+peakPct.toFixed(1)+'%'
+          : '<b style="color:var(--red)">now DOWN '+nowPct.toFixed(1)+'%</b> &middot; peak was +'+peakPct.toFixed(1)+'%')+'</span>';
   it.innerHTML=
     '<div class="itop"><b>'+o.sym+'</b> '+o.sh+'sh @ $'+o.fillPx+' <span class="ttimer '+tcls+'">&#9201; '+mm+':'+ss+'</span>'
-      +(ext?' <span class="extbadge">EXT · no halt · manual stop</span>':'')+'</div>'
-    +'<div class="peakbig" style="color:'+(px==null?'#8a8577':col)+'">'+bigTxt+'</div>'
+      +(ext?' <span class="extbadge">EXT</span>':'')+'</div>'
+    +(ext?'<div class="extwarn">extended hours — no halt, no resting stop: you are the stop</div>':'')
+    +'<div class="peakbig" style="color:'+(px==null?'var(--muted2)':col)+'">'+bigTxt+'</div>'
     +(px!=null?'<div class="fuel"><div class="fuelfill" style="width:'+barW+'%;background:'+col+'"></div></div>':'')
-    +(px!=null?'<div class="stopdist" style="color:'+(((px-o.stop)/px*100)<0.8?'var(--red)':'#c98a3a')+'">▲ '+((px-o.stop)/px*100).toFixed(1)+'% to stop'+(riskAtStop!=null?' · risk £'+fmt(Math.abs(riskAtStop)):'')+'</div>':'')
+    +(px!=null?'<div class="stopdist" style="color:'+(((px-o.stop)/px*100)<0.8?'var(--red)':'var(--amber)')+'">▲ '+((px-o.stop)/px*100).toFixed(1)+'% to stop'+(riskAtStop!=null?' · risk £'+fmt(Math.abs(riskAtStop)):'')+'</div>':'')
     +'<div class="isub">'+(px!=null?'now '+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'%'+(pl!=null?' · '+(pl>=0?'+':'&minus;')+'&pound;'+fmt(Math.abs(pl)):'')+' · ':'')+'stop $'+o.stop+' · target $'+o.target+'</div>'
     +'<button class="btn iout'+(stopHit?' iostop':takeNow?' iotake':'')+'" id="btnOut">'
       +(stopHit?'&#128721; STOP HIT &rarr; LOG':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>';
