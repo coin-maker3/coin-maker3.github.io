@@ -231,7 +231,10 @@ body.intrade .tickrow{margin-bottom:6px;opacity:.7}
 <div class="entry">
   <input id="stop" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="stop price ($)">
   <input id="risk" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="risk £" style="max-width:110px">
-  <button class="btn" id="soldBtn" title="log this trade as closed at the live price">LOG</button>
+  <button class="btn" id="soldBtn" title="log this round trip — uses your exit price if set, else the live price">LOG</button>
+</div>
+<div class="entry">
+  <input id="exit" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="exit price $ — blank = live price (for past / halt / extended trades)">
 </div>
 <div class="stopline mono" id="stopLine" hidden></div>
 <div class="pl mono" id="plLine" hidden>
@@ -820,20 +823,32 @@ $('dayLog').addEventListener('click', () => {
   }).catch(()=>{});
 });
 $('soldBtn').addEventListener('click', () => {
-  const buy = parseFloat($('avg').value), sh = parseFloat($('shares').value), cur = parseFloat($('cur').value);
-  if (!(buy > 0) || !(sh > 0) || !(cur > 0) || !liveSym){ 
-    const toast = $('toast'); toast.textContent = 'Need entry + shares + live price to log';
-    toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600); return; }
-  if (!fxFresh()){ const toast = $('toast'); toast.textContent = 'FX rate missing or stale — try again in a moment';
-    toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600); return; }
-  const netUSD = (sh * cur * (1 - S) - sh * T) * (1 - F) - sh * buy * (1 + F);
+  const buy = parseFloat($('avg').value), sh = parseFloat($('shares').value);
+  // exit price: use the manual box if you set one (a trade that already closed — a past win,
+  // a halt exit, an extended-hours fill), else the live price. This is why the ZYBT win the
+  // app FROZE on can now be recorded after the fact. (Ali 20 Jul)
+  const exitManual = parseFloat($('exit').value);
+  const manual = exitManual > 0;
+  const exitPx = manual ? exitManual : parseFloat($('cur').value);
+  const sym = liveSym || $('ticker').value.trim().toUpperCase();   // a back-logged trade needn't be live right now
+  const need = $('toast');
+  if (!(buy > 0) || !(sh > 0) || !(exitPx > 0) || !sym){
+    need.textContent = manual ? 'Need entry + shares + exit price + symbol' : 'Need entry + shares + live price to log';
+    need.classList.add('show'); setTimeout(() => need.classList.remove('show'), 1600); return; }
+  if (!fxFresh()){ need.textContent = 'FX rate missing or stale — try again in a moment';
+    need.classList.add('show'); setTimeout(() => need.classList.remove('show'), 1600); return; }
+  const netUSD = (sh * exitPx * (1 - S) - sh * T) * (1 - F) - sh * buy * (1 + F);
   const netGBP = netUSD / GBPUSD;
   const t = loadTrades();
-  t.push({d: new Date().toISOString(), sym: liveSym, entry: buy, exit: cur, sh: sh, netGBP: netGBP});
+  // manual back-logs are tagged so they lift the true BALANCE but don't distort today's live
+  // scalping goal/floor (and won't trip the day-end takeover)
+  const row = {d: new Date().toISOString(), sym: sym, entry: buy, exit: exitPx, sh: sh, netGBP: netGBP, tday: etDayKey()};
+  if (manual) row.mode = 'manual';
+  t.push(row);
   try { localStorage.setItem('trades', JSON.stringify(t.slice(-500))); } catch(e){}
-  $('avg').value = ''; $('shares').value = ''; $('stop').value = ''; savePosition(); calc(); renderDayLog(); renderPlan(); if(typeof syncJournal==='function') syncJournal();
+  $('avg').value = ''; $('shares').value = ''; $('stop').value = ''; $('exit').value = ''; savePosition(); calc(); renderDayLog(); renderPlan(); if(typeof syncJournal==='function') syncJournal();
   const toast = $('toast');
-  toast.textContent = 'Logged: ' + (netGBP >= 0 ? '+' : '−') + '£' + fmt(Math.abs(netGBP));
+  toast.textContent = 'Logged: ' + (netGBP >= 0 ? '+' : '−') + '£' + fmt(Math.abs(netGBP)) + (manual ? ' (exit $' + fmt(exitPx) + ')' : '');
   toast.classList.add('show'); if (navigator.vibrate) navigator.vibrate(30);
   setTimeout(() => toast.classList.remove('show'), 1800);
 });
@@ -1151,7 +1166,7 @@ function renderPlan(){
   const t=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
   // Day goal / max-loss are about the day's SCALPING. A HOLD closed today may have been
   // running for a week, so it counts in the balance but not against today's limits.
-  const days={}; t.forEach(x=>{ if(x.mode!=='hold'){ const k=tradeDay(x); days[k]=(days[k]||0)+x.netGBP; } });
+  const days={}; t.forEach(x=>{ if(x.mode!=='hold' && x.mode!=='manual'){ const k=tradeDay(x); days[k]=(days[k]||0)+x.netGBP; } });   // hold + manual back-logs lift balance, not today's goal
   const today=etDayKey();
   const todayNet=days[today]||0;
   const eq=PLAN.eq0+t.reduce((a,x)=>a+x.netGBP,0);
@@ -1391,7 +1406,7 @@ setInterval(()=>{
 let _deShown='';
 function dayStreak(){
   // must match renderPlan exactly: scalping days only, keyed on the NY trading day
-  const t=loadTrades().filter(x=>tradeDay(x)>=PLAN.start && x.mode!=='hold');
+  const t=loadTrades().filter(x=>tradeDay(x)>=PLAN.start && x.mode!=='hold' && x.mode!=='manual');
   const days={}; t.forEach(x=>{ const k=tradeDay(x); days[k]=(days[k]||0)+x.netGBP; });
   const keys=Object.keys(days).sort();
   let eq=PLAN.eq0, streak=0;
