@@ -1433,11 +1433,14 @@ async function planEntry(sym){
     const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
     if(cands.length<10) return;
     let pv=0,vv=0; cands.forEach(c=>{ if(c.v>0){ pv+=((c.h+c.l+c.c)/3)*c.v; vv+=c.v; } });
-    const vwap=vv?pv/vv:null;
+    // Yahoo serves pre-market 1m bars with NULL volumes on some routes → vwap was null and
+    // the whole playbook silently vanished (21 Jul, caught live on ZYBT). Fall back to a
+    // time-weighted average — honest enough when volumes are missing, infinitely better than silence.
+    const vwap= vv? pv/vv : cands.reduce((a,c)=>a+(c.h+c.l+c.c)/3,0)/cands.length;
     const e9=emaCalc(cands.map(c=>c.c),9);
     const last=parseFloat($('cur').value)||cands[cands.length-1].c;
     if(!(vwap>0)||!(last>0)) return;
-    const dp=(x)=>x<1?x.toFixed(3):x.toFixed(2);
+    const dp=(x)=>x==null||!isFinite(x)?'—':(x<1?x.toFixed(3):x.toFixed(2));
     (function(){ const wl=$('wallLine'); const hod=Math.max.apply(null,cands.map(c=>c.h));
       const ws=nextWalls(last,hod); if(!ws.length){ wl.hidden=true; return; }
       wl.innerHTML='Walls above: '+ws.map(w=>'<b>$'+dp(w.v)+'</b> '+w.t).join(' · ');
@@ -1449,7 +1452,7 @@ async function planEntry(sym){
     // PLAYBOOK grid (Ali 21 Jul: "I'm interested in the strategy — the numbers: where to
     // enter, where to avoid, confirm, reclaim" — every state now answers in explicit prices)
     const prow=(k,v,cls)=>'<div class="prow"><span class="pk">'+k+'</span><span class="pv'+(cls?' '+cls:'')+'">'+v+'</span></div>';
-    const exits=x=>'+5% $'+dp(limitFor(x,0.05))+' · +10% $'+dp(limitFor(x,0.10))+' (net limits)';
+    const exits=x=>(x>0)?('+5% $'+dp(limitFor(x,0.05))+' · +10% $'+dp(limitFor(x,0.10))+' (net limits)'):'—';
     if(H.state==='BROKEN'){
       h='<div class="pstate rbad">BROKEN — DO NOT ENTER</div>'
        +prow('WHY',H.note)
