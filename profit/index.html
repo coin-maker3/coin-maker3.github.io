@@ -697,7 +697,16 @@ async function getPrice(){
 function rateStock(d){
   const reasons = [];
   const rvolKnown = d.rvol != null && isFinite(d.rvol);
-  const rvolOk = rvolKnown && d.rvol >= 2, rvolHot = rvolKnown && d.rvol >= 5;
+  // PROVEN volume evidence (Ali 21 Jul — "volume unknown" on stocks that traded 100M+):
+  //  d.sessVol = today's ACTUAL printed candle volume (incl pre/AH) ÷ 10-day full-day avg.
+  //             ≥1 before the bell even rings is real heat, not a guess.
+  //  d.prevX   = YESTERDAY's total ÷ 10-day avg. A stock that just did 20× average volume
+  //              is a proven mover — history counts as evidence, not fabrication.
+  const sessKnown = d.sessVol != null && isFinite(d.sessVol);
+  const prevHot = d.prevX != null && isFinite(d.prevX) && d.prevX >= 3;
+  const rvolHot = (rvolKnown && d.rvol >= 5) || (sessKnown && d.sessVol >= 5) || prevHot;
+  const rvolOk  = (rvolKnown && d.rvol >= 2) || (sessKnown && d.sessVol >= 1) || prevHot;
+  const volKnown = rvolKnown || sessKnown || prevHot;
   // price: $2-20 classic band; sub-$1 pennies COUNT as in-band when volume proves the build-up (Ali 17 Jul)
   const subP = d.price >= 0.10 && d.price < 2;
   const pFull = (d.price >= 2 && d.price <= 20) || (subP && rvolHot);
@@ -706,7 +715,12 @@ function rateStock(d){
     t: '$' + (d.price!=null?d.price.toFixed(2):'?') + (subP ? (rvolHot ? ' penny — volume proves build-up' : ' penny — needs RVOL ≥5 to qualify') : pFull ? ' in $2–20' : pHalf ? ' edge of band' : ' out of band')});
   const gainOk = d.gain != null && d.gain >= 10;
   reasons.push({cls: gainOk ? 'ok' : 'bad', t: (d.gain!=null?(d.gain>=0?'+':'')+d.gain.toFixed(1):'?') + '% today'});
-  reasons.push({cls: !rvolKnown ? 'warn' : rvolHot ? 'ok' : rvolOk ? 'warn' : 'bad', t: rvolKnown ? 'RVOL ' + d.rvol.toFixed(1) + '×' : 'volume unknown yet'});
+  reasons.push({cls: !volKnown ? 'warn' : rvolHot ? 'ok' : rvolOk ? 'warn' : 'bad',
+    t: rvolKnown ? 'RVOL ' + d.rvol.toFixed(1) + '×'
+     : sessKnown ? 'session vol ' + (d.sessVol>=10?Math.round(d.sessVol):d.sessVol.toFixed(1)) + '× 10-day avg'
+     : prevHot ? 'volume proven yesterday' : 'volume unknown yet'});
+  if (d.prevX != null && d.prevX >= 3)
+    reasons.push({cls:'ok', t:'yesterday ' + (d.prevX>=10?Math.round(d.prevX):d.prevX.toFixed(1)) + '× avg volume — proven mover'});
   const fKnown = d.floatM != null;
   const fOk = fKnown && d.floatM <= 20, fBig = fKnown && d.floatM > 50;
   reasons.push({cls: !fKnown ? 'warn' : fOk ? 'ok' : fBig ? 'bad' : 'warn', t: fKnown ? '~' + Math.round(d.floatM) + 'M shares (approx float)' : 'float unknown'});
@@ -714,10 +728,10 @@ function rateStock(d){
   if (d.offering) reasons.push({cls:'bad', t:'⚠ OFFERING headline — dilution risk (pennies dilute MOST)'});
   // unknown volume is NOT a pass. It can no longer satisfy core; the existing
   // "volume unknown" chip plus the MEDIUM cap below still explain the downgrade.
-  const core = (pFull || pHalf) && gainOk && (rvolOk || !rvolKnown);
+  const core = (pFull || pHalf) && gainOk && (rvolOk || !volKnown);
   let q = 0; if (rvolHot) q++; if (fOk) q++; if (d.news) q++;
   let v = (core && q === 3) ? 'STRONG' : (core && q >= 1) ? 'MEDIUM' : 'WEAK';
-  if (v === 'STRONG' && (pHalf || fBig || !rvolKnown || d.offering)) v = 'MEDIUM';
+  if (v === 'STRONG' && (pHalf || fBig || !volKnown || d.offering)) v = 'MEDIUM';
   if (fBig && v !== 'WEAK' && q <= 1) v = 'WEAK';
   return {verdict: v, reasons};
 }
@@ -739,6 +753,15 @@ async function todayVolume(sym){
   const tries = wraps.map(w => jget(w + encodeURIComponent(y), 8000)
     .then(j => { const v = j?.chart?.result?.[0]?.meta?.regularMarketVolume; if (v > 0) return v; throw 0; }));
   try { return await Promise.any(tries); } catch(e){ return null; }
+}
+// ET day for an arbitrary timestamp (etDayKey is "now" only)
+function etDayOf(ms){ const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}); const p={}; f.formatToParts(new Date(ms)).forEach(x=>p[x.type]=x.value); return p.year+'-'+p.month+'-'+p.day; }
+// last 5 daily bars — used for YESTERDAY's total volume (proven-mover evidence)
+async function dailyVols(sym){
+  const y='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?range=5d&interval=1d&cb='+Math.floor(Date.now()/60000);
+  const wraps=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?url='];
+  const tries=wraps.map(w=>jget(w+encodeURIComponent(y),8000).then(j=>{const r=j?.chart?.result?.[0]; if(r) return r; throw 0;}));
+  try{ const r=await Promise.any(tries); return {ts:r.timestamp||[], v:(r.indicators&&r.indicators.quote&&r.indicators.quote[0]&&r.indicators.quote[0].volume)||[]}; }catch(e){ return null; }
 }
 const GCACHE_KEY = 'gauge_' + new Date().toISOString().slice(0,10);
 try { Object.keys(localStorage).forEach(k => { if (k.startsWith('gauge_') && k !== GCACHE_KEY) localStorage.removeItem(k); }); } catch(e){}
@@ -781,13 +804,33 @@ async function runGauge(sym){
         rvol = vol / (st.avgM * 1e6 * frac);
       }
     }
+    // PROVEN volume evidence for extended hours (Ali 21 Jul): the old code refused to guess
+    // outside RTH and printed "volume unknown" on stocks that had traded 100M+ shares.
+    // Instead: (a) sum the ACTUAL printed candle volume today incl pre/AH, (b) fetch
+    // yesterday's total once per day — a stock that just did 20× average is a proven mover.
+    let sessVol = null;
+    if (rvol == null && st.avgM){
+      try{ const res = await fetchCandles(sym);         // 5m includePrePost — real prints today
+        if (res){ const vv = ((res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].volume)||[]).reduce((a,x)=>a+(x||0),0);
+          if (vv > 0) sessVol = vv/(st.avgM*1e6); } }catch(e){}
+    }
+    if (st.prevX === undefined && st.avgM){             // once per symbol per day, cached
+      st.prevX = null;
+      try{ const dv = await dailyVols(sym);
+        if (dv && dv.v.length){ let i = dv.v.length-1;
+          if (dv.ts[i] && etDayOf(dv.ts[i]*1000) === etDayKey()) i--;   // drop today's partial bar
+          const pv = i>=0 ? dv.v[i] : null;
+          if (pv > 0) st.prevX = pv/(st.avgM*1e6); } }catch(e){}
+      try{ cache[sym]=st; localStorage.setItem(GCACHE_KEY, JSON.stringify(cache)); }catch(e){}
+    }
+    if (sym !== liveSym){ badge.className='gbadge loading'; badge.textContent='—'; return; }   // user moved on during the volume fetches
     const fresh = (news || []).filter(n => n.datetime * 1000 >= Date.now() - 48*3600e3);
     const newest = fresh.length ? Math.max(...fresh.map(n => n.datetime * 1000)) : null;
     const ageH = newest ? Math.max(0, Math.round((Date.now() - newest) / 3600e3)) : null;
     const r = rateStock({
       price: (q && q.c > 0) ? q.c : (parseFloat($('cur').value) || null),
       gain: (q && q.pc > 0) ? (((sym===liveSym && parseFloat($('cur').value)>0) ? parseFloat($('cur').value) : q.c) - q.pc)/q.pc*100 : (q?.dp ?? null),   // vs prev close with live price — sees pre/AH moves
-      rvol, floatM: st.soM,
+      rvol, sessVol: sessVol, prevX: st.prevX, floatM: st.soM,
       news: fresh.length > 0,
       newsAge: ageH != null ? (ageH === 0 ? 'just now' : ageH + 'h ago') : '',
       offering: fresh.some(n => /offering|pricing of|dilut/i.test(n.headline || ''))
@@ -1255,7 +1298,14 @@ async function planEntry(sym){
     if(Date.now()<COOL){ el.innerHTML='RHYTHM: cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'; el.hidden=false; $('wallLine').hidden=true; return; }
     if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market'; el.hidden=false; $('wallLine').hidden=true; return; }
     const res=await fetchCandles(sym,'1m'); if(!res||sym!==liveSym) return;   // 1-min candles: the finest pullback read (Ali 20 Jul)
-    const _ts=res.timestamp||[]; if(_ts.length && (Date.now()/1000-_ts[_ts.length-1])>600){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }   // 1m data: 10-min staleness cutoff, not 30
+    const _ts=res.timestamp||[];
+    if(_ts.length){ const ageS=Date.now()/1000-_ts[_ts.length-1];
+      if(ageS>1800){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }
+      // a runner that stops printing mid-session is usually HALTED (LULD) — say so instead of
+      // the confusing "stale" (Ali's ZYBT halted repeatedly on its +400% day)
+      if(ageS>600 && etSession()){ el.innerHTML='RHYTHM: no prints '+Math.round(ageS/60)+' min — <b class="rwarn">HALTED?</b> levels frozen; wait for the resume print'; el.hidden=false; $('wallLine').hidden=true; return; }
+      if(ageS>600){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }
+    }
     const q=res.indicators.quote[0], ts=res.timestamp||[];
     const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
     if(cands.length<10) return;
