@@ -825,7 +825,9 @@ try { window.rateStock = rateStock; } catch(e){}
 // ---- CORS proxy pool (21 Jul: corsproxy.io AND allorigins died the same day, taking the
 // whole strategy engine dark — free proxies die in herds, so we race a deep pool and the
 // first survivor wins. TAPE_PROXY slot = our own Cloudflare worker once its token exists.)
-const TAPE_PROXY='';                                   // e.g. 'https://profit-tape.xxx.workers.dev/?url='
+// OUR OWN relay (Cloudflare worker, deployed 21 Jul with Ali's token) — first in the race,
+// locked to Yahoo hosts, free tier 100k req/day. The public proxies below are fallback only.
+const TAPE_PROXY='https://profit-tape.band7lab.workers.dev/?url=';
 function proxyWraps(u){
   const enc=encodeURIComponent(u);
   const w=[];
