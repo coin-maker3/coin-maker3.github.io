@@ -577,9 +577,9 @@ async function fetchExtended(symbol){
   // &cb= busts PROXY-side caching: corsproxy/allorigins serve the identical URL from
   // cache for minutes (proven 13 Jul 2026: same candle returned 75s apart plain; fresh with cb)
   const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=1m&includePrePost=true&cb=' + Date.now();
-  for (const wrap of [u => u, u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)]){
+  for (const u of [url].concat(proxyWraps(url))){
     try {
-      const j = await jget(wrap(url), 8000);          // 8s cap — a hung proxy socket must not stall the poll pipeline
+      const j = await jget(u, 8000);                  // 8s cap — a hung proxy socket must not stall the poll pipeline
       const res = j?.chart?.result?.[0];
       if (!res){ if (j?.chart?.error) break; continue; }
       const ts = res.timestamp || [], cl = res.indicators?.quote?.[0]?.close || [];
@@ -822,6 +822,21 @@ function rateStock(d){
 }
 try { window.rateStock = rateStock; } catch(e){}
 
+// ---- CORS proxy pool (21 Jul: corsproxy.io AND allorigins died the same day, taking the
+// whole strategy engine dark — free proxies die in herds, so we race a deep pool and the
+// first survivor wins. TAPE_PROXY slot = our own Cloudflare worker once its token exists.)
+const TAPE_PROXY='';                                   // e.g. 'https://profit-tape.xxx.workers.dev/?url='
+function proxyWraps(u){
+  const enc=encodeURIComponent(u);
+  const w=[];
+  if(TAPE_PROXY) w.push(TAPE_PROXY+enc);
+  w.push('https://corsproxy.io/?url='+enc,
+         'https://api.allorigins.win/raw?url='+enc,
+         'https://api.codetabs.com/v1/proxy?quest='+enc,
+         'https://api.cors.lol/?url='+enc,
+         'https://test.cors.workers.dev/?'+u);
+  return w;
+}
 async function jget(url, ms){
   const ctl = new AbortController();
   const t = ms ? setTimeout(() => ctl.abort(), ms) : null;
@@ -834,8 +849,7 @@ async function jget(url, ms){
 // today's volume via Yahoo — race two proxies, 8s cap, null if both fail (rating stays honest)
 async function todayVolume(sym){
   const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=1d&cb=' + Math.floor(Date.now() / 60000);   // bust proxy cache (60s bucket — RVOL froze the same way)
-  const wraps = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?url='];
-  const tries = wraps.map(w => jget(w + encodeURIComponent(y), 8000)
+  const tries = proxyWraps(y).map(u => jget(u, 8000)
     .then(j => { const v = j?.chart?.result?.[0]?.meta?.regularMarketVolume; if (v > 0) return v; throw 0; }));
   try { return await Promise.any(tries); } catch(e){ return null; }
 }
@@ -1056,12 +1070,9 @@ try { window.computeSetup = computeSetup; window.lastCandleClose = lastCandleClo
 async function fetchCandles(sym, interval){
   const iv = interval || '5m';   // pullback/rhythm read passes '1m' (finest — Ali 20 Jul); SETUP badge keeps 5m
   const y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + sym + '?range=1d&interval=' + iv + '&includePrePost=true&cb=' + Date.now();   // bust proxy cache — same freeze the "candles stale" guard kept firing on
-  const enc = encodeURIComponent(y);
-  const tries = [
-    jget('https://corsproxy.io/?url=' + enc, 8000),
-    jget('https://api.allorigins.win/get?url=' + enc, 8000).then(j => JSON.parse(j.contents)),
-    jget('https://api.allorigins.win/raw?url=' + enc, 8000),
-  ].map(pr => pr.then(j => { const r = j && j.chart && j.chart.result && j.chart.result[0]; if (r) return r; throw 0; }));
+  const tries = proxyWraps(y).map(u => jget(u, 8000))
+    .concat([jget('https://api.allorigins.win/get?url=' + encodeURIComponent(y), 8000).then(j => JSON.parse(j.contents))])
+    .map(pr => pr.then(j => { const r = j && j.chart && j.chart.result && j.chart.result[0]; if (r) return r; throw 0; }));
   try { return await Promise.any(tries); } catch(e){ return null; }
 }
 // round-robin: one chip every 9s -> each of 8 chips refreshed ~every 72s
@@ -1257,10 +1268,8 @@ function mktLoad(){ try{
   return m;
 }catch(e){ return null; } }
 async function mktScreen(scr){
-  const Y='https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds='+scr+'&count=50';
-  const urls=['https://corsproxy.io/?url='+encodeURIComponent(Y)+'&cb='+Date.now(),
-              'https://api.allorigins.win/raw?url='+encodeURIComponent(Y+'&cb='+Date.now())];
-  for(const u of urls){
+  const Y='https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds='+scr+'&count=50&cb='+Date.now();
+  for(const u of proxyWraps(Y)){
     try{ const r=await fetch(u,{signal:AbortSignal.timeout(9000)}); const j=await r.json();
          const q=j?.finance?.result?.[0]?.quotes; if(q&&q.length) return q; }catch(e){}
   }
@@ -1400,7 +1409,16 @@ async function planEntry(sym){
   try{
     if(Date.now()<COOL){ el.innerHTML='RHYTHM: cooling down — no entries for '+Math.ceil((COOL-Date.now())/60000)+' min'; el.hidden=false; $('wallLine').hidden=true; return; }
     if(!etSession()){ el.innerHTML='RHYTHM: market closed — zones reset in pre-market'; el.hidden=false; $('wallLine').hidden=true; return; }
-    const res=await fetchCandles(sym,'1m'); if(!res||sym!==liveSym) return;   // 1-min candles: the finest pullback read (Ali 20 Jul)
+    const res=await fetchCandles(sym,'1m');
+    if(sym!==liveSym) return;
+    if(!res){
+      // NEVER go silent (21 Jul: all proxies died at once and the strategy engine just
+      // vanished — "where is ARM?"). Say what's wrong and that we keep retrying.
+      el.innerHTML='<div class="pstate rwarn">DATA FEED UNREACHABLE</div>'
+        +'<div class="prow"><span class="pk">WHY</span><span class="pv">candle proxies down — price may still be live, but no candles = no strategy read</span></div>'
+        +'<div class="prow"><span class="pk">DOING</span><span class="pv">retrying every 60s — the playbook returns the moment any route recovers</span></div>';
+      el.hidden=false; $('wallLine').hidden=true; return;
+    }
     const _ts=res.timestamp||[];
     if(_ts.length){ const ageS=Date.now()/1000-_ts[_ts.length-1];
       if(ageS>1800){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }
@@ -2019,8 +2037,7 @@ async function dailyBars(sym){
   if(CANDD.sym===sym && Date.now()-CANDD.at<30*60*1000 && CANDD.bars) return CANDD.bars;
   try{
     const y='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?range=1mo&interval=1d&cb='+Math.floor(Date.now()/60000);
-    const wraps=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?url='];
-    const tries=wraps.map(w=>jget(w+encodeURIComponent(y),8000).then(j=>{const r=j?.chart?.result?.[0]; if(r) return r; throw 0;}));
+    const tries=proxyWraps(y).map(u=>jget(u,8000).then(j=>{const r=j?.chart?.result?.[0]; if(r) return r; throw 0;}));
     const r=await Promise.any(tries);
     const q=r.indicators.quote[0], ts=r.timestamp||[], bars=[];
     for(let i=0;i<ts.length;i++) if(q.close[i]!=null) bars.push({t:ts[i],o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
