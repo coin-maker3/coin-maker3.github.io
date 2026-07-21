@@ -1,5 +1,6 @@
-import { cases, modules, moduleLabel, getCase } from '../lib/content.js'
+import { cases, modules, moduleLabel, getCase, spf, caseSpfCodes } from '../lib/content.js'
 import { allAttempts, latestScores } from '../lib/progress.js'
+import { chipStyle } from '../components/Spf.jsx'
 
 export default function Stats() {
   const attempts = allAttempts()
@@ -70,6 +71,8 @@ export default function Stats() {
         </p>
       </section>
 
+      <SpfCoverage attempts={attempts} />
+
       <section>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
           Recent attempts
@@ -109,6 +112,72 @@ export default function Stats() {
         )}
       </section>
     </div>
+  )
+}
+
+function SpfCoverage({ attempts }) {
+  // For each SPF code: of the attempts on cases that exercise it,
+  // how often was it ticked as "demonstrated out loud"?
+  const rows = spf.map((e) => {
+    const relevant = attempts.filter((a) => {
+      const c = getCase(a.caseId)
+      return c && caseSpfCodes(c).includes(e.code)
+    })
+    const ticked = relevant.filter((a) => a.spf?.includes(e.code)).length
+    return {
+      code: e.code,
+      domain: e.domain,
+      total: relevant.length,
+      ticked,
+      pct: relevant.length > 0 ? ticked / relevant.length : null,
+    }
+  })
+
+  // Weakest first; codes with no attempts yet sink to the bottom, labelled.
+  const attempted = rows.filter((r) => r.pct !== null).sort((a, b) => a.pct - b.pct)
+  const unattempted = rows.filter((r) => r.pct === null)
+
+  return (
+    <section>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        SPF code coverage <span className="normal-case">(said out loud, weakest first)</span>
+      </h2>
+      {attempted.length === 0 ? (
+        <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-400 shadow-sm ring-1 ring-slate-100">
+          No coded attempts yet — tick the codes you demonstrated when you self-score a case.
+        </p>
+      ) : (
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+          {attempted.map((r, i) => {
+            const weak = r.pct < 0.5
+            return (
+              <div
+                key={r.code}
+                className={`flex items-center gap-3 p-3 ${i > 0 ? 'border-t border-slate-50' : ''} ${
+                  weak ? 'bg-amber-50' : ''
+                }`}
+              >
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${chipStyle(r.code)}`}>
+                  {r.code}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-500">{r.domain}</span>
+                <span className="text-xs text-slate-400">
+                  {r.ticked}/{r.total}
+                </span>
+                <span className={`w-12 text-right text-sm font-bold ${weak ? 'text-amber-700' : 'text-teal-700'}`}>
+                  {Math.round(r.pct * 100)}%
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {unattempted.length > 0 && (
+        <p className="mt-2 px-1 text-xs text-slate-400">
+          Not yet attempted in any case: {unattempted.map((r) => r.code).join(', ')}
+        </p>
+      )}
+    </section>
   )
 }
 

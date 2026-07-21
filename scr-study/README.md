@@ -41,9 +41,10 @@ Content auto-indexes via `import.meta.glob`. Drop a valid JSON file into the rig
   "title": "Short descriptive title",
   "module": "M1|M2|M3|M4|M5|M6|M7|M8|E",
   "difficulty": "Straightforward|Moderate|Complex",
+  "spf_codes": ["P1.1", "P(B)1", "C2.8.7"],
   "stem": "markdown string",
   "domains": [
-    { "n": 1, "name": "Information gathering, assimilation & diagnosis", "model_answer": "markdown" },
+    { "n": 1, "name": "Information gathering, assimilation & diagnosis", "model_answer": "markdown", "spf_codes": ["C1.10"] },
     { "n": 2, "name": "Management of scenario", "model_answer": "markdown" },
     { "n": 3, "name": "Management planning & execution", "model_answer": "markdown" },
     { "n": 4, "name": "Professionalism, ethics & medicolegal", "model_answer": "markdown" }
@@ -60,12 +61,30 @@ Notes:
 - Cases are grouped and ordered by module (order defined in `src/content/modules.json`), then by `id` within a module — so `m3-001`, `m3-002`, … sort naturally.
 - `stem` and each `model_answer` are markdown (rendered with react-markdown). Escape newlines as `\n` inside the JSON string.
 - Any drug dose in content should be followed by `[verify against current BNF/SDCEP]`.
+- `spf_codes` (case level, required) lists the SPF codes the case exercises; each domain object may add its own optional `spf_codes` array. Codes render as tappable chips (decoded from `spf.json`) and become the "demonstrated out loud?" checklist in the self-score widget.
 
 ### Sheet schema
 
 ```json
 { "id": "consent", "title": "Consent, capacity & Montgomery", "body": "markdown" }
 ```
+
+### SPF decode table
+
+`src/content/spf.json` is a single array — the source for the chips, the Codes page, and the per-code coverage stats:
+
+```json
+[
+  {
+    "code": "P1.1",
+    "domain": "Professionalism",
+    "outcome": "official outcome text",
+    "say_it": "one line of what demonstrating this out loud sounds like in an answer"
+  }
+]
+```
+
+The seeded entries are placeholders (marked `[placeholder]`) — replace them with the official text. A code used in a case but missing from `spf.json` still renders; its decode sheet just says the entry is missing.
 
 ## Deploy to Firebase Hosting
 

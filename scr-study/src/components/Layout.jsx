@@ -6,6 +6,7 @@ const tabs = [
   { to: '/cases', label: 'Cases', icon: CasesIcon },
   { to: '/sheets', label: 'Sheets', icon: SheetsIcon },
   { to: '/protocol', label: 'Protocol', icon: ProtocolIcon },
+  { to: '/codes', label: 'Codes', icon: CodesIcon },
   { to: '/stats', label: 'Stats', icon: StatsIcon },
 ]
 
@@ -68,6 +69,13 @@ function ProtocolIcon() {
   return (
     <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5h6M9 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M9 11h6M9 15h4" />
+    </svg>
+  )
+}
+function CodesIcon() {
+  return (
+    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 4 8 20M16 4l-2 16M4 9h17M3 15h17" />
     </svg>
   )
 }

@@ -1,6 +1,8 @@
 // All progress lives in localStorage under a single versioned key.
 // Shape: {
-//   attempts: [{ caseId, score, date }],   // every self-score ever saved, in order
+//   attempts: [{ caseId, score, date, spf: ["P1.1", ...] }],
+//     - every self-score ever saved, in order
+//     - spf = SPF codes ticked as "demonstrated out loud" (absent on old attempts)
 //   lastCaseId: "m3-001" | null            // continue-where-left-off
 // }
 
@@ -31,9 +33,9 @@ export function getProgress() {
   return load()
 }
 
-export function saveScore(caseId, score) {
+export function saveScore(caseId, score, spfTicked = []) {
   const data = load()
-  data.attempts.push({ caseId, score, date: new Date().toISOString() })
+  data.attempts.push({ caseId, score, date: new Date().toISOString(), spf: spfTicked })
   save(data)
   return data
 }

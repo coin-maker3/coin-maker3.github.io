@@ -1,0 +1,62 @@
+[
+  {
+    "code": "C1.10",
+    "domain": "Clinical",
+    "outcome": "[placeholder] Take a structured history and synthesise findings into a differential and justified working diagnosis.",
+    "say_it": "\"I'd take a full pain history — character, timing, triggers — because that's what separates the diagnoses on my differential.\""
+  },
+  {
+    "code": "C2.8.7",
+    "domain": "Clinical",
+    "outcome": "[placeholder] Prescribe safely and appropriately, checking dose, interactions and medical history against current guidance.",
+    "say_it": "\"Before prescribing I would check the dose and interactions against the current BNF and SDCEP guidance for this specific patient.\""
+  },
+  {
+    "code": "C3.2",
+    "domain": "Clinical",
+    "outcome": "[placeholder] Justify, optimise and interpret radiographic examinations in line with IRMER.",
+    "say_it": "\"I would only take this radiograph because it changes my management — and I'd name that justification, per IRMER.\""
+  },
+  {
+    "code": "C5.1",
+    "domain": "Clinical",
+    "outcome": "[placeholder] Recognise the deteriorating patient and medical emergencies, and escalate appropriately.",
+    "say_it": "\"These observations tell me this patient is deteriorating, so my management today is escalation — now, not after review.\""
+  },
+  {
+    "code": "CO1.2",
+    "domain": "Communication",
+    "outcome": "[placeholder] Explain risks, benefits and options in plain language the patient can actually use to decide.",
+    "say_it": "\"I'd translate the risk into terms she can weigh — 'about the same radiation as a short flight' — and then check understanding.\""
+  },
+  {
+    "code": "CO3.1",
+    "domain": "Communication",
+    "outcome": "[placeholder] Obtain and document valid consent as an ongoing process, tailored to what matters to this patient.",
+    "say_it": "\"Consent is a process, so I'd revisit it at each stage and tailor the risks to what matters to this patient, per Montgomery.\""
+  },
+  {
+    "code": "P1.1",
+    "domain": "Professionalism",
+    "outcome": "[placeholder] Put patients' interests first and keep their safety at the centre of every decision.",
+    "say_it": "\"My first responsibility here is this patient's safety, so before anything else I would make them safe today.\""
+  },
+  {
+    "code": "P2.3",
+    "domain": "Professionalism",
+    "outcome": "[placeholder] Be honest and act with integrity, including being open when things go wrong (duty of candour).",
+    "say_it": "\"If any part of our care contributed to this, I would tell the patient openly, apologise, and record that conversation.\""
+  },
+  {
+    "code": "P(B)1",
+    "domain": "Professionalism",
+    "outcome": "[placeholder] Recognise the limits of your own knowledge and skills, and seek advice or refer when a situation exceeds them.",
+    "say_it": "\"Beyond this point I would seek senior advice — and I'd say that out loud, because knowing my limits is part of safe care.\""
+  },
+  {
+    "code": "ML2.1",
+    "domain": "Management and leadership",
+    "outcome": "[placeholder] Keep contemporaneous, complete records that would withstand independent scrutiny.",
+    "say_it": "\"I would document the discussion contemporaneously, including the options the patient declined.\""
+  }
+]

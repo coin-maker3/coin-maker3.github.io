@@ -1,4 +1,5 @@
 import modulesJson from '../content/modules.json'
+import spfJson from '../content/spf.json'
 
 // Auto-index every JSON file dropped into the content folders.
 // Adding a new case/sheet file requires zero code changes.
@@ -37,3 +38,25 @@ export function caseIndex(id) {
 }
 
 export const DIFFICULTIES = ['Straightforward', 'Moderate', 'Complex']
+
+// --- SPF (Safe Practitioner Framework) decode table ---
+
+export const spf = spfJson
+
+export function spfEntry(code) {
+  return spf.find((e) => e.code === code)
+}
+
+// Preserve first-seen order of domains from spf.json
+export const spfDomains = [...new Set(spf.map((e) => e.domain))]
+
+// All codes a case exercises: case-level list plus any per-domain lists.
+export function caseSpfCodes(c) {
+  const codes = [...(c.spf_codes ?? [])]
+  for (const d of c.domains ?? []) {
+    for (const code of d.spf_codes ?? []) {
+      if (!codes.includes(code)) codes.push(code)
+    }
+  }
+  return codes
+}

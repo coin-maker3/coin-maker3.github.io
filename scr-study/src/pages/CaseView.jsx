@@ -4,6 +4,8 @@ import { cases, getCase, caseIndex, moduleLabel } from '../lib/content.js'
 import { saveScore, setLastCase, attemptsFor } from '../lib/progress.js'
 import Markdown from '../components/Markdown.jsx'
 import { DifficultyBadge, ModuleBadge } from '../components/Badges.jsx'
+import { SpfChips } from '../components/Spf.jsx'
+import { spfEntry } from '../lib/content.js'
 
 export default function CaseView() {
   const { id } = useParams()
@@ -40,8 +42,8 @@ export default function CaseView() {
   const reveal = (n) => setRevealed((r) => (r.includes(n) ? r : [...r, n]))
   const revealAll = () => setRevealed(c.domains.map((d) => d.n))
 
-  const handleScore = (score) => {
-    saveScore(c.id, score)
+  const handleScore = (score, spfTicked) => {
+    saveScore(c.id, score, spfTicked)
     setAttempts(attemptsFor(c.id))
     setJustSaved(score)
   }
@@ -66,6 +68,14 @@ export default function CaseView() {
           Scenario
         </h2>
         <Markdown>{c.stem}</Markdown>
+        {c.spf_codes?.length > 0 && (
+          <div className="mt-3 border-t border-slate-100 pt-3">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              SPF codes in this case — tap to decode
+            </p>
+            <SpfChips codes={c.spf_codes} />
+          </div>
+        )}
       </section>
 
       <p className="px-1 text-sm text-slate-500">
@@ -131,7 +141,12 @@ export default function CaseView() {
             </section>
           )}
 
-          <ScoreWidget attempts={attempts} justSaved={justSaved} onScore={handleScore} />
+          <ScoreWidget
+            attempts={attempts}
+            justSaved={justSaved}
+            onScore={handleScore}
+            spfCodes={c.spf_codes ?? []}
+          />
         </>
       )}
 
@@ -202,6 +217,11 @@ function DomainCard({ domain, isRevealed, onReveal }) {
       </p>
       <p className="mt-0.5 mb-3 text-sm font-medium text-slate-700">{domain.name}</p>
       <Markdown className="prose-sm">{domain.model_answer}</Markdown>
+      {domain.spf_codes?.length > 0 && (
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <SpfChips codes={domain.spf_codes} />
+        </div>
+      )}
     </section>
   )
 }
@@ -220,19 +240,66 @@ function Probe({ q, a }) {
   )
 }
 
-function ScoreWidget({ attempts, justSaved, onScore }) {
+function ScoreWidget({ attempts, justSaved, onScore, spfCodes }) {
+  const [ticked, setTicked] = useState([])
   const last = attempts.length > 0 ? attempts[attempts.length - 1] : null
+
+  const toggle = (code) =>
+    setTicked((t) => (t.includes(code) ? t.filter((c) => c !== code) : [...t, code]))
+
   return (
     <section className="rounded-2xl bg-teal-50 p-4 ring-1 ring-teal-100">
       <h2 className="text-sm font-semibold text-teal-900">Self-score this attempt</h2>
-      <p className="mt-1 text-xs text-teal-800">
-        Domains I covered unprompted (before revealing):
+
+      {spfCodes.length > 0 && (
+        <>
+          <p className="mt-2 text-xs text-teal-800">
+            SPF codes — did I demonstrate this <strong>out loud</strong>?
+          </p>
+          <div className="mt-2 space-y-1.5">
+            {spfCodes.map((code) => {
+              const entry = spfEntry(code)
+              const on = ticked.includes(code)
+              return (
+                <button
+                  key={code}
+                  onClick={() => toggle(code)}
+                  className={`flex w-full items-start gap-2.5 rounded-xl p-2.5 text-left ring-1 transition-colors ${
+                    on ? 'bg-teal-700 ring-teal-700' : 'bg-white ring-teal-200 active:bg-teal-100'
+                  }`}
+                >
+                  <span
+                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md ring-1 ${
+                      on ? 'bg-white text-teal-700 ring-white' : 'bg-white text-transparent ring-teal-300'
+                    }`}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <span className="min-w-0">
+                    <span className={`text-xs font-bold ${on ? 'text-white' : 'text-teal-900'}`}>
+                      {code}
+                    </span>
+                    <span className={`block text-xs leading-snug ${on ? 'text-teal-100' : 'text-slate-500'}`}>
+                      {entry?.outcome ?? 'Not in the decode table yet'}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      <p className="mt-3 text-xs text-teal-800">
+        Domains I covered unprompted (before revealing) — tap to save the attempt:
       </p>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-2 flex gap-2">
         {[0, 1, 2, 3, 4].map((n) => (
           <button
             key={n}
-            onClick={() => onScore(n)}
+            onClick={() => onScore(n, ticked)}
             className={`flex-1 rounded-xl py-3 text-lg font-bold transition-colors ${
               justSaved === n
                 ? 'bg-teal-700 text-white'
@@ -245,7 +312,9 @@ function ScoreWidget({ attempts, justSaved, onScore }) {
       </div>
       {justSaved !== null ? (
         <p className="mt-3 text-xs font-medium text-teal-800">
-          Saved {justSaved}/4 — {new Date().toLocaleDateString()}
+          Saved {justSaved}/4
+          {spfCodes.length > 0 ? ` with ${ticked.length}/${spfCodes.length} codes` : ''} —{' '}
+          {new Date().toLocaleDateString()}
         </p>
       ) : last ? (
         <p className="mt-3 text-xs text-teal-700">

@@ -6,6 +6,7 @@ import CaseView from './pages/CaseView.jsx'
 import Sheets from './pages/Sheets.jsx'
 import SheetView from './pages/SheetView.jsx'
 import Protocol from './pages/Protocol.jsx'
+import Codes from './pages/Codes.jsx'
 import Stats from './pages/Stats.jsx'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/sheets" element={<Sheets />} />
         <Route path="/sheets/:id" element={<SheetView />} />
         <Route path="/protocol" element={<Protocol />} />
+        <Route path="/codes" element={<Codes />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="*" element={<Home />} />
       </Routes>
