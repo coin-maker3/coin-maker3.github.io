@@ -43,8 +43,14 @@ main{width:100%;max-width:460px;display:flex;flex-direction:column;height:100%;o
 .mono{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.2px}
 
 /* ---------- tab shell: content region + fixed bottom bar (thumb arc) ---------- */
-.panel{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+.panel{flex:1;min-height:0;display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
   padding:10px 16px calc(8px + env(safe-area-inset-bottom,0px));gap:6px}
+.panel::-webkit-scrollbar{display:none}
+/* NOTHING may shrink — compressed boxes spill text over each other (Ali's phone, 21 Jul:
+   "overlapping in both tabs"). If content exceeds the screen, the panel scrolls instead.
+   (.spacer and #tapeChart re-declare their own flex below and win by order/specificity.) */
+.panel>*{flex:0 0 auto}
 /* two-tier rhythm: 12px between zones (6 gap + 6 margin), 6px within — instruments, not a form */
 .panel .hero,#playbook,#tapeChart,.recents,.cardgrid{margin-top:6px}
 @media (max-width:379px){.panel{padding-left:14px;padding-right:14px}}
@@ -145,12 +151,10 @@ body.plpos #mPrice{text-shadow:var(--glow-pos)}
   color:var(--text-mid);min-height:18px;flex:none}
 #dayTape i{width:8px;height:8px;border-radius:50%;display:inline-block}
 #dayTape i.w{background:var(--pos)}#dayTape i.l{background:var(--neg)}
-#sweepBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));
-  z-index:80;display:flex;align-items:center;gap:10px;background:var(--surface-2);
-  border:1px solid var(--pos-border);border-radius:14px;padding:10px 14px;max-width:calc(100% - 24px);
-  box-shadow:var(--shadow-toast)}
+/* in-flow banner (a floating version used to cover the exit/LOG row — never again) */
+#sweepBar{display:flex;align-items:center;gap:10px;background:var(--surface-2);
+  border:1px solid var(--pos-border);border-radius:14px;padding:9px 12px;margin-top:6px}
 #sweepBar[hidden]{display:none}
-body:not(.tab-manage) #sweepBar{display:none}   /* banner lives on MANAGE (where LOG is) — FIND stays a clean hunt screen */
 #sweepTxt{font-size:13px;font-weight:600;color:var(--pos);font-family:var(--font-ui)}
 #sweepDone{flex:none;border-color:var(--pos-border);color:var(--pos);font-size:12px;min-height:38px}
 .gbadge{text-align:center;font-family:var(--font-ui);font-size:20px;font-weight:700;
@@ -428,6 +432,7 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   <div class="daylog mono" id="dayLog" hidden></div>
   <div id="planLine" class="mono simline" hidden></div>
   <div id="sweepLine" class="mono simline" hidden></div>
+  <div id="sweepBar" hidden><span id="sweepTxt"></span><button class="btn" id="sweepDone">DONE — withdrawn</button></div>
   <div class="entry">
     <input id="exit" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="exit price $ — blank = live">
     <button class="btn" id="soldBtn" title="log this round trip — your exit price if set, else the live price">LOG</button>
@@ -449,7 +454,6 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
 </nav>
 <input id="cur" type="hidden">
 </main>
-<div id="sweepBar" hidden><span id="sweepTxt"></span><button class="btn" id="sweepDone">DONE — withdrawn</button></div>
 <div id="chipsBox" style="display:none">
   <div class="chipwrap"><div class="chiphead">How did you trade it?</div>
     <button class="btn dchip" data-t="followed plan">followed plan</button>
