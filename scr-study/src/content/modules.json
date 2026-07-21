@@ -1,0 +1,11 @@
+[
+  { "code": "M1", "label": "Cariology & endodontics" },
+  { "code": "M2", "label": "Periodontology" },
+  { "code": "M3", "label": "Oral surgery, medicine & pathology" },
+  { "code": "M4", "label": "Pain & emergencies" },
+  { "code": "M5", "label": "Restorative planning" },
+  { "code": "M6", "label": "Paediatrics & trauma" },
+  { "code": "M7", "label": "Radiology & IRMER" },
+  { "code": "M8", "label": "Medically complex & prescribing" },
+  { "code": "E", "label": "Ethics-led" }
+]
