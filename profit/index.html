@@ -44,7 +44,9 @@ main{width:100%;max-width:460px;display:flex;flex-direction:column;height:100%;o
 
 /* ---------- tab shell: content region + fixed bottom bar (thumb arc) ---------- */
 .panel{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;
-  padding:10px 16px calc(8px + env(safe-area-inset-bottom,0px));gap:10px}
+  padding:10px 16px calc(8px + env(safe-area-inset-bottom,0px));gap:6px}
+/* two-tier rhythm: 12px between zones (6 gap + 6 margin), 6px within — instruments, not a form */
+.panel .hero,#playbook,#tapeChart,.recents,.cardgrid{margin-top:6px}
 @media (max-width:379px){.panel{padding-left:14px;padding-right:14px}}
 body.tab-manage #findPanel{display:none}
 body:not(.tab-manage) #managePanel{display:none}
@@ -105,13 +107,51 @@ body.plpos #mPrice{text-shadow:var(--glow-pos)}
 .live.stale .dot{background:var(--warn);box-shadow:none;animation:none}
 .err{color:var(--neg)}
 
-/* ---------- FIND: market temp / gauge / rhythm / walls ---------- */
-#mktLine{font-size:12px;color:var(--text-low);flex:none;white-space:nowrap;overflow-x:auto;
-  scrollbar-width:none;-webkit-overflow-scrolling:touch;min-height:20px}
-#mktLine::-webkit-scrollbar{display:none}
+/* ---------- FIND: SCAN rail (clock · session │ temp + movers) ---------- */
+#mktLine{font-size:12px;color:var(--text-low);flex:none;display:flex;align-items:center;gap:8px;
+  min-height:22px;overflow:hidden;white-space:nowrap}
+.mlabel,.clabel{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-low);font-family:var(--font-ui);flex:none}
+#railClock{flex:none;color:var(--text-mid);font-size:11.5px}
+.railsep{flex:none;width:1px;height:12px;background:var(--border-hair)}
+#railMkt{flex:1;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;white-space:nowrap}
+#railMkt::-webkit-scrollbar{display:none}
 #mktLine b.hot{color:var(--pos)}#mktLine b.warm{color:var(--warn)}#mktLine b.cold{color:var(--text-low)}
 .mfade{color:var(--text-low)}.mlive{color:var(--pos)}
 #mktLine .msym{color:var(--text-mid);text-decoration:underline dotted;cursor:pointer;margin-left:6px}
+
+/* ---------- the tape chart — dead space become instrument ---------- */
+#tapeChart{flex:4 1 auto;min-height:0;max-height:140px;position:relative;background:var(--surface-1);
+  border:1px solid var(--border-hair);border-radius:16px;overflow:hidden}
+#tapeChart::before,#tapeChart::after{content:'';position:absolute;width:8px;height:8px;pointer-events:none;z-index:2}
+#tapeChart::before{top:-1px;left:-1px;border-top:1px solid var(--border-strong);border-left:1px solid var(--border-strong)}
+#tapeChart::after{bottom:-1px;right:-1px;border-bottom:1px solid var(--border-strong);border-right:1px solid var(--border-strong)}
+#tapeChart.off{flex:0 0 0;height:0;min-height:0;border:none;margin:0;padding:0}
+#tapeChart canvas{position:absolute;inset:0;width:100%;height:100%}
+.clabel{position:absolute;top:5px;left:8px;z-index:2}
+#miniChart{flex:none;height:72px;position:relative;background:var(--surface-1);
+  border:1px solid var(--border-hair);border-radius:12px;overflow:hidden}
+#miniChart canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* ---------- playbook panel (entry plan + walls = one instrument) ---------- */
+#playbook{border-left:3px solid var(--live);background:var(--surface-1);border-radius:0 12px 12px 0;flex:none}
+#playbook #entryLine{border-left:none;background:none;border-radius:0}
+#playbook #wallLine{border-top:1px solid var(--border-hair);margin:0 8px;padding:4px 2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- day tape (last-8 W/L dots) + sweep ratchet ---------- */
+#dayTape{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;
+  color:var(--text-mid);min-height:18px;flex:none}
+#dayTape i{width:8px;height:8px;border-radius:50%;display:inline-block}
+#dayTape i.w{background:var(--pos)}#dayTape i.l{background:var(--neg)}
+#sweepBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));
+  z-index:80;display:flex;align-items:center;gap:10px;background:var(--surface-2);
+  border:1px solid var(--pos-border);border-radius:14px;padding:10px 14px;max-width:calc(100% - 24px);
+  box-shadow:var(--shadow-toast)}
+#sweepBar[hidden]{display:none}
+body:not(.tab-manage) #sweepBar{display:none}   /* banner lives on MANAGE (where LOG is) — FIND stays a clean hunt screen */
+#sweepTxt{font-size:13px;font-weight:600;color:var(--pos);font-family:var(--font-ui)}
+#sweepDone{flex:none;border-color:var(--pos-border);color:var(--pos);font-size:12px;min-height:38px}
 .gbadge{text-align:center;font-family:var(--font-ui);font-size:20px;font-weight:700;
   letter-spacing:.04em;border-radius:12px;padding:5px 0;margin:0 0 6px}
 .gbadge.strong{background:var(--pos-dim);color:var(--pos);border:1px solid var(--pos-border)}
@@ -126,8 +166,7 @@ body.plpos #mPrice{text-shadow:var(--glow-pos)}
 .greasons span.ok{color:var(--pos);border-color:var(--pos-border);background:var(--pos-dim)}
 .greasons span.bad{color:var(--neg);border-color:var(--neg-border)}
 .greasons span.warn{color:var(--warn);border-color:var(--warn-border)}
-#entryLine{font-size:13px;color:var(--text-mid);border-left:3px solid var(--live);
-  background:var(--surface-1);border-radius:0 12px 12px 0;padding:8px 10px;line-height:1.5;flex:none}
+#entryLine{font-size:13px;color:var(--text-mid);padding:8px 10px;line-height:1.5;flex:none}
 #entryLine b{color:var(--text-hi)}
 #wallLine{font-size:11.5px;color:var(--text-mid);padding:0 8px;flex:none}
 #wallLine b{color:var(--warn)}
@@ -278,9 +317,16 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
 #managePanel{overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
 #managePanel::-webkit-scrollbar{display:none}
 
+/* gauge lives inside the price hero: price + verdict = one thought */
+.hero #gauge{margin-top:6px;border-top:1px solid var(--border-hair);padding-top:6px}
+.hero .gbadge{margin-bottom:5px}
+
 /* ---------- compact height class (360×740-class phones) ---------- */
 @media (max-height:780px){
-  .panel{gap:8px;padding-top:8px}
+  .panel{gap:5px;padding-top:8px}
+  .panel .hero,#playbook,#tapeChart,.recents,.cardgrid{margin-top:5px}
+  #tapeChart{max-height:120px}
+  #miniChart{height:68px}
   .bigprice{font-size:clamp(36px,11vw,44px);min-height:42px}
   .hero{padding:8px 12px}
   .pl{min-height:56px}
@@ -301,17 +347,26 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
 <main>
 <!-- ================= TAB 1 · FIND — read top-down, act at the thumb ================= -->
 <section class="panel" id="findPanel">
-  <div id="mktLine" class="mono" hidden></div>
+  <!-- SCAN rail: clock · session · countdown │ market temp + movers — always anchored -->
+  <div id="mktLine" class="mono">
+    <span class="mlabel">SCAN</span><span id="railClock" class="mono"></span><span class="railsep"></span><span id="railMkt">—</span>
+  </div>
+  <!-- price block: price + status + verdict = one instrument -->
   <div class="hero">
     <div class="bigprice mono" id="bigPrice">—</div>
     <div class="quote" id="quote"></div>
+    <div id="gauge" hidden>
+      <div class="gbadge" id="gBadge">—</div>
+      <div class="greasons" id="gReasons"></div>
+    </div>
   </div>
-  <div id="gauge" hidden>
-    <div class="gbadge" id="gBadge">—</div>
-    <div class="greasons" id="gReasons"></div>
+  <!-- playbook: entry plan + the walls above it -->
+  <div id="playbook" hidden>
+    <div id="entryLine" class="mono" hidden></div>
+    <div id="wallLine" class="mono" hidden></div>
   </div>
-  <div id="entryLine" class="mono" hidden></div>
-  <div id="wallLine" class="mono" hidden></div>
+  <!-- the tape: 60 minutes of 1m candles + VWAP/EMA9/HOD — RHYTHM made visible -->
+  <div id="tapeChart" class="off"><span class="clabel" id="tapeLabel">TAPE · 60M · 1M</span><canvas id="tapeCv"></canvas></div>
   <div class="spacer"></div>
   <div class="recents" id="recents"></div>
   <div class="tickrow">
@@ -328,7 +383,8 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   </div>
   <div id="armLine" class="mono" hidden></div>
   <div id="inTrade" class="mono" hidden></div>
-  <div class="lbl">My entry price ($) · shares</div>
+  <div id="miniChart" hidden><canvas id="miniCv"></canvas></div>
+  <div class="lbl">Position — entry ($) · shares</div>
   <div class="entry" id="posRow">
     <input id="avg" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="entry price">
     <input id="shares" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="shares" style="max-width:104px">
@@ -357,8 +413,10 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
     <button class="ghost" data-p="25">25%</button>
   </div>
   <div class="spacer"></div>
+  <div id="dayTape" class="mono" hidden></div>
   <div class="daylog mono" id="dayLog" hidden></div>
   <div id="planLine" class="mono simline" hidden></div>
+  <div id="sweepLine" class="mono simline" hidden></div>
   <div class="entry">
     <input id="exit" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="exit price $ — blank = live">
     <button class="btn" id="soldBtn" title="log this round trip — your exit price if set, else the live price">LOG</button>
@@ -380,12 +438,13 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
 </nav>
 <input id="cur" type="hidden">
 </main>
+<div id="sweepBar" hidden><span id="sweepTxt"></span><button class="btn" id="sweepDone">DONE — withdrawn</button></div>
 <div id="chipsBox" style="display:none">
   <div class="chipwrap"><div class="chiphead">How did you trade it?</div>
-    <button class="btn dchip" data-t="followed plan">✅ followed plan</button>
-    <button class="btn dchip" data-t="chased">🏃 chased</button>
-    <button class="btn dchip" data-t="held past peak">🎈 held past peak</button>
-    <button class="btn dchip" data-t="froze in loser">🧊 froze in loser</button>
+    <button class="btn dchip" data-t="followed plan">followed plan</button>
+    <button class="btn dchip" data-t="chased">chased</button>
+    <button class="btn dchip" data-t="held past peak">held past peak</button>
+    <button class="btn dchip" data-t="froze in loser">froze in loser</button>
     <button class="btn dchip dskip" data-t="">skip</button></div></div>
 <div id="dayEnd" style="display:none"></div>
 <div class="toast" id="toast"></div>
@@ -1015,6 +1074,7 @@ function renderDayLog(){
   el.innerHTML = 'Today: <b style="color:' + (net >= 0 ? 'var(--green)' : 'var(--red)') + '">' +
     (net >= 0 ? '+' : '−') + '£' + fmt(Math.abs(net)) + '</b> · ' + mine.length + ' trade' + (mine.length === 1 ? '' : 's') + ' · tap to copy log';
   el.hidden = false;
+  try{ if(typeof renderDayTape==='function') renderDayTape(); }catch(e){}
 }
 $('dayLog').addEventListener('click', () => {
   const t = loadTrades();
@@ -1225,16 +1285,18 @@ async function refreshMkt(force){
   renderMkt();
 }
 function renderMkt(){
-  const el=$('mktLine'); if(!MKT){ el.hidden=true; return; }
-  if(MKT.temp==='CLOSED'){ el.innerHTML='MARKET: <b class="cold">closed</b> — scanner resumes in pre-market'; el.hidden=false; return; }
-  if(MKT.temp==='UNKNOWN'){ el.innerHTML='MARKET: <b class="cold">temp unknown</b> ('+(MKT.why||'screener unreachable')+')'; el.hidden=false; return; }
+  // writes the movers SEGMENT of the always-anchored SCAN rail (never hides the rail)
+  const el=$('railMkt'); if(!el) return;
+  if(!MKT){ el.innerHTML='scanner idle'; return; }
+  if(MKT.temp==='CLOSED'){ el.innerHTML='<b class="cold">closed</b> — resumes pre-mkt'; return; }
+  if(MKT.temp==='UNKNOWN'){ el.innerHTML='<b class="cold">temp unknown</b> ('+(MKT.why||'screener unreachable')+')'; return; }
   const cls=MKT.temp==='HOT'?'hot':MKT.temp==='WARM'?'warm':'cold';
-  let h='MARKET: <b class="'+cls+'">'+MKT.temp+'</b> · '+MKT.n+' in play';
+  let h='<b class="'+cls+'">'+MKT.temp+'</b> · '+MKT.n+' in play';
   if(MKT.temp==='COLD') h+=' — maybe no trade';
   MKT.top.forEach(m=>{ const faded=m.pos!=null&&m.pos<0.6;
     const mark = faded?'<span class="mfade"> faded '+(m.off!=null?'-'+Math.round(m.off)+'%':'')+'</span>' : (m.pos!=null&&m.pos>=0.8?'<span class="mlive"> ▲</span>':'');
     h+='<span class="msym" data-s="'+m.s+'">'+m.s+' $'+(m.p<1?m.p.toFixed(2):m.p.toFixed(0))+' +'+m.c+'%'+(m.tag?' '+m.tag:'')+mark+'</span>'; });
-  el.innerHTML=h; el.hidden=false;
+  el.innerHTML=h;
   el.querySelectorAll('.msym').forEach(x=>x.addEventListener('click',()=>{ $('ticker').value=x.dataset.s; $('fetchBtn').click(); }));
 }
 MKT=mktLoad(); renderMkt();
@@ -1321,7 +1383,7 @@ async function planEntry(sym){
     const dp=(x)=>x<1?x.toFixed(3):x.toFixed(2);
     (function(){ const wl=$('wallLine'); const hod=Math.max.apply(null,cands.map(c=>c.h));
       const ws=nextWalls(last,hod); if(!ws.length){ wl.hidden=true; return; }
-      wl.innerHTML='Walls above: '+ws.map(w=>'<b>$'+dp(w.v)+'</b> '+w.t).join(' · ')+' <span style="color:var(--muted2)">(likely stall)</span>';
+      wl.innerHTML='Walls above: '+ws.map(w=>'<b>$'+dp(w.v)+'</b> '+w.t).join(' · ');
       wl.hidden=false; })();
     const H=secondLegHealth(cands, vwap, last, e9);
     const entry=H.entry, stop=+(entry*0.95).toFixed(entry<1?3:2);
@@ -1337,7 +1399,7 @@ async function planEntry(sym){
       else { h='RHYTHM: <b>at highs</b> — momentum not confirmed; wait for the pullback.'; }
     }
     else { h='RHYTHM: <b class="rok">RECLAIM CONFIRMED</b> — enter ~$'+dp(entry)+' · +10% net $'+dp(tenN); armable=true; }
-    el.innerHTML=h+' <span style="color:var(--muted2)">· your call</span>'
+    el.innerHTML=h
       +(armable?' <button class="btn abtn afill" id="armBtn" title="I just BOUGHT this on T212 — start the timer + exit coach">ARM</button>'
         +'<button class="btn abtn" id="declBtn" title="I spotted it but did NOT buy — just log the pick">DECLARE</button>'
         +'<br><span class="sub">ARM = I bought it (track + exit coach) · DECLARE = only spotted it (no trade)</span>':'');
@@ -1413,6 +1475,7 @@ function renderPlan(){
     tt.classList.add('show'); setTimeout(()=>tt.classList.remove('show'),3200);
     if(navigator.vibrate) navigator.vibrate(ns==='goal'?[40,40,40]:[80,60,80]); }
   _planState=ns;
+  try{ if(typeof sweepCheck==='function') sweepCheck(eq); }catch(e){}   // rung ratchet: fires the moment a LOG lands
 }
 renderPlan(); setInterval(()=>renderPlan(), 30000);   // late-bound: the day-end wrapper must not be bypassed by the interval
 
@@ -1716,6 +1779,7 @@ function renderInTrade(){
     // the normal way (entry + shares + LOG) whenever you want. This is the fix for "it hangs".
     +'<button class="btn" id="btnBack" style="width:100%;margin-top:8px;font-size:12px;opacity:.7" title="stop the timer/alarms — does NOT log; you can still LOG normally">&larr; back (stop timer · don\'t log)</button>';
   $('btnOut').onclick=exitArm;
+  try{ if(typeof miniRender==='function') miniRender(adv.level||0); }catch(e){}     // position shape (hidden at GET OUT)
   const itxEl=$('itExit'); if(itxEl) itxEl.oninput=()=>{ o._itxVal=itxEl.value; };   // survive the 1s re-render
   const ak=$('advAck'); if(ak) ak.onclick=()=>{ o._ackGo=1; renderInTrade(); };
   $('btnBack').onclick=()=>{ ARM=null; armSave(); renderArm(); tost('Exit coach off — log your sale the normal way when ready'); };
@@ -1848,6 +1912,488 @@ async function syncJournal(){
 
 
 
+
+
+// ================================================================================
+// v24 ENGINE — the tape chart, S/R levels + trend ("the lines"), advice composer,
+// rung-ratchet withdrawals, rail clock, day tape. Expert specs 21 Jul 2026.
+// Pure add-on module: consumes existing data flows, adds zero recurring network
+// calls during trading hours (daily bars = 1 cached fetch / symbol / 30 min).
+// ================================================================================
+
+// ---------- tiny helpers ----------
+function fmtP(p){ return p==null?'?':('$'+(p<1?p.toFixed(3):p.toFixed(2))); }
+function tolOf(p){ return p>=1? Math.max(0.01,0.003*p) : Math.max(0.005,0.005*p); }
+function emaSeriesArr(vals,n){
+  if(!vals||vals.length<n) return null;
+  const out=new Array(vals.length).fill(null);
+  let e=vals.slice(0,n).reduce((a,b)=>a+b,0)/n; out[n-1]=e;
+  const k=2/(n+1);
+  for(let i=n;i<vals.length;i++){ e=vals[i]*k+e*(1-k); out[i]=e; }
+  return out;
+}
+const _etMinF=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'numeric',hour12:false});
+function etMinOf(ms){ const p={}; _etMinF.formatToParts(new Date(ms)).forEach(x=>p[x.type]=x.value); return (+p.hour)*60+(+p.minute); }
+
+// ---------- shared candle caches (charts + levels read ONLY from these) ----------
+let CAND1M={sym:null,at:0,res:null};      // live symbol, written by planEntry's 60s fetch
+let CANDM ={sym:null,at:0,res:null};      // ARM'd symbol, written by advisorFetch's 30s fetch
+let CANDD ={sym:null,at:0,bars:null};     // daily bars ~1mo, 30-min cache
+async function dailyBars(sym){
+  if(CANDD.sym===sym && Date.now()-CANDD.at<30*60*1000 && CANDD.bars) return CANDD.bars;
+  try{
+    const y='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?range=1mo&interval=1d&cb='+Math.floor(Date.now()/60000);
+    const wraps=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?url='];
+    const tries=wraps.map(w=>jget(w+encodeURIComponent(y),8000).then(j=>{const r=j?.chart?.result?.[0]; if(r) return r; throw 0;}));
+    const r=await Promise.any(tries);
+    const q=r.indicators.quote[0], ts=r.timestamp||[], bars=[];
+    for(let i=0;i<ts.length;i++) if(q.close[i]!=null) bars.push({t:ts[i],o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
+    CANDD={sym:sym,at:Date.now(),bars:bars};
+    return bars;
+  }catch(e){ return (CANDD.sym===sym)?CANDD.bars:null; }
+}
+
+// ---------- LEVELS + TREND engine (expert spec §1-§2) ----------
+// Returns null when data is missing — callers degrade to the old behaviour.
+function computeLevels(res, dailyAll, P, floatM){
+  try{
+    if(!res||!(P>0)) return null;
+    const q=res.indicators.quote[0], ts=res.timestamp||[];
+    const tol=tolOf(P);
+    const todayKey=etDayKey();
+    // today's 1m bars
+    const bars=[];
+    for(let i=0;i<ts.length;i++) if(q.close[i]!=null)
+      bars.push({t:ts[i],m:etMinOf(ts[i]*1000),o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
+    if(bars.length<3) return null;
+    const nowMin=(function(){const p=etParts();return (+p.hour)*60+(+p.minute);})();
+    const sess=etSession();
+    const inRTH=sess==='RTH';
+    // advice-facing HOD/LOD: PRE/AH single odd-lot prints (<500sh) don't set levels (wick can still show)
+    const lvlBars=bars.filter(b=> (b.m>=570&&b.m<960) || b.v>=500);
+    const useB=lvlBars.length?lvlBars:bars;
+    const HOD=Math.max.apply(null,useB.map(b=>b.h));
+    const LOD=Math.min.apply(null,useB.map(b=>b.l));
+    // pre-market H/L (freeze at 9:30 by construction)
+    const preB=bars.filter(b=>b.m>=240&&b.m<570&&b.v>=500);
+    const PMH=preB.length?Math.max.apply(null,preB.map(b=>b.h)):null;
+    const PML=preB.length?Math.min.apply(null,preB.map(b=>b.l)):null;
+    // opening range (first 5 min), alive 9:35-11:00 (or within 1%)
+    const orB=bars.filter(b=>b.m>=570&&b.m<575);
+    const ORH=orB.length?Math.max.apply(null,orB.map(b=>b.h)):null;
+    const ORL=orB.length?Math.min.apply(null,orB.map(b=>b.l)):null;
+    const orAlive= ORH!=null && nowMin>=575 && (nowMin<660 || Math.abs(P-ORH)/P<0.01 || Math.abs(P-ORL)/P<0.01);
+    // prior-day + dailies (exclude today's forming bar)
+    const daily=(dailyAll||[]).filter(b=>etDayOf(b.t*1000)!==todayKey);
+    const pd=daily.length?daily[daily.length-1]:null;
+    const PDH=pd?pd.h:null, PDL=pd?pd.l:null, PDC=pd?pd.c:null;
+    const monthHigh=daily.length?Math.max.apply(null,daily.map(b=>b.h)):null;
+    // daily fractal pivots (±2), scan up to 21 back excluding the last 2
+    const piv={hi:[],lo:[]};
+    for(let i=2;i<daily.length-2;i++){
+      const d=daily[i];
+      if(d.h>daily[i-1].h&&d.h>daily[i-2].h&&d.h>daily[i+1].h&&d.h>daily[i+2].h) piv.hi.push(d.h);
+      if(d.l<daily[i-1].l&&d.l<daily[i-2].l&&d.l<daily[i+1].l&&d.l<daily[i+2].l) piv.lo.push(d.l);
+    }
+    const pivAbove=piv.hi.filter(x=>x>P+tol).sort((a,b)=>a-b).slice(0,2);
+    const pivBelow=piv.lo.filter(x=>x<P-tol).sort((a,b)=>b-a).slice(0,1);
+    // float rotation — today's levels outrank history once the float has turned over
+    const todayVol=bars.reduce((a,b)=>a+b.v,0);
+    const rot=(floatM>0)? todayVol/(floatM*1e6) : null;
+    const gapUnfilled= PDC!=null && LOD>PDC && (P/PDC-1)>=0.03;
+    // ---- candidate levels, rank per spec table ----
+    const cand=[];
+    const add=(code,price,rank,age)=>{ if(price>0&&isFinite(price)) cand.push({code,price,rank,age}); };
+    add('HOD',HOD,1,'today'); add('LOD',LOD,1.5,'today');
+    if(PMH!=null&&nowMin>=570){ add('PMH',PMH,3,'today'); add('PML',PML,3.5,'today'); }
+    if(orAlive){ add('OR',ORH,6,'today'); add('ORL',ORL,6.5,'today'); }
+    const dailyRank= (rot!=null&&rot>=1)?1:0;    // rotated float = demote history one rank
+    if(PDH!=null) add('PDH',PDH,4+dailyRank,'prior');
+    if(PDL!=null) add('PDL',PDL,4.5+dailyRank,'prior');
+    if(PDC!=null&&(gapUnfilled||Math.abs(P-PDC)/P<0.05)) add('PDC',PDC,5+dailyRank,'prior');
+    pivAbove.forEach(x=>add('20dH',x,7+dailyRank,'prior'));
+    pivBelow.forEach(x=>add('20dL',x,7.5+dailyRank,'prior'));
+    try{ nextWalls(P,HOD).forEach(w=>{ if(w.t!=='HOD') add('½$',w.v,8,'wall'); }); }catch(e){}
+    // confluence merge (within tol): keep higher-ranked, tag *
+    cand.sort((a,b)=>a.rank-b.rank);
+    const merged=[];
+    cand.forEach(c=>{
+      const hit=merged.find(m=>Math.abs(m.price-c.price)<=tol);
+      if(hit){ hit.conf=true; return; }
+      merged.push(c);
+    });
+    merged.forEach(m=>{ m.role = m.price>P?'res':'sup'; if(m.code==='PDC'&&gapUnfilled) m.role='warn'; });
+    // dead-level rule: ≥4 close-crossings in last 60 bars without follow-through = dead 30 min
+    const last60=bars.slice(-60);
+    merged.forEach(m=>{
+      let x=0;
+      for(let i=1;i<last60.length;i++)
+        if((last60[i-1].c-m.price)*(last60[i].c-m.price)<0) x++;
+      if(x>=4) m.dead=true;
+    });
+    const live=merged.filter(m=>!m.dead);
+    const nearRes=live.filter(m=>m.role==='res').sort((a,b)=>a.price-b.price)[0]||null;
+    const nearSup=live.filter(m=>m.role!=='res').sort((a,b)=>b.price-a.price)[0]||null;
+    // ---- intraday trend (5m aggregated from 1m, last 90 min) ----
+    let trend='THIN';
+    (function(){
+      const f5=[], src=bars.filter(b=>b.t>= (bars[bars.length-1].t-90*60));
+      for(const b of src){
+        const k=Math.floor(b.t/300)*300;
+        const cur=f5.length&&f5[f5.length-1].t===k?f5[f5.length-1]:null;
+        if(cur){ cur.h=Math.max(cur.h,b.h); cur.l=Math.min(cur.l,b.l); cur.c=b.c; cur.v+=b.v; }
+        else f5.push({t:k,o:b.o,h:b.h,l:b.l,c:b.c,v:b.v});
+      }
+      if(f5.filter(b=>b.v>0).length<6) return;              // THIN
+      const cl=f5.map(b=>b.c);
+      const e9=emaCalc(cl,Math.min(9,cl.length-1)), e20=emaCalc(cl,Math.min(20,cl.length-1));
+      // 1-bar fractal pivots on the 5m
+      const ph=[],plw=[];
+      for(let i=1;i<f5.length-1;i++){
+        if(f5[i].h>f5[i-1].h&&f5[i].h>f5[i+1].h) ph.push(f5[i].h);
+        if(f5[i].l<f5[i-1].l&&f5[i].l<f5[i+1].l) plw.push(f5[i].l);
+      }
+      const eps=tol;
+      const HHHL= ph.length>=2&&plw.length>=2&&ph[ph.length-1]>ph[ph.length-2]+eps&&plw[plw.length-1]>plw[plw.length-2]+eps;
+      const LHLL= ph.length>=2&&plw.length>=2&&ph[ph.length-1]<ph[ph.length-2]-eps&&plw[plw.length-1]<plw[plw.length-2]-eps;
+      let pv=0,vv=0; bars.forEach(b=>{ if(b.v>0){ pv+=((b.h+b.l+b.c)/3)*b.v; vv+=b.v; } });
+      const vwap=vv?pv/vv:null;
+      let s=0;
+      if(e9!=null&&e20!=null) s+= e9>e20*1.0005?1: e9<e20*0.9995?-1:0;
+      const preThin= sess==='PRE'&&nowMin<420;               // VWAP on air before 7am
+      if(vwap&&!preThin) s+= P>vwap+tol?1: P<vwap-tol?-1:0;
+      s+= HHHL?1: LHLL?-1:0;
+      trend= s>=2?'UPTREND': s<=-2?'DOWNTREND':'CHOP';
+    })();
+    // ---- multi-day read ----
+    let md='', blueSky=false;
+    if(monthHigh!=null){
+      if(P>monthHigh&&(PMH==null||P>PMH)&&P>=HOD-tol){ md='BLUE SKY'; blueSky=true; }
+      else if(P>monthHigh&&(PMH==null||P>PMH)) md='blue-sky, off highs';
+      else if(PDH!=null&&P>PDH){
+        const d2= pd&&daily.length>=2&&pd.c>=daily[daily.length-2].c*1.2&&pd.v>=5*(daily.slice(-11,-1).reduce((a,b)=>a+b.v,0)/10||1);
+        md= d2?'day 2 of a runner':'above yesterday’s high';
+      }
+      else if(PDL!=null&&P>=PDL) md='inside yesterday’s range';
+      else if(PDL!=null) md='below yesterday’s low — broken';
+    }
+    const tags=[];
+    if(gapUnfilled&&PDC!=null) tags.push('gap unfilled → '+fmtP(PDC));
+    if(rot!=null&&rot>=1) tags.push('float rotated '+rot.toFixed(1)+'×');
+    return {levels:live, nearRes, nearSup, trend, md, blueSky, tags, HOD, LOD, PMH, PML, PDH, PDL, PDC, rot, tol, bars};
+  }catch(e){ return null; }
+}
+
+// ---------- advice composer (spec §3) — decorates the RHYTHM line ----------
+function adviceClause(L,P){
+  if(!L) return '';
+  let s=' · trend <b>'+L.trend+'</b>'+(L.md?(', '+L.md):'');
+  if(L.blueSky) s+=' · <b class="rok">BLUE SKY</b> — nothing above but air';
+  else if(L.nearRes){ const d=((L.nearRes.price-P)/P*100);
+    s+=' · next res '+L.nearRes.code+(L.nearRes.conf?'*':'')+' '+fmtP(L.nearRes.price)+' (+'+d.toFixed(1)+'%)'
+      +(d<=4?' — tight, take profit into it':' — room to run'); }
+  if(L.nearSup&&!L.blueSky){ s+=' · sup '+L.nearSup.code+' '+fmtP(L.nearSup.price); }
+  if(L.tags.length) s+=' · <span class="rwarn">'+L.tags[0]+'</span>';
+  const sess=etSession();
+  if(sess==='PRE') s+=' · pre-mkt: thin tape';
+  if(sess==='AH')  s+=' · after-hrs: thin, halve size';
+  return s;
+}
+function levelsRow(L){
+  if(!L||!L.levels.length) return '';
+  const r=L.levels.filter(x=>x.role==='res').slice(0,3).map(x=>x.code+(x.conf?'*':'')+' '+fmtP(x.price)).join(' · ');
+  const su=L.levels.filter(x=>x.role!=='res').slice(0,3).map(x=>x.code+(x.conf?'*':'')+' '+fmtP(x.price)).join(' · ');
+  return (r?('R: '+r):'')+(r&&su?'&nbsp;&nbsp;':'')+(su?('S: '+su):'');
+}
+let LVL=null;   // latest computed level pack for the live symbol
+
+// ---------- THE TAPE (canvas renderer, spec §4 + design spec §2) ----------
+function drawTape(cv, res, o){
+  try{
+    o=o||{};
+    const W=cv.clientWidth,H=cv.clientHeight; if(!W||!H) return;
+    const dpr=window.devicePixelRatio||1;
+    if(cv.width!==Math.round(W*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
+    const x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+    const css=getComputedStyle(document.documentElement);
+    const C={pos:css.getPropertyValue('--pos').trim(),neg:css.getPropertyValue('--neg').trim(),
+      warn:css.getPropertyValue('--warn').trim(),live:css.getPropertyValue('--live').trim(),
+      hi:css.getPropertyValue('--text-hi').trim(),mid:css.getPropertyValue('--text-mid').trim(),
+      low:css.getPropertyValue('--text-low').trim(),s2:css.getPropertyValue('--surface-2').trim()};
+    const q=res.indicators.quote[0], ts=res.timestamp||[];
+    const all=[];
+    for(let i=0;i<ts.length;i++) if(q.close[i]!=null)
+      all.push({t:ts[i],o:q.open[i]!=null?q.open[i]:q.close[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
+    if(all.length<2) return;
+    // live-forming patch
+    if(o.livePx>0&&all.length){ const lb=all[all.length-1];
+      lb.c=o.livePx; lb.h=Math.max(lb.h,o.livePx); lb.l=Math.min(lb.l,o.livePx); }
+    const endT=o.dim? all[all.length-1].t : Math.max(all[all.length-1].t, Math.floor(Date.now()/1000));
+    const startT=endT-59*60;
+    const win=all.filter(b=>b.t>=startT-30);
+    if(!win.length) return;
+    // session series for overlays (full-session anchored)
+    let pv=0,vv=0; const vwapS=[],closes=[];
+    all.forEach(b=>{ if(b.v>0){ pv+=((b.h+b.l+b.c)/3)*b.v; vv+=b.v; } vwapS.push(vv?pv/vv:null); closes.push(b.c); });
+    const e9S=emaSeriesArr(closes,9);
+    const GU=34, plotW=W-GU;
+    const pitch=Math.max(3,Math.floor(plotW/61));
+    const slotX=t=>plotW-((endT-t)/60)*pitch;
+    // y-scale: window range ±3%, include overlay lines that are near
+    let lo=Math.min.apply(null,win.map(b=>b.l)), hi=Math.max.apply(null,win.map(b=>b.h));
+    (o.lines||[]).forEach(l=>{ if(l.price>lo*0.97&&l.price<hi*1.03){ lo=Math.min(lo,l.price); hi=Math.max(hi,l.price); } });
+    const pad=(hi-lo)*0.03||hi*0.01; lo-=pad; hi+=pad;
+    const Y=p=>H-((p-lo)/(hi-lo))*(H-16)-8;
+    x.globalAlpha=o.dim?0.55:1;
+    // grid: 3 hairlines
+    x.strokeStyle='rgba(148,163,184,.06)'; x.lineWidth=1;
+    [0.25,0.5,0.75].forEach(f=>{ const y=Math.round(8+(H-16)*f)+0.5; x.beginPath(); x.moveTo(0,y); x.lineTo(plotW,y); x.stroke(); });
+    // level lines (≤5, role colour, dash by age) + gutter labels w/ collision
+    const lines=(o.lines||[]).filter(l=>l.price>lo&&l.price<hi).slice(0,5);
+    const labels=[];
+    lines.forEach(l=>{
+      const y=Math.round(Y(l.price))+0.5;
+      x.strokeStyle= l.role==='warn'?C.warn : l.role==='res'?C.neg : l.role==='wall'?C.warn : C.pos;
+      x.setLineDash(l.age==='prior'?[4,3]: l.role==='wall'||l.age==='wall'?[1,3]:[]);
+      x.lineWidth=1; x.beginPath(); x.moveTo(0,y); x.lineTo(plotW,y); x.stroke(); x.setLineDash([]);
+      labels.push({y:y,txt:l.code+(l.conf?'*':''),col:x.strokeStyle});
+    });
+    // curves: VWAP solid (hi 55%), EMA9 dashed mid
+    const curve=(S,style,dash)=>{
+      x.strokeStyle=style; x.lineWidth=1.25; if(dash) x.setLineDash([3,3]);
+      x.beginPath(); let started=false;
+      for(let i=0;i<all.length;i++){ const b=all[i]; if(b.t<startT-30||S[i]==null) continue;
+        const px2=slotX(b.t)+pitch/2, py=Y(S[i]);
+        if(!started){ x.moveTo(px2,py); started=true; } else x.lineTo(px2,py); }
+      x.stroke(); x.setLineDash([]);
+    };
+    x.save(); x.globalAlpha=(o.dim?0.55:1)*0.55; curve(vwapS,C.hi,false); x.restore();
+    x.save(); x.globalAlpha=(o.dim?0.55:1)*0.8; if(e9S) curve(e9S,C.mid,true); x.restore();
+    // candles or polyline
+    if(o.mode==='line'){
+      x.strokeStyle=C.hi; x.lineWidth=1.5; x.globalAlpha=(o.dim?0.55:1)*0.85;
+      x.beginPath(); let st=false;
+      win.forEach(b=>{ const px2=slotX(b.t)+pitch/2, py=Y(b.c);
+        if(!st){ x.moveTo(px2,py); st=true; } else x.lineTo(px2,py); });
+      x.stroke(); x.globalAlpha=o.dim?0.55:1;
+    } else {
+      win.forEach(b=>{
+        const bx=slotX(b.t); if(bx<-pitch) return;
+        const up=b.c>=b.o;
+        const col= Math.abs(b.c-b.o)<1e-9?C.low : up?C.pos:C.neg;
+        x.strokeStyle=col; x.fillStyle=col; x.lineWidth=1;
+        const cxm=Math.round(bx+pitch/2)+0.5;
+        x.beginPath(); x.moveTo(cxm,Y(b.h)); x.lineTo(cxm,Y(b.l)); x.stroke();
+        const y1=Y(Math.max(b.o,b.c)), y2=Y(Math.min(b.o,b.c));
+        x.fillRect(Math.round(bx)+1, y1, Math.max(2,pitch-2), Math.max(1,y2-y1));
+      });
+    }
+    // extra straight lines (mini chart: entry/targets/stop/peak)
+    (o.extra||[]).forEach(l=>{
+      if(l.price<=lo||l.price>=hi) return;
+      const y=Math.round(Y(l.price))+0.5;
+      x.strokeStyle=l.col; x.setLineDash(l.dash||[]); x.lineWidth=1;
+      x.beginPath(); x.moveTo(0,y); x.lineTo(plotW,y); x.stroke(); x.setLineDash([]);
+      labels.push({y:y,txt:l.code,col:l.col});
+    });
+    // gutter labels: last price wins, 11px min separation
+    const lp=win[win.length-1].c;
+    const lpy=Math.max(10,Math.min(H-8,Y(lp)));
+    x.fillStyle=C.s2; x.fillRect(plotW+1,lpy-7,GU-2,13);
+    x.fillStyle= win[win.length-1].c>=win[win.length-1].o?C.pos:C.neg;
+    x.font='700 9.5px "JetBrains Mono",monospace'; x.textAlign='left';
+    x.fillText(lp<1?lp.toFixed(3):lp.toFixed(2), plotW+3, lpy+3);
+    labels.sort((a,b)=>a.y-b.y);
+    let lastY=-99;
+    labels.forEach(l=>{
+      if(Math.abs(l.y-lpy)<9) return;                 // last price wins
+      if(l.y-lastY<11) return;                        // collision: higher-ranked (earlier) wins
+      lastY=l.y;
+      x.fillStyle=l.col; x.font='600 9px "JetBrains Mono",monospace';
+      x.fillText(l.txt, plotW+3, Math.max(9,Math.min(H-3,l.y+3)));
+    });
+    // badges
+    x.textAlign='right';
+    if(o.blueSky){ x.fillStyle=C.pos; x.font='700 9px "Space Grotesk",sans-serif'; x.fillText('BLUE SKY', plotW-5, 13); }
+    if(o.noPrints){ x.fillStyle=C.warn; x.font='700 9px "Space Grotesk",sans-serif'; x.fillText('NO PRINTS', plotW-5, o.blueSky?24:13); }
+    x.globalAlpha=1;
+  }catch(e){}
+}
+
+// ---------- FIND tape wiring ----------
+let _tapeLast=0, _tapeEnsureAt=0;
+function tapeRender(){
+  const box=$('tapeChart'); if(!box) return;
+  const ok= CAND1M.res && CAND1M.sym===liveSym && liveSym;
+  if(!ok){ box.classList.add('off'); return; }
+  box.classList.remove('off');
+  if(box.clientHeight<64){ box.classList.add('off'); return; }   // degrade rule: chart goes first
+  const closed=!etSession();
+  const live=parseFloat($('cur').value)||null;
+  const lines=(LVL&&LVL.levels)? LVL.levels.filter(l=>Math.abs(l.price-(live||0))/(live||1)<=0.08)
+      .slice(0,5).map(l=>({code:l.code,price:l.price,role:l.role,age:l.age,conf:l.conf})) : [];
+  $('tapeLabel').textContent='TAPE · 60M · 1M'+(closed?' · LAST SESSION':'');
+  const lastT=(CAND1M.res.timestamp||[]).slice(-1)[0]||0;
+  drawTape($('tapeCv'), CAND1M.res, {mode:'candles', dim:closed, livePx:closed?null:live,
+    lines:lines, blueSky:!!(LVL&&LVL.blueSky),
+    noPrints: !closed && lastT && (Date.now()/1000-lastT)>600});
+}
+async function tapeEnsure(){
+  // closed market: planEntry doesn't fetch — one candle pull / 10 min keeps the LAST SESSION shape
+  if(!liveSym) return;
+  if(CAND1M.sym===liveSym && Date.now()-CAND1M.at<10*60*1000) return;
+  if(etSession()) return;                       // in-session, planEntry's 60s loop owns the cache
+  if(Date.now()-_tapeEnsureAt<10*60*1000) return;
+  _tapeEnsureAt=Date.now();
+  try{ const res=await fetchCandles(liveSym,'1m'); if(res){ CAND1M={sym:liveSym,at:Date.now(),res:res};
+    const d=await dailyBars(liveSym);
+    let fl=null; try{ fl=(JSON.parse(localStorage.getItem(GCACHE_KEY)||'{}')[liveSym]||{}).soM; }catch(e){}
+    LVL=computeLevels(res,d,parseFloat($('cur').value)||null,fl);
+    tapeRender(); } }catch(e){}
+}
+new ResizeObserver(()=>{ try{ tapeRender(); }catch(e){} }).observe($('tapeChart'));
+
+// ---------- MANAGE mini chart ----------
+function miniRender(advLevel){
+  const box=$('miniChart'); if(!box) return;
+  const o=ARM;
+  const show= o&&o.state==='in'&&o.mode!=='hold'&&CANDM.res&&CANDM.sym===o.sym&&advLevel<3;
+  box.hidden=!show;
+  if(!show) return;
+  const live=(liveSym===o.sym)?(parseFloat($('cur').value)||null):null;
+  const extra=[
+    {code:'IN', price:o.fillPx, col:getComputedStyle(document.documentElement).getPropertyValue('--text-hi').trim(), dash:[]},
+    {code:'+5', price:limitFor(o.fillPx,0.05), col:getComputedStyle(document.documentElement).getPropertyValue('--pos').trim(), dash:[3,3]},
+    {code:'+10',price:limitFor(o.fillPx,0.10), col:getComputedStyle(document.documentElement).getPropertyValue('--pos').trim(), dash:[3,3]},
+  ];
+  if(o.stop>0) extra.push({code:'ref', price:o.stop, col:getComputedStyle(document.documentElement).getPropertyValue('--neg').trim(), dash:[3,3]});
+  drawTape($('miniCv'), CANDM.res, {mode:'line', livePx:live, extra:extra});
+}
+
+// ---------- SCAN rail clock ----------
+function railTick(){
+  try{
+    const p=etParts(); const m=(+p.hour)*60+(+p.minute);
+    const s=etSession();
+    const mins=x=>{ const h=Math.floor(x/60),mm=x%60; return h?(h+'h'+String(mm).padStart(2,'0')):(mm+'m'); };
+    let seg;
+    if(s==='RTH') seg='RTH · close '+mins(960-m);
+    else if(s==='PRE') seg='PRE · open '+mins(570-m);
+    else if(s==='AH') seg='AH · end '+mins(1200-m);
+    else if(p.weekday==='Sat'||p.weekday==='Sun') seg='closed · Mon 04:00';
+    else seg= m<240? ('closed · pre '+mins(240-m)) : 'closed · pre 04:00';
+    $('railClock').textContent=p.hour+':'+p.minute+' ET · '+seg;
+  }catch(e){}
+}
+railTick(); setInterval(railTick,30000);
+
+// ---------- day tape (last-8 W/L dots) ----------
+function renderDayTape(){
+  try{
+    const el=$('dayTape'); const today=etDayKey();
+    const t=loadTrades().filter(x=>tradeDay(x)===today);
+    if(!t.length){ el.hidden=true; return; }
+    const last=t.slice(-8);
+    let streak=1;
+    for(let i=t.length-2;i>=0;i--){ if((t[i].netGBP>=0)===(t[t.length-1].netGBP>=0)) streak++; else break; }
+    const wins=t.filter(x=>x.netGBP>=0).length;
+    el.innerHTML=last.map(x=>'<i class="'+(x.netGBP>=0?'w':'l')+'"></i>').join('')
+      +' <span>'+wins+'/'+t.length+' · '+(t[t.length-1].netGBP>=0?'+':'−')+streak+' streak</span>';
+    el.hidden=false;
+  }catch(e){}
+}
+
+// ---------- RUNG RATCHET (withdrawal expert §5, Ali: "as soon as I log it") ----------
+const RUNGS=[1000,2000,4000,8000,16000,32000,64000,128000,256000,512000];
+let SWEEP=null; try{ SWEEP=JSON.parse(localStorage.getItem('sweep_v1')||'null'); }catch(e){}
+if(!SWEEP) SWEEP={ack:0, stake:false, swept:0};
+function sweepSave(){ try{ localStorage.setItem('sweep_v1',JSON.stringify(SWEEP)); }catch(e){} }
+function sweepCheck(eq){
+  try{
+    const line=$('sweepLine'), bar=$('sweepBar');
+    const crossed=RUNGS.filter(r=>eq>=r && r>SWEEP.ack);
+    const rungAmt=crossed.reduce((a,r)=>a+r/8,0);
+    const stakeAmt=SWEEP.stake?0:200;
+    const total=rungAmt+stakeAmt;
+    const nextR=RUNGS.find(r=>r>eq)||null;
+    line.innerHTML='Swept <b>£'+fmt(SWEEP.swept)+'</b> · house £'+fmt(eq)
+      +(nextR?' · next rung £'+fmt(nextR,0)+' → sweep £'+fmt(nextR/8,0):'');
+    line.hidden=false;
+    // stake sweep fires once equity can spare it (≥£400 leaves £200 house after the sweep)
+    const stakeReady = !SWEEP.stake && eq>=400;
+    if(crossed.length || stakeReady){
+      const total2 = rungAmt + (stakeReady?200:0);
+      $('sweepTxt').textContent='🏆 Withdraw £'+fmt(total2,0)+' now'
+        +(stakeReady?' (stake £200'+(rungAmt?' + rung £'+fmt(rungAmt,0):'')+')':' (rung hit)');
+      bar.hidden=false;
+      bar.dataset.amt=total2; bar.dataset.rung=crossed.length?crossed[crossed.length-1]:SWEEP.ack; bar.dataset.stake=stakeReady?1:0;
+    } else bar.hidden=true;
+  }catch(e){}
+}
+$('sweepDone').addEventListener('click',()=>{
+  const bar=$('sweepBar');
+  const amt=+bar.dataset.amt||0;
+  if(+bar.dataset.stake) SWEEP.stake=true;
+  SWEEP.ack=Math.max(SWEEP.ack,+bar.dataset.rung||0);
+  SWEEP.swept+=amt;
+  sweepSave(); bar.hidden=true;
+  try{ DECL.push({d:new Date().toISOString(), type:'sweep', amt:amt}); armSave(); if(typeof syncJournal==='function') syncJournal(); }catch(e){}
+  tost('£'+fmt(amt,0)+' swept — banked, can never round-trip', 30);
+  try{ renderPlan(); }catch(e){}
+});
+
+// ---------- playbook visibility + wiring into existing flows ----------
+function pbSync(){ try{ $('playbook').hidden = $('entryLine').hidden && $('wallLine').hidden; }catch(e){} }
+(function(){
+  const _pe=planEntry;
+  planEntry=async function(sym){
+    await _pe(sym);
+    // levels + advice decoration, all sessions 4am-8pm (and LAST SESSION shape when closed)
+    try{
+      if(CAND1M.sym===sym&&CAND1M.res){
+        const d=await dailyBars(sym);
+        let fl=null; try{ fl=(JSON.parse(localStorage.getItem(GCACHE_KEY)||'{}')[sym]||{}).soM; }catch(e){}
+        const P=parseFloat($('cur').value)||null;
+        LVL=computeLevels(CAND1M.res,d,P,fl);
+        if(LVL&&sym===liveSym){
+          const el=$('entryLine');
+          if(!el.hidden&&P>0) el.innerHTML=el.innerHTML.replace(/ · <span style="color:var\(--muted2\)">· your call<\/span>/,'')+adviceClause(LVL,P);
+          const lr=levelsRow(LVL);
+          if(lr){ $('wallLine').innerHTML='<span class="mlabel">LEVELS</span> '+lr; $('wallLine').hidden=false; }
+        }
+      }
+    }catch(e){}
+    pbSync(); tapeRender();
+  };
+})();
+// cache writes: patch fetchCandles consumers indirectly — planEntry + advisorFetch own the caches
+(function(){
+  const _fc=fetchCandles;
+  fetchCandles=async function(sym,interval){
+    const res=await _fc(sym,interval);
+    try{
+      if(res&&(interval==='1m')){
+        if(sym===liveSym) CAND1M={sym:sym,at:Date.now(),res:res};
+        if(ARM&&ARM.sym===sym) CANDM={sym:sym,at:Date.now(),res:res};
+      }
+    }catch(e){}
+    return res;
+  };
+})();
+// live tick → forming candle, ≤1 redraw/s
+(function(){
+  const _sp=setPrice;
+  setPrice=function(price,tag,asOf){
+    _sp(price,tag,asOf);
+    try{ if(Date.now()-_tapeLast>1000){ _tapeLast=Date.now(); tapeRender(); } }catch(e){}
+  };
+})();
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ try{ tapeRender(); railTick(); }catch(e){} } });
+setInterval(tapeEnsure, 60*1000);
+setTimeout(tapeEnsure, 2500);
+// module loaded after the boot-time renderPlan — run once so the ratchet line paints now
+try{ renderPlan(); }catch(e){}
+try{ renderDayTape(); }catch(e){}
 
 </script>
 </body>
