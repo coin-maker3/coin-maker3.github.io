@@ -585,7 +585,9 @@ let _pollBusy = false;
 function startPolling(sym){
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
-    if (document.hidden) return;
+    // hidden-tab polling stays OFF — except mid-QUICK-trade: he's in T212 executing, and the
+    // advisor must keep computing so the ntfy push can still reach his notification tray
+    if (document.hidden && !(ARM && ARM.state==='in' && ARM.mode!=='hold')) return;
     if (Date.now() - lastTickAt < 5000) return;        // stream healthy: don't double-write (no kill/restart flapping)
     if (_pollBusy) return;                             // a slow/halted fetch must never let 3s polls stack into a pile-up
     _pollBusy = true;
@@ -867,7 +869,8 @@ document.addEventListener('visibilitychange', () => {
 // + restart polling; >30s on a previously-active symbol = possibly LULD-halted.
 setInterval(() => { if (!document.hidden && liveSym) { try { runGauge(liveSym); } catch(e){} } }, 5*60*1000);
 setInterval(() => {
-  if (!liveSym || document.hidden || !lastUpdateAt) return;
+  if (!liveSym || !lastUpdateAt) return;
+  if (document.hidden && !(ARM && ARM.state==='in' && ARM.mode!=='hold')) return;   // watchdog stays awake mid-trade
   const age = (Date.now() - lastUpdateAt) / 1000;
   if (age <= 10) return;
   const halt = age > 30;
@@ -878,7 +881,8 @@ setInterval(() => {
     keep + (halt ? 'NO PRINTS ' + Math.round(age) + 's — HALT?' : 'STALE ' + Math.round(age) + 's') + '</span>');
   if (!pollTimer) startPolling(liveSym);
   if (halt && !haltBuzzed){ haltBuzzed = true;
-    if (navigator.vibrate && parseFloat($('avg').value) > 0) navigator.vibrate([80,60,80]); }
+    if (navigator.vibrate && parseFloat($('avg').value) > 0) navigator.vibrate([80,60,80]);
+    try{ if (ARM && ARM.state==='in') push('⏸ NO PRINTS — '+liveSym, 'Possible HALT while you hold. Watch T212 for the reopen.'); }catch(e){} }
 }, 5000);
 window.addEventListener('load', () => {
   renderRecents();
@@ -1381,22 +1385,31 @@ function renderPlan(){
   const priorDays=Object.keys(days).filter(k=>k<today).length;
   const dayStartEq=eq-todayNet;
   const goal=dayStartEq*0.05, floor=-dayStartEq*0.05;
+  // GAP FIX (expert, 21 Jul): the floor only saw LOGGED losses — an open position down 30%
+  // read "today −£0", so the one hard brake was bypassed by the exact loss-freeze it exists
+  // for. Mark the open QUICK position to market (HOLD stays excluded from the day by design).
+  let uNet=0;
+  try{ if(ARM&&ARM.state==='in'&&ARM.mode!=='hold'&&liveSym===ARM.sym){
+    const p=parseFloat($('cur').value); const g=(p>0)?netNow(ARM.fillPx,p,ARM.sh):null;
+    if(g!=null&&isFinite(g)) uNet=g; } }catch(e){}
+  const todayEff=todayNet+uNet;
   // The "vs plan £X / behind" curve is GONE (19 Jul, Ali's call). £200 x 1.05^day reaches
   // £44m in a year — a line he was guaranteed to be behind on, in red, where the only way to
   // clear it was to trade bigger. This shows where he actually is instead.
   const allNet=eq-PLAN.eq0;
   let st='';
-  if(todayNet>=goal) st=' · <b style="color:var(--green)">GOAL HIT — walk away</b>';
-  else if(todayNet<=floor) st=' · <b class="simbad">MAX LOSS — stop</b>';
+  if(todayEff>=goal) st=' · <b style="color:var(--green)">GOAL HIT — walk away</b>';
+  else if(todayEff<=floor) st=' · <b class="simbad">MAX LOSS — stop</b>';
   el.innerHTML='<b>£'+fmt(eq)+'</b> <span class="sub">balance</span>'
-    +' · today <b style="color:'+(todayNet>=0?'var(--green)':'var(--red)')+'">'+(todayNet>=0?'+':'−')+'£'+fmt(Math.abs(todayNet))+'</b>'
+    +' · today <b style="color:'+(todayEff>=0?'var(--green)':'var(--red)')+'">'+(todayEff>=0?'+':'−')+'£'+fmt(Math.abs(todayEff))+'</b>'
+    +(uNet!==0?' <span class="sub">(incl open '+(uNet>=0?'+':'−')+'£'+fmt(Math.abs(uNet))+')</span>':'')
     +' <span class="sub">/ goal £'+fmt(goal)+'</span>'
     +' · overall <b style="color:'+(allNet>=0?'var(--green)':'var(--red)')+'">'+(allNet>=0?'+':'−')+'£'+fmt(Math.abs(allNet))+'</b>'
     +' <span class="sub">day '+(priorDays+1)+'</span>'+st;
   el.hidden=false;
-  const ns=todayNet>=goal?'goal':todayNet<=floor?'loss':'';
+  const ns=todayEff>=goal?'goal':todayEff<=floor?'loss':'';
   if(ns&&ns!==_planState){ const tt=$('toast');
-    tt.textContent=ns==='goal'?'🎯 GOAL +£'+fmt(todayNet)+' — computer OFF.':'MAX LOSS — computer OFF. Tomorrow resets.';
+    tt.textContent=ns==='goal'?'🎯 GOAL +£'+fmt(todayEff)+' — computer OFF.':'MAX LOSS (incl open position) — computer OFF. Tomorrow resets.';
     tt.classList.add('show'); setTimeout(()=>tt.classList.remove('show'),3200);
     if(navigator.vibrate) navigator.vibrate(ns==='goal'?[40,40,40]:[80,60,80]); }
   _planState=ns;
@@ -1414,6 +1427,16 @@ let DECL=[]; try{ DECL=JSON.parse(localStorage.getItem('decl_v1')||'[]'); }catch
 let COOL=0; try{ COOL=+localStorage.getItem('cool_v1')||0; }catch(e){}
 function armSave(){ try{ localStorage.setItem('arm_v1',JSON.stringify(ARM)); localStorage.setItem('decl_v1',JSON.stringify(DECL.slice(-300))); localStorage.setItem('cool_v1',String(COOL)); }catch(e){} }
 function tost(m,vib){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); if(vib&&navigator.vibrate) navigator.vibrate(vib); }
+// ---- push that reaches him INSIDE T212 (expert gap 3): the advisor used to buzz a page he
+// wasn't looking at — at the critical moment he's in the broker app. ntfy.sh → notification
+// tray, any app foreground. He must install the ntfy app and subscribe to this topic once.
+const NTFY_URL='https://ntfy.sh/profit-cockpit-ali-gx4t9w2m';
+let _lastPush=0;
+function push(title,msg,pri){
+  if(Date.now()-_lastPush<15000) return;                 // one push / 15s max — tray spam kills trust
+  _lastPush=Date.now();
+  try{ fetch(NTFY_URL,{method:'POST',body:msg,headers:{'Title':title,'Priority':pri||'high','Tags':'chart'}}).catch(()=>{}); }catch(e){}
+}
 // returns null (not Infinity) when the FX rate hasn't loaded — an Infinity here used to be
 // stored as JSON null and turned every later total into NaN, permanently, with no way back
 function netNow(entry,px,sh){ if(!fxFresh()) return null; return ((sh*px*(1-S)-sh*T)*(1-F)-sh*entry*(1+F))/GBPUSD; }
@@ -1448,11 +1471,24 @@ function fillArm(mode){
   ARM.state='in'; ARM.mode=(mode==='hold'?'hold':'quick');
   ARM.fillPx=px; ARM.sh=sh; ARM.filledAt=new Date().toISOString(); ARM.peak=px;
   armSave(); renderArm(); switchTab('manage');
+  // SIZE GUARDRAIL (expert, 21 Jul): the most probable account-killer is one full-balance
+  // punt on a halt-prone stock — a LULD halt reopens wherever it wants and there is no
+  // manual cut while it's halted. Advisory only, as ever: he decides, the app says it once.
+  let sizeWarn=null;
+  try{ if(fxFresh()){
+    const tt=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
+    const eq=PLAN.eq0+tt.reduce((a,x)=>a+x.netGBP,0);
+    const pc=eq>0? (px*sh/GBPUSD)/eq*100 : 0;
+    if(pc>50&&px<2) sizeWarn='⚠ '+Math.round(pc)+'% of your account on a halt-prone penny — a halt reopens wherever it wants';
+    else if(pc>80) sizeWarn='⚠ '+Math.round(pc)+'% of your account in one stock';
+  } }catch(e){}
   if(ARM.mode==='quick'){
     try{ navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{}); }catch(e){}
-    tost('IN — timer running. +5% $'+limitFor(px,0.05).toFixed(px<1?3:2)+' · +10% $'+limitFor(px,0.10).toFixed(px<1?3:2));
+    tost(sizeWarn || 'IN — timer running. +5% $'+limitFor(px,0.05).toFixed(px<1?3:2)+' · +10% $'+limitFor(px,0.10).toFixed(px<1?3:2), sizeWarn?[60,40,60]:undefined);
   } else {
-    tost('HOLDING '+ARM.sym+' — no timer. Close it whenever you decide.');
+    // overnight-dilution flag: pumped pennies get offerings priced overnight (−40% opens)
+    tost(px<2 ? (sizeWarn?sizeWarn+' · ':'')+'HOLDING a penny overnight? Pumped pennies get diluted — check for an offering before you sleep on it'
+              : sizeWarn || 'HOLDING '+ARM.sym+' — no timer. Close it whenever you decide.', (sizeWarn||px<2)?[60,40,60]:undefined);
   }
 }
 function exitArm(){
@@ -1687,15 +1723,18 @@ function renderInTrade(){
     // escalation fires on level CHANGE only (alarm fatigue kills alarms); GET OUT repeats
     // until acknowledged — he's in T212 by now and only the pocket buzz reaches him there
     if(adv.level>(o._advL||0)){
-      if(adv.level===2) tost('Thesis broken — holding is choosing to lose',[60]);
-      if(adv.level===3) tost('GET OUT — sell at market on T212',[100,60,100,60,100]);
+      if(adv.level===2){ tost('Thesis broken — holding is choosing to lose',[60]);
+        push('THESIS BROKEN — '+o.sym, 'Holding is choosing to lose'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Decide your out.'); }
+      if(adv.level===3){ tost('GET OUT — sell at market on T212',[100,60,100,60,100]);
+        push('🛑 GET OUT — '+o.sym, 'Ride-it-down in progress'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Sell at market, reassess flat.','urgent'); }
     }
     if(adv.level===3 && !o._ackGo){ if(!o._gb3||Date.now()-o._gb3>10000){ o._gb3=Date.now(); if(navigator.vibrate) navigator.vibrate([100,60,100]); } }
     // hysteresis: only a REAL recovery (back to caution/neutral) re-arms the GET OUT alarm —
     // price flicker across the tier line must not restart the buzzing he already acknowledged
     if(adv.level<=1){ o._ackGo=0; o._gb3=0; }
     o._advL=adv.level;
-    if(takeNow&&!o._tb){ o._tb=1; tost(ext?'TAKE IT — no halt to save you':'TAKE IT — giving back the gain',[60,50,60,50,120]); } if(used<0.8) o._tb=0;
+    if(takeNow&&!o._tb){ o._tb=1; tost(ext?'TAKE IT — no halt to save you':'TAKE IT — giving back the gain',[60,50,60,50,120]);
+      push('🎯 TAKE IT — '+o.sym, 'Giving back the gain'+(pl!=null?' · still +£'+fmt(Math.abs(pl)):'')+'. Sell into strength.'); } if(used<0.8) o._tb=0;
     if(held>360&&held<363&&nowPct>=0) tost('6 min — edge window over',[60]);
   }
 }
@@ -1704,6 +1743,7 @@ setInterval(()=>{
   if(ARM.state==='in'){
     if(isHold()){ if(!ARM._ht||Date.now()-ARM._ht>5000){ ARM._ht=Date.now(); renderArm(); } return; }
     advisorFetch();                                        // self-throttles to one candle pull / 30s
+    if(!ARM._pr||Date.now()-ARM._pr>10000){ ARM._pr=Date.now(); try{ renderPlan(); }catch(e){} }   // floor sees the open position within 10s
     renderInTrade(); return;
   }
   if(ARM.state==='armed'){
