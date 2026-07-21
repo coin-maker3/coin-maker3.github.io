@@ -183,6 +183,11 @@ body.plpos #mPrice{text-shadow:var(--glow-pos)}
 .pv{flex:1;color:var(--text-mid);font-family:var(--font-num);font-variant-numeric:tabular-nums}
 .pv b{color:var(--text-hi);font-size:14px}
 .pv.rok{color:var(--pos)}.pv.rbad{color:var(--neg)}.pv.rwarn{color:var(--warn)}
+.pgtime{font-size:9.5px;color:var(--text-low);font-weight:600;letter-spacing:.03em}
+.ctap{text-decoration:underline dotted;color:var(--text-hi);cursor:pointer}
+#newsHeads{font-size:11px;color:var(--text-mid);line-height:1.6;margin-top:5px;
+  border-top:1px solid var(--border-hair);padding-top:5px}
+#newsHeads .sub{color:var(--text-low)}
 #wallLine{font-size:11.5px;color:var(--text-mid);padding:0 8px;flex:none}
 #wallLine b{color:var(--warn)}
 .rok{color:var(--pos)}.rbad{color:var(--neg)}.rwarn{color:var(--warn)}
@@ -373,6 +378,7 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
     <div id="gauge" hidden>
       <div class="gbadge" id="gBadge">—</div>
       <div class="greasons" id="gReasons"></div>
+      <div id="newsHeads" hidden></div>
     </div>
   </div>
   <!-- playbook: entry plan + the walls above it -->
@@ -502,7 +508,10 @@ $('tabManage').addEventListener('click', ()=>switchTab('manage'));
 const F = 0.0015, S = 0.0000278, T = 0.000195;
 function limitFor(buy, x){
   const raw = (buy * (1 + x) * (1 + F) / (1 - F) + T) / (1 - S);
-  return Math.ceil(raw * 100 - 1e-9) / 100;
+  // TRADER FIX 21 Jul: whole-cent ceiling LIED on pennies — "+5%" at a $0.30 fill printed
+  // a $0.32 limit = +6.7% gross, so fills missed the stated target and winners round-tripped
+  // (his exact failure mode, manufactured by rounding). Sub-$1 now ceils to a tenth of a cent.
+  return buy < 1 ? Math.ceil(raw * 1000 - 1e-9) / 1000 : Math.ceil(raw * 100 - 1e-9) / 100;
 }
 function breakEven(buy){ return limitFor(buy, 0); }
 
@@ -799,7 +808,7 @@ function rateStock(d){
     reasons.push({cls:'ok', t:'yesterday ' + (d.prevX>=10?Math.round(d.prevX):d.prevX.toFixed(1)) + '× avg volume — proven mover'});
   const fKnown = d.floatM != null;
   const fOk = fKnown && d.floatM <= 20, fBig = fKnown && d.floatM > 50;
-  reasons.push({cls: !fKnown ? 'warn' : fOk ? 'ok' : fBig ? 'bad' : 'warn', t: fKnown ? '~' + Math.round(d.floatM) + 'M shares (approx float)' : 'float unknown'});
+  reasons.push({cls: !fKnown ? 'warn' : fOk ? 'ok' : fBig ? 'bad' : 'warn', t: fKnown ? 'SO ~' + Math.round(d.floatM) + 'M — float ≤ this' : 'float unknown'});
   reasons.push({cls: d.news ? 'ok' : 'bad', t: d.news ? 'news ' + d.newsAge : 'no fresh news'});
   if (d.offering) reasons.push({cls:'bad', t:'⚠ OFFERING headline — dilution risk (pennies dilute MOST)'});
   // unknown volume is NOT a pass. It can no longer satisfy core; the existing
@@ -920,6 +929,17 @@ async function runGauge(sym){
     // ...and stamp it, because this grade is only as new as the last time it was run
     rs.innerHTML = '<span class="gstamp">rated ' + ep.hour + ':' + ep.minute + ' ET</span>'
       + r.reasons.map(x => '<span class="' + x.cls + '">' + x.t + '</span>').join('');
+    // TRADER FIX: a green "news" pill you can't read isn't a catalyst — tap it for the headlines
+    try{
+      const nh=$('newsHeads');
+      if(fresh.length){
+        nh.innerHTML=fresh.slice(0,3).map(n=>'<div>· '+((n.headline||'').slice(0,84))
+          +' <span class="sub">'+Math.max(0,Math.round((Date.now()-n.datetime*1000)/3600e3))+'h</span></div>').join('');
+        const chip=[...rs.querySelectorAll('span')].find(s=>/^news /.test(s.textContent));
+        if(chip){ chip.style.cursor='pointer'; chip.style.textDecoration='underline dotted';
+          chip.onclick=()=>{ nh.hidden=!nh.hidden; }; }
+      } else { nh.hidden=true; nh.innerHTML=''; }
+    }catch(e){}
   } catch(e){
     badge.className = 'gbadge loading'; badge.textContent = 'rating unavailable';
   }
@@ -1307,7 +1327,9 @@ function renderMkt(){
   if(MKT.temp==='UNKNOWN'){ el.innerHTML='<b class="cold">temp unknown</b> ('+(MKT.why||'screener unreachable')+')'; return; }
   const cls=MKT.temp==='HOT'?'hot':MKT.temp==='WARM'?'warm':'cold';
   let h='<b class="'+cls+'">'+MKT.temp+'</b> · '+MKT.n+' in play';
-  if(MKT.temp==='COLD') h+=' — maybe no trade';
+  // TRADER FIX: the screeners cannot see sub-$1 — a confident COLD over a partial universe
+  // talks him out of penny sessions it never looked at. Say the blind spot out loud.
+  if(MKT.temp==='COLD') h+=' <span class="mfade">($1+ only — pennies unseen)</span>';
   MKT.top.forEach(m=>{ const faded=m.pos!=null&&m.pos<0.6;
     const mark = faded?'<span class="mfade"> faded '+(m.off!=null?'-'+Math.round(m.off)+'%':'')+'</span>' : (m.pos!=null&&m.pos>=0.8?'<span class="mlive"> ▲</span>':'');
     h+='<span class="msym" data-s="'+m.s+'">'+m.s+' $'+(m.p<1?m.p.toFixed(2):m.p.toFixed(0))+' +'+m.c+'%'+(m.tag?' '+m.tag:'')+mark+'</span>'; });
@@ -1445,6 +1467,9 @@ async function planEntry(sym){
         +'<span class="sub">ARM = I bought it · DECLARE = only spotted it (no trade)</span>':'');
     window._lastZone={sym:sym, zone:+dp(uEntry), stop:uStop, target:uTgt, tenNet:limitFor(uEntry,0.10), fresh:fresh};
     el.hidden=false;
+    // verdicts age fast on proxied 1m data — stamp them like the gauge is stamped
+    try{ const ps=el.querySelector('.pstate'); if(ps){ const p2=etParts();
+      ps.insertAdjacentHTML('beforeend',' <span class="pgtime">as of '+p2.hour+':'+p2.minute+' ET</span>'); } }catch(e){}
     const ab=$('armBtn'), db=$('declBtn');
     if(ab) ab.onclick=armTrade;
     if(db) db.onclick=()=>{ if(declarePick(false)) tost('Pick declared — timestamped for the edge test'); };
@@ -1536,7 +1561,9 @@ function tost(m,vib){ const t=$('toast'); t.textContent=m; t.classList.add('show
 const NTFY_URL='https://ntfy.sh/profit-cockpit-ali-gx4t9w2m';
 let _lastPush=0;
 function push(title,msg,pri){
-  if(Date.now()-_lastPush<15000) return;                 // one push / 15s max — tray spam kills trust
+  // GET OUT is exempt from the throttle — a THESIS BROKEN push seconds earlier must never
+  // eat the one alarm that always has to land (level 2→3 happens in seconds in a flush)
+  if(pri!=='urgent' && Date.now()-_lastPush<15000) return;   // otherwise one push / 15s — tray spam kills trust
   _lastPush=Date.now();
   try{ fetch(NTFY_URL,{method:'POST',body:msg,headers:{'Title':title,'Priority':pri||'high','Tags':'chart'}}).catch(()=>{}); }catch(e){}
 }
@@ -1810,7 +1837,9 @@ function renderInTrade(){
     +(px!=null&&nowPct>=0?'<div class="fuel"><div class="fuelfill" style="width:'+barW+'%;background:'+col+'"></div></div>':'')
     +advHtml
     +'<div class="isub">'+(px!=null?'price '+(nowPct>=0?'+':'')+nowPct.toFixed(1)+'%'+(pl!=null?' · net '+(pl>=0?'+':'&minus;')+'&pound;'+fmt(Math.abs(pl)):'')+' · ':'')
-      +'+5% $'+limitFor(o.fillPx,0.05).toFixed(o.fillPx<1?3:2)+' · +10% $'+limitFor(o.fillPx,0.10).toFixed(o.fillPx<1?3:2)+'</div>'
+      // tap-to-copy INSIDE the coach — the cards are hidden at exactly the paste-into-T212 moment
+      +'+5% <span class="ctap" data-c="'+limitFor(o.fillPx,0.05).toFixed(o.fillPx<1?3:2)+'">$'+limitFor(o.fillPx,0.05).toFixed(o.fillPx<1?3:2)+'</span>'
+      +' · +10% <span class="ctap" data-c="'+limitFor(o.fillPx,0.10).toFixed(o.fillPx<1?3:2)+'">$'+limitFor(o.fillPx,0.10).toFixed(o.fillPx<1?3:2)+'</span> <span class="sub">tap=copy</span></div>'
     +'<button class="btn iout'+(adv.level>=3?' iostop':takeNow?' iotake':'')+'" id="btnOut">'
       +(adv.level>=3?'&#128721; GET OUT &rarr; LOG':takeNow?'&#127919; TAKE IT &rarr; LOG':'I\'M OUT &rarr; LOG')+'</button>'
     +(px==null?'<div class="isub" style="color:var(--amber)">no live price for '+o.sym+' — type YOUR exit price:</div>'
@@ -1820,6 +1849,9 @@ function renderInTrade(){
     +'<button class="btn" id="btnBack" style="width:100%;margin-top:8px;font-size:12px;opacity:.7" title="stop the timer/alarms — does NOT log; you can still LOG normally">&larr; back (stop timer · don\'t log)</button>';
   $('btnOut').onclick=exitArm;
   try{ if(typeof miniRender==='function') miniRender(adv.level||0); }catch(e){}     // position shape (hidden at GET OUT)
+  it.querySelectorAll('.ctap').forEach(s=>s.onclick=()=>{
+    (navigator.clipboard?navigator.clipboard.writeText(s.dataset.c):Promise.reject())
+      .then(()=>tost(s.dataset.c+' copied — paste into your T212 limit',30)).catch(()=>{}); });
   const itxEl=$('itExit'); if(itxEl) itxEl.oninput=()=>{ o._itxVal=itxEl.value; };   // survive the 1s re-render
   const ak=$('advAck'); if(ak) ak.onclick=()=>{ o._ackGo=1; renderInTrade(); };
   $('btnBack').onclick=()=>{ ARM=null; armSave(); renderArm(); tost('Exit coach off — log your sale the normal way when ready'); };
@@ -1892,8 +1924,12 @@ const _origRenderPlan=renderPlan;
 renderPlan=function(){
   _origRenderPlan();
   if(_planState){
-    // VERIFIER FIX: must aggregate EXACTLY like the trigger — NY trading day + scalps only
-    // (hold/manual excluded). The old UTC/unfiltered sum could headline "+£X" under STOPPED.
+    // TRADER FIX 21 Jul: never throw a full-screen lockout OVER a live position — worst
+    // possible moment. It fires the moment the trade closes instead (state persists).
+    let inTrade=false; try{ inTrade=!!(ARM&&ARM.state==='in'); }catch(e){}
+    if(inTrade) return;
+    // aggregate EXACTLY like the trigger: NY trading day, scalps only, PLUS the open mark
+    // that may have tripped it (headlining "+£0.00" under DAY DONE was a lie)
     const t=loadTrades().filter(x=>x.d.slice(0,10)>=PLAN.start);
     const today=etDayKey();
     const todayNet=t.filter(x=>tradeDay(x)===today && x.mode!=='hold' && x.mode!=='manual').reduce((a,x)=>a+x.netGBP,0);
