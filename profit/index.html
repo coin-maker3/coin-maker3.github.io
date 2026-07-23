@@ -793,9 +793,31 @@ function setPrice(price, tag, asOf){
   const qHtml = '<strong>' + liveSym + '</strong> <span class="' + tagCls + '"><span class="dot"></span>' + tag + '</span>';
   $('quote').innerHTML = qHtml;
   // mirror into the MANAGE hero — both tabs always show the truth
-  $('mPrice').textContent = bp.textContent; $('mPrice').className = bp.className;
-  $('mQuote').innerHTML = qHtml;
+  try{ renderManageHero(); }catch(e){}   // MANAGE hero follows the ACTIVE TRADE, not the FIND scan symbol
   saveState(); calc();
+}
+let _mHeroPrev=null;
+// The MANAGE tab is the active trade, so its big price must be the stock you BOUGHT.
+// When you're viewing that symbol it ticks live; otherwise it uses T212's 5s position price.
+// With no open position it falls back to mirroring the FIND price.
+function renderManageHero(){
+  const mp=$('mPrice'), mq=$('mQuote'); if(!mp||!mq) return;
+  let o=null; try{ o=t212PrimaryOpen(); }catch(e){}
+  if(o && o.sym){
+    const tick=(liveSym===o.sym)?(parseFloat($('cur').value)||null):null;
+    const px=(tick!=null?tick:(o.curPrice||null)), onSym=(liveSym===o.sym);
+    if(px>0){
+      mp.textContent='$'+px.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+      mp.className='bigprice mono'+(_mHeroPrev==null?'':px>_mHeroPrev?' up':px<_mHeroPrev?' down':'');
+      _mHeroPrev=px;
+    } else { mp.textContent='—'; mp.className='bigprice mono'; }
+    mq.innerHTML='<strong>'+o.sym+'</strong> <span class="'+(onSym?'live':'live stale')+'">'
+      +'<span class="dot"></span>'+(onSym?'LIVE':'T212 · ~5s')+'</span>';
+  } else {
+    _mHeroPrev=null;
+    mp.textContent=$('bigPrice').textContent; mp.className=$('bigPrice').className;
+    mq.innerHTML=$('quote').innerHTML;
+  }
 }
 function stopLive(){
   if (ws){ try { ws.close(); } catch(e){} ws = null; }
@@ -3506,8 +3528,8 @@ function t212SafetyTick(){
 function t212RenderOpen(){
   const box=$('openPos'); if(!box) return;
   const syms=Object.keys(T212_OPEN);
-  if(!syms.length){ box.hidden=true; return; }
-  const o=t212PrimaryOpen(); if(!o){ box.hidden=true; return; }
+  if(!syms.length){ box.hidden=true; try{renderManageHero();}catch(e){} return; }
+  const o=t212PrimaryOpen(); if(!o){ box.hidden=true; try{renderManageHero();}catch(e){} return; }
   const sym=o.sym, entry=o.avg, shares=o.shares;
   const live=(liveSym===sym)?(parseFloat($('cur').value)||null):(o.curPrice||null);
   let pl=null, pct=null;
@@ -3525,6 +3547,7 @@ function t212RenderOpen(){
   fillCard('op5','opg5','opu5', entry, shares, 0.05);
   fillCard('op10','opg10','opu10', entry, shares, 0.10);
   box.hidden=false;
+  try{ renderManageHero(); }catch(e){}
 }
 function t212RenderLegacy(){
   const box=$('t212Legacy'); if(!box) return;
