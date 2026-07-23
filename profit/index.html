@@ -878,9 +878,14 @@ async function runGauge(sym){
         jget('https://finnhub.io/api/v1/stock/metric?symbol=' + sym + '&metric=all&token=' + FINNHUB_KEY).catch(()=>null),
         jget('https://finnhub.io/api/v1/stock/profile2?symbol=' + sym + '&token=' + FINNHUB_KEY).catch(()=>null)]);
       st = { avgM: met?.metric?.['10DayAverageTradingVolume'] ?? null,   // millions
-             soM: prof?.shareOutstanding ?? null };                       // millions
+             soM: prof?.shareOutstanding ?? null,                          // millions
+             country: prof?.country ?? null };                             // HQ country (China flag)
       cache[sym] = st;
       try { localStorage.setItem(GCACHE_KEY, JSON.stringify(cache)); } catch(e){}
+    }
+    if (st.country === undefined){   // cached before the China flag existed - fill once
+      try{ const p2 = await jget('https://finnhub.io/api/v1/stock/profile2?symbol=' + sym + '&token=' + FINNHUB_KEY, 8000);
+        if (p2){ st.country = p2.country ?? null; cache[sym] = st; localStorage.setItem(GCACHE_KEY, JSON.stringify(cache)); } }catch(e){}
     }
     const to = new Date(), fr = new Date(Date.now() - 2*864e5);
     const dstr = d => d.toISOString().slice(0,10);
@@ -943,7 +948,12 @@ async function runGauge(sym){
     badge.className = 'gbadge ' + r.verdict.toLowerCase() + (gs ? '' : ' stalegrade');
     badge.textContent = r.verdict + (!gs ? ' · LAST SESSION' : (gs !== 'RTH' ? ' · ' + gs : ''));
     // ...and stamp it, because this grade is only as new as the last time it was run
-    rs.innerHTML = '<span class="gstamp">rated ' + ep.hour + ':' + ep.minute + ' ET</span>'
+    // HQ-country chip (Ali 23 Jul): CN/HK = the classic pump-and-dilute cohort - say so in red.
+    // Unknown country stays silent rather than guessing.
+    const cnChip = st.country == null ? ''
+      : (st.country === 'CN' || st.country === 'HK') ? '<span class="bad">🇨🇳 China HQ (' + st.country + ') · pump/dilution cohort</span>'
+      : (st.country !== 'US' ? '<span>HQ ' + st.country + '</span>' : '');
+    rs.innerHTML = '<span class="gstamp">rated ' + ep.hour + ':' + ep.minute + ' ET</span>' + cnChip
       + r.reasons.map(x => '<span class="' + x.cls + '">' + x.t + '</span>').join('');
     // TRADER FIX: a green "news" pill you can't read isn't a catalyst — tap it for the headlines
     try{
