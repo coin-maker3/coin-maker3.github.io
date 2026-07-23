@@ -336,6 +336,9 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
    scroll it rather than clip the exit row off-screen — reachability beats aesthetics */
 #managePanel{overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
 #managePanel::-webkit-scrollbar{display:none}
+#mAutoNote{display:none;font-size:12px;line-height:1.5;color:#7d8da5;padding:9px 11px;border:1px dashed #22303f;border-radius:10px;margin:6px 0}
+body.t212on #posLbl,body.t212on #posRow,body.t212on #exitRow{display:none}
+body.t212on #mAutoNote{display:block}
 
 /* gauge lives inside the price hero: price + verdict = one thought */
 .hero #gauge{margin-top:6px;border-top:1px solid var(--border-hair);padding-top:6px}
@@ -532,7 +535,8 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   <div id="armLine" class="mono" hidden></div>
   <div id="inTrade" class="mono" hidden></div>
   <div id="miniChart" hidden><canvas id="miniCv"></canvas></div>
-  <div class="lbl">Position — entry ($) · shares</div>
+  <div class="lbl" id="posLbl">Position — entry ($) · shares</div>
+  <div id="mAutoNote">Entry, shares &amp; exit are pulled from Trading&nbsp;212 automatically — nothing to type here. The +5% / +10% cards pop on the FIND screen the moment you buy.</div>
   <div class="entry" id="posRow">
     <input id="avg" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="entry price">
     <input id="shares" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="shares" style="max-width:104px">
@@ -572,7 +576,7 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
     <div class="ftrades" id="fTrades"></div>
   </div>
   <div id="sweepBar" hidden><span id="sweepTxt"></span><button class="btn" id="sweepDone">DONE — withdrawn</button></div>
-  <div class="entry">
+  <div class="entry" id="exitRow">
     <input id="exit" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="exit price $ — blank = live">
     <button class="btn" id="soldBtn" title="log this round trip — your exit price if set, else the live price">LOG</button>
   </div>
@@ -3537,10 +3541,12 @@ function t212RenderDot(){
       : (!t212Token()? '' : '');
   }
 }
+function t212ApplyMode(){ try{ document.body.classList.toggle('t212on', !!t212Token()); }catch(e){} }
 function t212Connect(){
   const v=($('t212Token').value||'').trim();
   if(!v){ tost('Paste your cockpit passphrase'); return; }
   try{ localStorage.setItem(T212_TOKEN_KEY,v); }catch(e){}
+  t212ApplyMode();
   _t212AuthToasted=false; _t212ReconDone=false; T212_STATE='polling';
   $('t212Connect').hidden=true; $('t212Token').value='';
   t212RenderDot(); tost('T212 connected — polling read-only');
@@ -3548,6 +3554,7 @@ function t212Connect(){
 }
 function t212Disconnect(){
   try{ localStorage.removeItem(T212_TOKEN_KEY); }catch(e){}
+  t212ApplyMode();
   t212Stop(); T212_STATE='dormant'; T212_OPEN={};
   t212RenderOpen(); t212RenderDot();
   tost('T212 disconnected');
@@ -3579,7 +3586,7 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ try{ t2
 
 // boot: paint dormant UI; if a token exists, start polling + one reconcile sweep
 try{
-  t212RenderDot(); t212RenderLegacy(); t212RenderOpen(); renderForensics();
+  t212ApplyMode(); t212RenderDot(); t212RenderLegacy(); t212RenderOpen(); renderForensics();
   if(t212Token()){ T212_STATE='polling'; t212Start(); setTimeout(t212Reconcile,1500); }
 }catch(e){}
 // test hooks (same pattern as rateStock/_rw above)
