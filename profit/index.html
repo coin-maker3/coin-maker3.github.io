@@ -485,22 +485,6 @@ body.t212on #mAutoNote{display:block}
     </div>
     <div id="rwNote" hidden></div>
   </div>
-  <!-- OPEN POSITION — auto-pops from a T212 buy (entry + live P/L + SELL AT cards). Never a takeover. -->
-  <div id="openPos" hidden>
-    <div class="ophead" id="opHead"></div>
-    <div class="opcards">
-      <button class="tcard t5" id="opCard5">
-        <span class="pct">+5% NET</span>
-        <span class="price mono" id="op5">—</span>
-        <span class="prof"><div class="gbp mono" id="opg5">—</div><div class="usd mono" id="opu5"></div></span>
-      </button>
-      <button class="tcard t10" id="opCard10">
-        <span class="pct">+10% NET</span>
-        <span class="price mono" id="op10">—</span>
-        <span class="prof"><div class="gbp mono" id="opg10">—</div><div class="usd mono" id="opu10"></div></span>
-      </button>
-    </div>
-  </div>
   <!-- playbook: entry plan + the walls above it -->
   <div id="playbook" hidden>
     <div id="entryLine" class="mono" hidden></div>
@@ -535,8 +519,24 @@ body.t212on #mAutoNote{display:block}
   <div id="armLine" class="mono" hidden></div>
   <div id="inTrade" class="mono" hidden></div>
   <div id="miniChart" hidden><canvas id="miniCv"></canvas></div>
+  <!-- OPEN POSITION — auto-pops from a T212 buy (entry + live P/L + SELL AT cards). Never a takeover. -->
+  <div id="openPos" hidden>
+    <div class="ophead" id="opHead"></div>
+    <div class="opcards">
+      <button class="tcard t5" id="opCard5">
+        <span class="pct">+5% NET</span>
+        <span class="price mono" id="op5">—</span>
+        <span class="prof"><div class="gbp mono" id="opg5">—</div><div class="usd mono" id="opu5"></div></span>
+      </button>
+      <button class="tcard t10" id="opCard10">
+        <span class="pct">+10% NET</span>
+        <span class="price mono" id="op10">—</span>
+        <span class="prof"><div class="gbp mono" id="opg10">—</div><div class="usd mono" id="opu10"></div></span>
+      </button>
+    </div>
+  </div>
   <div class="lbl" id="posLbl">Position — entry ($) · shares</div>
-  <div id="mAutoNote">Entry, shares &amp; exit are pulled from Trading&nbsp;212 automatically — nothing to type here. The +5% / +10% cards pop on the FIND screen the moment you buy.</div>
+  <div id="mAutoNote">Entry, shares &amp; exit are pulled from Trading&nbsp;212 automatically — nothing to type here. Your live position and the +5% / +10% cards appear right above the moment you buy.</div>
   <div class="entry" id="posRow">
     <input id="avg" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="entry price">
     <input id="shares" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="shares" style="max-width:104px">
@@ -3191,6 +3191,7 @@ function t212Register(sym,tk,avg,qty,item,kind){
     t212CaptureEntry(sym,avg,qty,tk);            // fire-and-forget forensics snapshot (fetches candles once)
     tost('T212 ✓ bought '+t212Qty(qty)+' '+sym+' @ $'+fmt(avg,avg<1?3:2)+' — registered');
     if(navigator.vibrate) navigator.vibrate(30);
+    try{ switchTab('manage'); updateTabDot(); }catch(e){}   // the active trade lives on MANAGE — bring it to him
   } else {
     tost('T212 ✓ added '+sym+' — new avg $'+fmt(avg,avg<1?3:2));
   }
