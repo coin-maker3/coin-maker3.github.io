@@ -341,6 +341,41 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
 .hero #gauge{margin-top:6px;border-top:1px solid var(--border-hair);padding-top:6px}
 .hero .gbadge{margin-bottom:5px}
 
+/* ---------- RUNNER WATCH (stair-step creep-and-pop watchlist, v25) ---------- */
+.rwadd{position:absolute;top:6px;right:8px;z-index:3;background:var(--surface-2);
+  border:1px solid var(--border-hair);color:var(--text-mid);border-radius:999px;
+  font-family:var(--font-ui);font-size:10px;font-weight:700;letter-spacing:.06em;
+  padding:4px 9px;cursor:pointer}
+.rwadd.on{color:var(--live);border-color:var(--live)}
+#rwNote{font-size:11px;color:var(--warn);text-align:center;margin-top:4px}
+#runnersPanel{background:var(--surface-1);border:1px solid var(--border-hair);border-radius:12px;
+  padding:6px 10px 8px;flex:none;margin-top:6px}
+.rwhead{display:flex;align-items:baseline;gap:8px;min-height:18px}
+.rwhead .rwsub{margin-left:auto;font-size:9.5px;color:var(--text-low);font-family:var(--font-ui)}
+.rwrow{display:flex;align-items:center;gap:7px;padding:6px 2px;border-top:1px solid var(--border-hair);
+  font-size:12px;cursor:pointer;white-space:nowrap;overflow:hidden}
+.rwrow:first-of-type{border-top:none}
+.rwrow .rsym{font-weight:700;color:var(--text-hi);font-family:var(--font-ui);flex:none}
+.rwrow .rst{flex:none;font-size:9.5px;font-weight:700;letter-spacing:.04em;border-radius:5px;
+  padding:1.5px 5px;border:1px solid var(--border-hair);color:var(--text-mid);font-family:var(--font-ui)}
+.rwrow .rst.gA{color:var(--pos);border-color:var(--pos-border)}
+.rwrow .rst.gB{color:var(--warn);border-color:var(--warn-border)}
+.rwrow .rst.gC,.rwrow .rst.bad{color:var(--neg);border-color:var(--neg-border)}
+.rwrow .rst.stale{color:var(--stale);border-style:dashed}
+.rwrow .rnum{color:var(--text-mid);overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rwrow .rnum b{color:var(--text-hi)}
+.rwtag{flex:none;font-size:9px;font-weight:700;border-radius:5px;padding:1.5px 5px;font-family:var(--font-ui)}
+.rwtag.coil{color:var(--warn);border:1px solid var(--warn-border)}
+.rwtag.cn{color:var(--neg);border:1px solid var(--neg-border)}
+.rwx{flex:none;margin-left:auto;background:none;border:none;color:var(--text-low);
+  font-size:13px;padding:2px 6px;cursor:pointer}
+.rwcard{border-top:1px solid var(--border-hair);padding:6px 2px 2px;font-size:12.5px;cursor:default}
+.rwcard .rcx{font-size:11px;color:var(--warn);background:var(--warn-dim);border:1px solid var(--warn-border);
+  border-radius:8px;padding:4px 8px;margin-bottom:5px;text-align:center}
+.rwcard .rcx.bad{color:var(--neg);background:var(--neg-dim);border-color:var(--neg-border)}
+.rwcard .rrem{font-size:10.5px;color:var(--text-low);margin-top:4px;line-height:1.5}
+.rwcard .sub{color:var(--text-low);font-size:10.5px}
+
 /* ---------- compact height class (360×740-class phones) ---------- */
 @media (max-height:780px){
   .panel{gap:5px;padding-top:8px}
@@ -375,16 +410,23 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   <div class="hero">
     <div class="bigprice mono" id="bigPrice">—</div>
     <div class="quote" id="quote"></div>
+    <button class="rwadd" id="rwAdd" hidden>＋WATCH</button>
     <div id="gauge" hidden>
       <div class="gbadge" id="gBadge">—</div>
       <div class="greasons" id="gReasons"></div>
       <div id="newsHeads" hidden></div>
     </div>
+    <div id="rwNote" hidden></div>
   </div>
   <!-- playbook: entry plan + the walls above it -->
   <div id="playbook" hidden>
     <div id="entryLine" class="mono" hidden></div>
     <div id="wallLine" class="mono" hidden></div>
+  </div>
+  <!-- RUNNER WATCH: stair-step creep-and-pop watchlist (hidden until non-empty) -->
+  <div id="runnersPanel" hidden>
+    <div class="rwhead"><span class="mlabel">RUNNERS</span><span class="rwsub">alerts live only while app open</span></div>
+    <div id="rwRows"></div>
   </div>
   <!-- the tape: 60 minutes of 1m candles + VWAP/EMA9/HOD — RHYTHM made visible -->
   <div id="tapeChart" class="off"><span class="clabel" id="tapeLabel">1-MIN CANDLES · LAST 60 MIN</span><canvas id="tapeCv"></canvas></div>
@@ -1598,7 +1640,12 @@ function push(title,msg,pri){
   // eat the one alarm that always has to land (level 2→3 happens in seconds in a flush)
   if(pri!=='urgent' && Date.now()-_lastPush<15000) return;   // otherwise one push / 15s — tray spam kills trust
   _lastPush=Date.now();
-  try{ fetch(NTFY_URL,{method:'POST',body:msg,headers:{'Title':title,'Priority':pri||'high','Tags':'chart'}}).catch(()=>{}); }catch(e){}
+  // fetch() THROWS on non-ISO-8859-1 header values and the catch below ate it silently:
+  // every emoji/em-dash title (‘🛑 GET OUT — …’, ‘THESIS BROKEN — …’) was dying client-side
+  // before the network — proven in the v25 test rig (TypeError from fetch). Transliterate
+  // dashes, drop the rest: the tray text survives and the push actually sends.
+  const t=String(title).replace(/[—–]/g,'-').replace(/[^\x20-\xFF]/g,'').replace(/\s+/g,' ').trim();
+  try{ fetch(NTFY_URL,{method:'POST',body:msg,headers:{'Title':t,'Priority':pri||'high','Tags':'chart'}}).catch(()=>{}); }catch(e){}
 }
 // returns null (not Infinity) when the FX rate hasn't loaded — an Infinity here used to be
 // stored as JSON null and turned every later total into NaN, permanently, with no way back
@@ -1976,7 +2023,7 @@ renderArm();
 // Clears the journal, the plan, positions and any armed state, then reloads clean at £200.
 if (location.search.indexOf('reset') >= 0) {
   if (confirm('Reset the cockpit? This deletes ALL logged trades and starts the plan again at £200. It cannot be undone from here.')) {
-    ['trades','plan_v1','arm_v1','positions_v1','decl_v1','profit_state_v3','mkt_v1']
+    ['trades','plan_v1','arm_v1','positions_v1','decl_v1','profit_state_v3','mkt_v1','runner_v1','runner_day_v1']
       .forEach(k => { try { localStorage.removeItem(k); } catch(e){} });
     Object.keys(localStorage).forEach(k => {
       if (k.indexOf('gauge_') === 0 || k.indexOf('sau_') === 0) { try { localStorage.removeItem(k); } catch(e){} }
@@ -2505,6 +2552,367 @@ setTimeout(tapeEnsure, 2500);
 // module loaded after the boot-time renderPlan — run once so the ratchet line paints now
 try{ renderPlan(); }catch(e){}
 try{ renderDayTape(); }catch(e){}
+
+// ================================================================================
+// v25 RUNNER WATCH — stair-step "creep-and-pop" watchlist + two-stage alerts.
+// Spec: STAIR-STEP-RUNNER-ALERTS.md §2, thresholds verbatim. Watchlist, not scanner:
+// a pumped ticker gets tagged here (＋WATCH on the hero) and the app babysits it —
+// daily qualify/health off the 1d bars, intraday pivot watch off 5m candles, ntfy at
+// APPROACHING / TRIGGERED. Advisory only. Alerts run ONLY while the page is open
+// (static page, no server — the panel header says so honestly). Runner pushes are
+// 'high' at most; 'urgent' stays reserved for the in-trade GET OUT.
+// ================================================================================
+const RW_KEY='runner_v1', RW_CAP=8;
+const RW_NEWS_RX=/offering|pricing of|dilut|warrant|registered direct|atm/i;   // spec (a) verbatim
+const RWPACE={};                       // sym -> {pace,px,at} last intraday read (RAM only)
+let _rwOpen=null;                      // expanded alert-card symbol
+function rwLoad(){ try{ return JSON.parse(localStorage.getItem(RW_KEY)||'{}'); }catch(e){ return {}; } }
+function rwSaveAll(o){ try{ localStorage.setItem(RW_KEY,JSON.stringify(o)); }catch(e){} }
+function rwP(p){ return p==null||!isFinite(p)?'?':(p<1?p.toFixed(3):p.toFixed(2)); }
+function rwStop(r){ return Math.max(r.consolLow||0, r.pivot*0.92); }
+// £8-risk sizing with the SAME T212 cost model as netNow: shares such that a stop-out
+// nets −£8 after FX both ways + SEC + TAF. No fresh FX rate = no number (never guess money).
+function rwShares(r){
+  if(!fxFresh()) return null;
+  const per=r.pivot*(1+F)-(rwStop(r)*(1-S)-T)*(1-F);
+  return per>0 ? Math.floor(8*GBPUSD/per) : null;
+}
+// gauge facts (10-day avg vol M, shares-out M, HQ country): today's gauge cache first,
+// one Finnhub pair on a miss, written back so the gauge benefits too
+async function rwFacts(sym){
+  let cache={}; try{ cache=JSON.parse(localStorage.getItem(GCACHE_KEY)||'{}'); }catch(e){}
+  const st=cache[sym]||{};
+  if(st.avgM==null || st.soM==null || st.country===undefined){
+    const [met,prof]=await Promise.all([
+      jget('https://finnhub.io/api/v1/stock/metric?symbol='+sym+'&metric=all&token='+FINNHUB_KEY,8000).catch(()=>null),
+      jget('https://finnhub.io/api/v1/stock/profile2?symbol='+sym+'&token='+FINNHUB_KEY,8000).catch(()=>null)]);
+    if(st.avgM==null) st.avgM=met?.metric?.['10DayAverageTradingVolume']??null;
+    if(st.soM==null) st.soM=prof?.shareOutstanding??null;
+    if(st.country===undefined) st.country=prof?.country??null;
+    cache[sym]=st; try{ localStorage.setItem(GCACHE_KEY,JSON.stringify(cache)); }catch(e){}
+  }
+  return st;
+}
+// offering/dilution headline in the last 48h (same Finnhub feed the gauge reads).
+// Feed down returns null and the caller keeps its state — no data is not "no offering".
+async function rwNews(sym){
+  const to=new Date(), fr=new Date(Date.now()-2*864e5), ds=d=>d.toISOString().slice(0,10);
+  const news=await jget('https://finnhub.io/api/v1/company-news?symbol='+sym+'&from='+ds(fr)+'&to='+ds(to)+'&token='+FINNHUB_KEY,8000).catch(()=>null);
+  if(!news) return null;
+  const hit=(Array.isArray(news)?news:[]).filter(n=>n.datetime*1000>=Date.now()-48*3600e3).find(n=>RW_NEWS_RX.test(n.headline||''));
+  return hit?(hit.headline||'offering headline'):null;
+}
+// Pure read of COMPLETE daily bars (caller strips today's forming bar).
+// pumpDay null = scan the last 10 bars for a fresh pump (qualify path); a date string
+// = re-locate a known pump (daily refresh). Returns null when no qualifying pump day.
+function rwAnalyze(bars, avg10, pumpDay){
+  if(!bars||bars.length<2) return null;
+  let D=-1;
+  if(pumpDay){
+    for(let i=bars.length-1;i>=1;i--) if(etDayOf(bars[i].t*1000)===pumpDay){ D=i; break; }
+  } else {
+    for(let i=bars.length-1;i>=1 && bars.length-i<=10;i--){
+      const pc=bars[i-1].c; if(!(pc>0)) continue;
+      const pre=bars.slice(Math.max(0,i-10),i);
+      const av=pre.length?pre.reduce((a,x)=>a+x.v,0)/pre.length:0;
+      if((bars[i].c>=pc*1.5||bars[i].h>=pc*1.75) && av>0 && bars[i].v>=5*av){ D=i; break; }
+    }
+  }
+  if(D<1) return null;                                       // no prior bar = no prev close to judge
+  const pump=bars[D];
+  const base=Math.min.apply(null,bars.slice(Math.max(0,D-5),D).map(b=>b.c));
+  let pumpHigh=pump.h;
+  if(D+1<bars.length && bars[D+1].o>pump.c) pumpHigh=Math.max(pumpHigh,bars[D+1].h);   // gapped-and-ran
+  const retr50=(base+pumpHigh)/2;
+  const consol=bars.slice(D+1);
+  const daysSince=bars.length-D;                             // today (the forming day) = the next trading day
+  const pivot=consol.length?Math.max.apply(null,consol.map(b=>b.h)):pumpHigh;
+  const consolLow=consol.length?Math.min.apply(null,consol.map(b=>b.l)):null;
+  const closedBelow=consol.some(b=>b.c<retr50);
+  // ---- creep health (spec b) ----
+  const lowBroken= consol.length>=2 && consol[consol.length-1].l < Math.min.apply(null,consol.slice(0,-1).map(b=>b.l));
+  const rng=b=>b.h-b.l;
+  let tight=false;
+  if(consol.length>=3){
+    const f3=consol.slice(0,3).reduce((a,b)=>a+rng(b),0)/3;
+    const l3=consol.slice(-3).reduce((a,b)=>a+rng(b),0)/3;
+    if(f3>0 && l3<=0.7*f3) tight=true;
+  }
+  const last5=bars.slice(-5);
+  if(!tight && rng(pump)>0 &&
+     (Math.max.apply(null,last5.map(b=>b.h))-Math.min.apply(null,last5.map(b=>b.l)))<=0.4*rng(pump)) tight=true;
+  let volDecl=false;
+  if(consol.length>=3 && pump.v>0){
+    const l3v=consol.slice(-3).reduce((a,b)=>a+b.v,0)/3;
+    const p3=consol.slice(-6,-3);
+    const p3v=p3.length?p3.reduce((a,b)=>a+b.v,0)/p3.length:null;
+    volDecl= l3v<=0.5*pump.v && (p3v==null||l3v<=p3v);
+  }
+  const coiled= avg10>0 && consol.slice(-5).some(b=>b.v<=0.3*avg10);   // volume dry-up tell
+  const distDay=consol.some(b=>b.c<b.o && b.v>=0.8*pump.v);            // distribution day
+  let lhll=false;                                            // 2 consecutive LH+LL days on rising volume
+  if(consol.length>=2){
+    const seq=[pump].concat(consol), n=seq.length;
+    const dn=i=>seq[i].h<seq[i-1].h&&seq[i].l<seq[i-1].l&&seq[i].v>seq[i-1].v;
+    lhll= dn(n-1)&&dn(n-2);
+  }
+  const ema9=emaCalc(bars.map(b=>b.c),9);
+  const lastClose=bars[bars.length-1].c;
+  let invalid=null;
+  if(closedBelow) invalid='daily close below 50% retrace';
+  else if(lowBroken) invalid='consolidation low broken';
+  else if(distDay) invalid='red day on ≥0.8× pump-day volume (distribution)';
+  else if(lhll) invalid='two lower-high/lower-low days on rising volume';
+  return {D, daysSince, pumpDay:etDayOf(pump.t*1000), pumpVol:pump.v, base, pumpHigh, retr50,
+          pivot, consolLow, lastClose, ema9, grade:(ema9!=null&&lastClose>=ema9)?'A':'B',
+          closedBelow, invalid, tags:(coiled?['COILED']:[]), tight, volDecl};
+}
+// (a) QUALIFY the current symbol onto RUNNER WATCH → {ok, why | grade, state}
+async function runnerQualify(sym){
+  const rw=rwLoad();
+  if(!rw[sym] && Object.keys(rw).length>=RW_CAP) return {ok:false, why:'watchlist full ('+RW_CAP+') — remove one first'};
+  const all=await dailyBars(sym);
+  if(!all||all.length<7) return {ok:false, why:'no daily history for '+sym};
+  const today=etDayKey();
+  const bars=all.filter(b=>etDayOf(b.t*1000)!==today);       // judge on COMPLETE days only
+  const st=await rwFacts(sym);
+  const avg10= st.avgM>0? st.avgM*1e6 : (bars.slice(-10).reduce((a,b)=>a+b.v,0)/Math.min(10,bars.length)||null);
+  const A=rwAnalyze(bars, avg10, null);
+  if(!A) return {ok:false, why:'no qualifying pump day in last 10d'};
+  if(A.closedBelow) return {ok:false, why:'closed below the 50% retrace since the pump'};
+  const px=((sym===liveSym)?parseFloat($('cur').value):0)||A.lastClose;
+  if(!(px>=1)) return {ok:false, why:'price $'+rwP(px)+' < $1.00'};
+  if(st.soM>100) return {ok:false, why:'~'+Math.round(st.soM)+'M shares out — over the 100M cap'};
+  if(avg10>0 && avg10*px<1e6) return {ok:false, why:'10-day avg $vol ~$'+(avg10*px/1e6).toFixed(1)+'M < $1M — the spread will eat you'};
+  if(A.daysSince>15) return {ok:false, why:'pump is '+A.daysSince+' trading days old (>15)'};
+  const r={ added:(rw[sym]&&rw[sym].added)||Date.now(), pumpDay:A.pumpDay, base:A.base,
+    pumpHigh:A.pumpHigh, retr50:A.retr50, pivot:A.pivot, consolLow:A.consolLow,
+    daysSince:A.daysSince, lastClose:A.lastClose,
+    state:(A.daysSince>=11?'STALE':'WATCH'),
+    grade:(st.country==='CN'||st.country==='HK')?'C':A.grade,
+    tags:A.tags, avgM:st.avgM??null, country:st.country??null,
+    lastDaily:Date.now(), alerts:(rw[sym]&&rw[sym].alerts)||{} };
+  const head=await rwNews(sym);                              // offering check at tag time (spec a)
+  if(head){ r.state='DEAD'; r.deadWhy=head.slice(0,90); r.deadDay=today;
+    if(Date.now()-_lastPush>=15000){ r.deadPushed=1;
+      push('⚠ RUNNER DEAD — '+sym,'Offering/dilution headline: "'+r.deadWhy+'" — do not touch.'); } }
+  rw[sym]=r; rwSaveAll(rw); renderRunners();
+  return {ok:true, grade:r.grade, state:r.state};
+}
+// (b) CREEP HEALTH + state machine — daily refresh + lazily when a stale card opens
+async function runnerHealth(sym){
+  const rw=rwLoad(); const r=rw[sym]; if(!r) return;
+  const today=etDayKey();
+  // yesterday's DEAD/BROKEN stays visible its one day, then leaves the list
+  if((r.state==='DEAD'&&r.deadDay&&r.deadDay!==today)||(r.state==='BROKEN'&&r.brokenDay&&r.brokenDay!==today)){
+    delete rw[sym]; rwSaveAll(rw); renderRunners(); return; }
+  if(r.state==='DEAD'){ r.lastDaily=Date.now(); rwSaveAll(rw); return; }
+  const all=await dailyBars(sym); if(!all) return;           // no data = no verdict, never fake a state
+  const bars=all.filter(b=>etDayOf(b.t*1000)!==today);
+  const st=await rwFacts(sym);
+  const avg10= st.avgM>0? st.avgM*1e6 : (bars.slice(-10).reduce((a,b)=>a+b.v,0)/Math.min(10,bars.length)||null);
+  const A=rwAnalyze(bars, avg10, r.pumpDay);
+  if(!A){ r.lastDaily=Date.now(); rwSaveAll(rw); return; }   // pump bar out of the 1mo window — keep last verdict
+  Object.assign(r,{ base:A.base, pumpHigh:A.pumpHigh, retr50:A.retr50, pivot:A.pivot,
+    consolLow:A.consolLow, daysSince:A.daysSince, lastClose:A.lastClose, tags:A.tags,
+    avgM:st.avgM??r.avgM, country:st.country??r.country,
+    grade:(st.country==='CN'||st.country==='HK')?'C':A.grade, lastDaily:Date.now() });
+  if(A.daysSince>15){ delete rw[sym]; rwSaveAll(rw); renderRunners(); return; }   // day 16 = auto-remove
+  const head=await rwNews(sym);
+  if(head){ r.state='DEAD'; r.deadWhy=head.slice(0,90); r.deadDay=r.deadDay||today;
+    if(!r.deadPushed && Date.now()-_lastPush>=15000){ r.deadPushed=1;
+      push('⚠ RUNNER DEAD — '+sym,'Offering/dilution headline: "'+r.deadWhy+'" — do not touch.'); } }
+  else if(A.invalid){
+    if(r.state!=='BROKEN'){ r.state='BROKEN'; r.brokenWhy=A.invalid; r.brokenDay=today; }
+    if(!r.brokenPushed && Date.now()-_lastPush>=15000){ r.brokenPushed=1;   // ONE push, throttle-safe retry
+      push('RUNNER BROKEN — '+sym, A.invalid+' — setup invalidated. Stand down.'); }
+  }
+  else r.state= A.daysSince>=11?'STALE':'WATCH';
+  rwSaveAll(rw); renderRunners();
+}
+let _rwIdx=0, _rwBusy=false, _rwRefreshing=false;
+async function runnerDailyRefresh(){
+  if(_rwRefreshing) return; _rwRefreshing=true;
+  try{ for(const s of Object.keys(rwLoad())){
+    try{ await runnerHealth(s); }catch(e){}
+    await new Promise(z=>setTimeout(z,1500));                // staggered — the relay is shared with live trading
+  } } finally{ _rwRefreshing=false; }
+}
+// expected volume fraction by ET time (spec c table, linear interp). The 9:30 anchor is
+// floored at 0.05 so the first prints can't divide by ~zero and scream 40× pace.
+const RW_FRAC=[[570,0.05],[630,0.35],[720,0.55],[840,0.70],[960,1.0]];
+function rwFrac(){
+  const p=etParts(); const m=(+p.hour)*60+(+p.minute);
+  if(m<=RW_FRAC[0][0]) return RW_FRAC[0][1];
+  for(let i=1;i<RW_FRAC.length;i++){ const m1=RW_FRAC[i][0],f1=RW_FRAC[i][1],m0=RW_FRAC[i-1][0],f0=RW_FRAC[i-1][1];
+    if(m<=m1) return f0+(f1-f0)*(m-m0)/(m1-m0); }
+  return 1;
+}
+function rwSummary(sym,r,px,pace){
+  const sh=rwShares(r);
+  return 'pivot $'+rwP(r.pivot)+' · now $'+rwP(px)+' · stop $'+rwP(rwStop(r))
+    +(sh!=null?' · ~'+sh+'sh @ £8 risk':'')+' · T1 $'+rwP(r.pivot*1.12)
+    +(pace!=null?' · vol pace '+pace.toFixed(1)+'×':'')+' · day '+r.daysSince+' since pump';
+}
+// (c) the two-stage intraday check for ONE symbol (round-robin calls this)
+async function rwCheck(sym){
+  const rw=rwLoad(); const r=rw[sym]; if(!r||!(r.pivot>0)) return;
+  const res=await fetchCandles(sym,'5m'); if(!res) return;
+  const q=res.indicators.quote[0], ts=res.timestamp||[];
+  const bars=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null)
+    bars.push({t:ts[i],o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
+  if(!bars.length) return;
+  const px=bars[bars.length-1].c; if(!(px>0)) return;
+  const cum=bars.reduce((a,b)=>a+b.v,0);                     // range=1d ⇒ today only, pre included
+  const pace=(r.avgM>0)? cum/(r.avgM*1e6*rwFrac()) : null;
+  RWPACE[sym]={pace:pace, px:px, at:Date.now()};
+  const today=etDayKey();
+  const al=r.alerts||(r.alerts={});
+  Object.keys(al).forEach(k=>{ if(k!==today) delete al[k]; });   // once-per-ET-day guards
+  const a=al[today]||(al[today]={});
+  const ext=px>r.pivot*1.03;
+  // Stage 1 — APPROACHING: within 2% below pivot on ≥1.5× time-of-day pace. The push is
+  // only recorded when the 15s throttle will actually let it out (a swallowed push must
+  // not burn the once-per-day slot).
+  if(!a.s1 && px>=r.pivot*0.98 && px<r.pivot && pace!=null && pace>=1.5 && Date.now()-_lastPush>=15000){
+    a.s1=Date.now(); rwSaveAll(rw);
+    push('RUNNER ⚠ '+sym+' near pivot $'+rwP(r.pivot), rwSummary(sym,r,px,pace));
+  }
+  // Stage 2 — TRIGGERED: first COMPLETED 5m close above pivot on ≥2× the prior-2h 5m avg.
+  // Judged only while that first close is one of the last 2 bars (the ~3-min round-robin
+  // can land one bar late); a first close inside lunch stays suppressed all day by design.
+  if(!a.s2){
+    const now=Date.now()/1000;
+    const done=bars.filter(b=>b.t+300<=now+2);
+    const rth=done.filter(b=>{const m=etMinOf(b.t*1000);return m>=570&&m<960;});
+    const fi=rth.findIndex(b=>b.c>r.pivot);
+    if(fi>=0 && fi>=rth.length-2){
+      const bar=rth[fi];
+      const prior=rth.filter(b=>b.t>=bar.t-7200&&b.t<bar.t);
+      const av=prior.length?prior.reduce((x,b)=>x+b.v,0)/prior.length:0;
+      const m=etMinOf(bar.t*1000)+5;                         // judge the bar by its CLOSE time
+      const winA=m>=575&&m<=690, winB=m>=810&&m<=930;        // 9:35–11:30 / 13:30–15:30 ET
+      if(av>0 && bar.v>=2*av && (winA||winB) && Date.now()-_lastPush>=15000){
+        a.s2=Date.now(); rwSaveAll(rw);
+        if(ext) push('RUNNER EXTENDED — '+sym,               // no-chase gate: never buy-looking
+          'EXTENDED — do not chase; wait for pullback to pivot $'+rwP(r.pivot)+'. '+rwSummary(sym,r,px,pace));
+        else push('🚀 RUNNER TRIGGERED — '+sym+' over $'+rwP(r.pivot)+(winB?' · B-window':''),
+          rwSummary(sym,r,px,pace),'high');                  // 'high', NEVER 'urgent' (GET OUT only)
+      }
+    }
+  }
+  rwSaveAll(rw); renderRunners();
+}
+let _rwDay=null; try{ _rwDay=localStorage.getItem('runner_day_v1'); }catch(e){}
+async function runnerTick(){
+  if(document.hidden||_rwBusy) return;
+  const rw=rwLoad(); const syms=Object.keys(rw); if(!syms.length) return;
+  const today=etDayKey();
+  if(_rwDay!==today){ _rwDay=today; try{ localStorage.setItem('runner_day_v1',today); }catch(e){}
+    runnerDailyRefresh(); return; }                          // new ET day: re-qualify the lot first
+  if(etSession()!=='RTH') return;                            // market-hours by rule; pre-market never pushes
+  const el=syms.filter(s=>{const x=rw[s];return x.state==='WATCH'&&x.daysSince>=2&&x.daysSince<=10;});
+  if(!el.length) return;                                     // STALE/BROKEN/DEAD/day-1: visible, silent
+  _rwBusy=true;
+  try{ await rwCheck(el[_rwIdx++%el.length]); }catch(e){} finally{ _rwBusy=false; }
+}
+setInterval(runnerTick, 20000);                              // 1 symbol / 20s → 8 syms ≤ every ~3 min
+// ---------- RUNNERS panel UI ----------
+function rwNoteMsg(msg){ const n=$('rwNote'); if(!n) return; n.textContent=msg; n.hidden=false;
+  clearTimeout(rwNoteMsg._t); rwNoteMsg._t=setTimeout(()=>{ n.hidden=true; },10000); }
+function rwCardHtml(s,r,px){
+  const stop=rwStop(r), sh=rwShares(r), t1=r.pivot*1.12;
+  const pc=RWPACE[s]&&Date.now()-RWPACE[s].at<10*60*1000?RWPACE[s].pace:null;
+  const sess=etSession();
+  const prow=(k,v,cls)=>'<div class="prow"><span class="pk">'+k+'</span><span class="pv'+(cls?' '+cls:'')+'">'+v+'</span></div>';
+  let top='';
+  if(r.state==='DEAD') top='<div class="rcx bad">DEAD — '+(r.deadWhy||'offering headline')+'. Do not touch.</div>';
+  else if(r.state==='BROKEN') top='<div class="rcx bad">BROKEN — '+(r.brokenWhy||'setup invalidated')+'. No trade.</div>';
+  else if(px>0&&px>r.pivot*1.03) top='<div class="rcx">EXTENDED — do not chase; wait for pullback to pivot</div>';
+  else if(sess==='PRE'&&px>0&&px>r.pivot) top='<div class="rcx">gap-over-pivot — no entry at open, wait for first pullback that holds pivot</div>';
+  return '<div class="rwcard mono">'+top
+    +prow('PIVOT','<b>$'+rwP(r.pivot)+'</b> — entry zone pivot→+3%, never above','rok')
+    +prow('STOP','$'+rwP(stop)+' <span class="sub">(max of consol low '+rwP(r.consolLow)+' / pivot −8%)</span>')
+    +prow('SIZE', sh!=null?('<b>'+sh+'sh</b> ≈ £8 risk at the stop'):'£/$ rate not fresh — no size')
+    +prow('T1','<span class="ctap" data-c="'+rwP(t1)+'">$'+rwP(t1)+'</span> +12% · tap=copy')
+    +prow('RELVOL', pc!=null?pc.toFixed(1)+'× time-of-day pace':'— (reads while the RTH monitor runs)')
+    +prow('AGE','day '+r.daysSince+' · pump '+r.pumpDay)
+    +'<div class="rrem">☑ Webull spread ≤1.5%? &nbsp;·&nbsp; ☑ EDGAR: S-3/ATM/424B? 60s check</div>'
+    +'</div>';
+}
+function renderRunners(){
+  const p=$('runnersPanel'), rows=$('rwRows'); if(!p||!rows) return;
+  const rw=rwLoad(); const syms=Object.keys(rw);
+  const ab=$('rwAdd');
+  if(ab){ ab.hidden=!liveSym;
+    const on=!!(liveSym&&rw[liveSym]);
+    ab.textContent=on?'✓ WATCHING':'＋WATCH'; ab.classList.toggle('on',on); }
+  if(!syms.length){ p.hidden=true; rows.innerHTML=''; return; }
+  p.hidden=false;
+  let h='';
+  syms.sort((a,b)=>(rw[a].added||0)-(rw[b].added||0)).forEach(s=>{
+    const r=rw[s];
+    const pc=RWPACE[s]&&Date.now()-RWPACE[s].at<10*60*1000?RWPACE[s]:null;
+    const px=((s===liveSym)?parseFloat($('cur').value):0)||(pc&&pc.px)||r.lastClose||0;
+    const d=(px>0&&r.pivot>0)?(px/r.pivot-1)*100:null;
+    const stCls= r.state==='WATCH'?('g'+r.grade): r.state==='STALE'?'stale':'bad';
+    h+='<div class="rwrow mono" data-s="'+s+'">'
+      +'<span class="rsym">'+s+'</span>'
+      +'<span class="rst '+stCls+'">'+(r.state==='WATCH'?r.grade:r.state)+'</span>'
+      +'<span class="rnum">d'+r.daysSince+' · piv <b>$'+rwP(r.pivot)+'</b>'
+      +(d!=null?' · '+(d>=0?'+':'')+d.toFixed(1)+'%':'')+'</span>'
+      +(r.tags&&r.tags.indexOf('COILED')>=0?'<span class="rwtag coil">COILED</span>':'')
+      +((r.country==='CN'||r.country==='HK')?'<span class="rwtag cn">🇨🇳</span>':'')
+      +'<button class="rwx" data-x="'+s+'" title="remove from watch">✕</button>'
+      +'</div>'
+      +(_rwOpen===s?rwCardHtml(s,r,px):'');
+  });
+  rows.innerHTML=h;               // dedicated container — ARM/DECLARE live elsewhere and stay bound
+  rows.querySelectorAll('.rwx').forEach(b=>b.onclick=ev=>{ ev.stopPropagation();
+    const rw2=rwLoad(); delete rw2[b.dataset.x]; rwSaveAll(rw2);
+    if(_rwOpen===b.dataset.x)_rwOpen=null; renderRunners(); });
+  rows.querySelectorAll('.rwrow').forEach(el=>el.onclick=()=>{
+    const s=el.dataset.s;
+    _rwOpen=(_rwOpen===s)?null:s;
+    if(_rwOpen&&s!==liveSym){ $('ticker').value=s; saveState(); getPrice(); }   // existing symbol-load path
+    renderRunners();
+    const r=rwLoad()[s];          // lazy health when a stale entry's card opens (>30 min old read)
+    if(_rwOpen&&r&&Date.now()-(r.lastDaily||0)>30*60*1000) runnerHealth(s);
+  });
+  rows.querySelectorAll('.ctap').forEach(sp=>sp.onclick=ev=>{ ev.stopPropagation();
+    (navigator.clipboard?navigator.clipboard.writeText(sp.dataset.c):Promise.reject())
+      .then(()=>tost(sp.dataset.c+' copied — paste into your limit order',30)).catch(()=>{}); });
+}
+$('rwAdd').addEventListener('click', async ()=>{
+  if(!liveSym){ rwNoteMsg('go live on a symbol first'); return; }
+  const rw=rwLoad();
+  if(rw[liveSym]){ delete rw[liveSym]; rwSaveAll(rw); if(_rwOpen===liveSym)_rwOpen=null;
+    renderRunners(); tost(liveSym+' off RUNNER WATCH'); return; }
+  if(Object.keys(rw).length>=RW_CAP){ rwNoteMsg('RUNNER WATCH full — '+RW_CAP+' max, remove one first'); tost('Watchlist full',[60,40,60]); return; }
+  const b=$('rwAdd'); b.disabled=true; b.textContent='checking…';
+  try{
+    const v=await runnerQualify(liveSym);
+    if(!v.ok) rwNoteMsg(v.why);
+    else tost(liveSym+' on RUNNER WATCH — '+(v.state==='DEAD'?'but DEAD (offering headline)':'grade '+v.grade),30);
+  } finally{ b.disabled=false; renderRunners(); }
+});
+// live tick keeps ＋WATCH visibility + %-to-pivot honest (throttled — a paint, not a fetch)
+(function(){
+  const _sp=setPrice; let _at=0;
+  setPrice=function(price,tag,asOf){ _sp(price,tag,asOf);
+    try{ const ab=$('rwAdd');
+      if((ab&&ab.hidden&&liveSym)||Date.now()-_at>5000){ _at=Date.now(); renderRunners(); } }catch(e){} };
+})();
+// boot: paint the persisted list now; full re-qualify shortly after load (staggered),
+// and claim today so the first tick doesn't refresh twice
+renderRunners();
+setTimeout(()=>{ const t=etDayKey();
+  if(_rwDay!==t){ _rwDay=t; try{ localStorage.setItem('runner_day_v1',t); }catch(e){} }
+  if(Object.keys(rwLoad()).length) runnerDailyRefresh(); }, 4000);
+// test hooks (same pattern as rateStock/computeSetup above)
+try{ window._rw={qualify:runnerQualify, health:runnerHealth, tick:runnerTick, check:rwCheck,
+  refresh:runnerDailyRefresh, analyze:rwAnalyze, frac:rwFrac, stop:rwStop, shares:rwShares,
+  load:rwLoad, render:renderRunners, open:s=>{ _rwOpen=s; renderRunners(); }}; }catch(e){}
 
 </script>
 </body>
