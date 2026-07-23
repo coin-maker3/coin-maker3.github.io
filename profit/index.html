@@ -1790,7 +1790,12 @@ function push(title,msg,pri){
   // before the network — proven in the v25 test rig (TypeError from fetch). Transliterate
   // dashes, drop the rest: the tray text survives and the push actually sends.
   const t=String(title).replace(/[—–]/g,'-').replace(/[^\x20-\xFF]/g,'').replace(/\s+/g,' ').trim();
-  try{ fetch(NTFY_URL,{method:'POST',body:msg,headers:{'Title':t,'Priority':pri||'high','Tags':'chart'}}).catch(()=>{}); }catch(e){}
+  // Tap the notification -> jump to Trading 212 (native app if it claims the domain, else the
+  // web app you're logged into). Can't pre-select the stock or sell (read-only + broker rules);
+  // it just puts you one tap from the sell button. 'Actions' adds an explicit button too.
+  const T212='https://app.trading212.com/';
+  try{ fetch(NTFY_URL,{method:'POST',body:msg,headers:{'Title':t,'Priority':pri||'high','Tags':'chart',
+    'Click':T212,'Actions':'view, Open Trading 212, '+T212+', clear=true'}}).catch(()=>{}); }catch(e){}
 }
 // returns null (not Infinity) when the FX rate hasn't loaded — an Infinity here used to be
 // stored as JSON null and turned every later total into NaN, permanently, with no way back
