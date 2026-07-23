@@ -1163,7 +1163,7 @@ setInterval(() => {
   if (document.hidden && !(ARM && ARM.state==='in' && ARM.mode!=='hold') && !t212KeepAwake()) return;   // watchdog stays awake mid-trade
   const age = (Date.now() - lastUpdateAt) / 1000;
   if (age <= 10) return;
-  const halt = age > 30;
+  const halt = age > 30 && etSession()==='RTH' && parseFloat($('cur').value) > 0;   // LULD halts are RTH-only; no price = fetch problem, not a halt (Ali)
   // keep the session tag - dropping it turned "this is Friday's close" into
   // "the live feed is lagging", which are very different things
   const keep = lastTag ? lastTag.replace(/ ~10s| \(3s\)/,'') + ' · ' : '';
@@ -1607,7 +1607,7 @@ async function planEntry(sym){
       if(ageS>1800){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }
       // a runner that stops printing mid-session is usually HALTED (LULD) — say so instead of
       // the confusing "stale" (Ali's ZYBT halted repeatedly on its +400% day)
-      if(ageS>600 && etSession()){ el.innerHTML='RHYTHM: no prints '+Math.round(ageS/60)+' min — <b class="rwarn">HALTED?</b> levels frozen; wait for the resume print'; el.hidden=false; $('wallLine').hidden=true; return; }
+      if(ageS>600 && etSession()==='RTH'){ el.innerHTML='RHYTHM: no prints '+Math.round(ageS/60)+' min — <b class="rwarn">HALTED?</b> levels frozen; wait for the resume print'; el.hidden=false; $('wallLine').hidden=true; return; }
       if(ageS>600){ el.innerHTML='RHYTHM: data stale — no read'; el.hidden=false; $('wallLine').hidden=true; return; }
     }
     const q=res.indicators.quote[0], ts=res.timestamp||[];
@@ -3547,6 +3547,7 @@ function t212SafetyTick(){
     const o=t212PrimaryOpen(); if(!o) return;
     if(liveSym!==o.sym) return;                                // need a live price to judge
     const px=parseFloat($('cur').value); if(!(px>0)) return;
+    if(!etSession()) return;                                  // no overnight alerts — US market fully closed (Ali)
     const held=Math.round((Date.now()-o.registeredAt)/1000);
     const nowPct=(px-o.fillPx)/o.fillPx*100;
     if(px>o.peak) o.peak=px;
