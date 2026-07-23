@@ -988,6 +988,12 @@ function rateStock(d){
   let v = (core && q === 3) ? 'STRONG' : (core && q >= 1) ? 'MEDIUM' : 'WEAK';
   if (v === 'STRONG' && (pHalf || fBig || !volKnown || d.offering)) v = 'MEDIUM';
   if (fBig && v !== 'WEAK' && q <= 1) v = 'WEAK';
+  // SUB-$1 SPREAD CAP (expert, 22 Jul): a $0.30 name can print in-band once volume is hot, but its
+  // 3–7% spread eats the whole 5% edge and the app has no spread feed. Never green-light it STRONG.
+  if (d.price != null && d.price < 1) {
+    if (v === 'STRONG') v = 'MEDIUM';
+    reasons.push({t: 'spread risk <$1 — check Webull', cls: 'bad'});
+  }
   return {verdict: v, reasons};
 }
 try { window.rateStock = rateStock; } catch(e){}
@@ -1344,7 +1350,7 @@ $('soldBtn').addEventListener('click', () => {
   // logging via LOG while the coach runs = the trade is over: clear the coach (no zombie
   // timer/GET OUT buzzing on a closed position) and keep the loss cooldown honest
   if (typeof ARM!=='undefined' && ARM && ARM.state==='in' && sym===ARM.sym){
-    if (netGBP<0 && ARM.mode==='quick' && !manual) COOL=Date.now()+5*60*1000;
+    if (netGBP<0 && ARM.mode==='quick' && !manual) COOL=Date.now()+15*60*1000;
     ARM=null; try{ armSave(); renderArm(); }catch(e){}
   }
   $('avg').value = ''; $('shares').value = ''; $('exit').value = ''; savePosition(); calc(); renderDayLog(); renderPlan(); if(typeof syncJournal==='function') syncJournal();
@@ -1736,9 +1742,21 @@ function renderPlan(){
   // read "today −£0", so the one hard brake was bypassed by the exact loss-freeze it exists
   // for. Mark the open QUICK position to market (HOLD stays excluded from the day by design).
   let uNet=0;
-  try{ if(ARM&&ARM.state==='in'&&ARM.mode!=='hold'&&liveSym===ARM.sym){
-    const p=parseFloat($('cur').value); const g=(p>0)?netNow(ARM.fillPx,p,ARM.sh):null;
-    if(g!=null&&isFinite(g)) uNet=g; } }catch(e){}
+  // A manual QUICK ARM marked to market (HOLD stays excluded by design). If the SAME symbol is
+  // also an open T212-auto position we let the T212 loop below own it (count once, prefer T212).
+  // NB: ARM is read INSIDE try/catch — renderPlan runs once at boot before `let ARM` (TDZ).
+  try{ const _armSym=(ARM&&ARM.state==='in'&&ARM.mode!=='hold')?ARM.sym:null;
+    if(_armSym&&liveSym===_armSym&&!(typeof T212_OPEN==='object'&&T212_OPEN&&T212_OPEN[_armSym])){
+      const p=parseFloat($('cur').value); const g=(p>0)?netNow(ARM.fillPx,p,ARM.sh):null;
+      if(g!=null&&isFinite(g)) uNet=g; } }catch(e){}
+  // FLOOR FIX (expert, 22 Jul): in the mode Ali actually trades (T212 auto-register) there is no
+  // manual ARM, so an open auto-position down 30% read "today −£0" and the −5% brake never fired —
+  // the one hard stop bypassed by the exact loss-freeze it exists for. Mark EVERY open T212
+  // position to market and fold its unrealized £ into today, same figure the floor/goal already use.
+  try{ if(fxFresh()&&typeof T212_OPEN==='object'&&T212_OPEN){
+    for(const _s in T212_OPEN){ const _o=T212_OPEN[_s]; if(!_o) continue;
+      const _px=(liveSym===_s?(parseFloat($('cur').value)||_o.curPrice):_o.curPrice);
+      if(_px>0){ const _g=netNow(_o.fillPx,_px,_o.sh); if(_g!=null&&isFinite(_g)) uNet+=_g; } } } }catch(e){}
   const todayEff=todayNet+uNet;
   // The "vs plan £X / behind" curve is GONE (19 Jul, Ali's call). £200 x 1.05^day reaches
   // £44m in a year — a line he was guaranteed to be behind on, in red, where the only way to
@@ -1775,6 +1793,22 @@ let DECL=[]; try{ DECL=JSON.parse(localStorage.getItem('decl_v1')||'[]'); }catch
 let COOL=0; try{ COOL=+localStorage.getItem('cool_v1')||0; }catch(e){}
 function armSave(){ try{ localStorage.setItem('arm_v1',JSON.stringify(ARM)); localStorage.setItem('decl_v1',JSON.stringify(DECL.slice(-300))); localStorage.setItem('cool_v1',String(COOL)); }catch(e){} }
 function tost(m,vib){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); if(vib&&navigator.vibrate) navigator.vibrate(vib); }
+// TWO-STRIKES + COOLDOWN ADVISORY (expert, 22 Jul): T212 is read-only so the app can't stop a
+// broker buy — but it CAN say the quiet part out loud. lossesToday() counts today's LOSING closes
+// for a ticker from the journal (NY trading day). coolStrikeAdvisory() fires a non-blocking tost on
+// a fresh entry when the loss-cooldown is still running, or when this is the 3rd go at a name that's
+// already lost twice today. Advisory only — never blocks (mirrors the honest-degradation rule).
+function lossesToday(sym){
+  try{ const today=etDayKey();
+    return loadTrades().filter(x=>x&&x.sym===sym&&tradeDay(x)===today&&x.netGBP<0).length;
+  }catch(e){ return 0; }
+}
+function coolStrikeAdvisory(sym){
+  try{
+    if(Date.now()<COOL){ tost('⚠ 15-min cooldown after a loss — consider standing down',[60,40,60]); }
+    else if(sym && lossesToday(sym)>=2){ tost('⚠ '+sym+': 2 losses today — the third is usually revenge',[60,40,60]); }
+  }catch(e){}
+}
 // ---- push that reaches him INSIDE T212 (expert gap 3): the advisor used to buzz a page he
 // wasn't looking at — at the critical moment he's in the broker app. ntfy.sh → notification
 // tray, any app foreground. He must install the ntfy app and subscribe to this topic once.
@@ -1817,6 +1851,7 @@ function armTrade(){
   ARM={state:'armed', sym:z.sym, zone:z.zone, stop:z.stop, target:z.target, tenNet:z.tenNet,
        fresh:!!z.fresh, declaredAt:new Date().toISOString()};
   if(etSession()!=='RTH') tost('⚠ Extended hours: thin market, no halt protection — half size, sell-limit pre-typed', [60,40,60]);
+  coolStrikeAdvisory(z.sym);                                // non-blocking two-strikes nudge (cooldown already blocked above)
   armSave(); renderArm(); switchTab('manage');             // trade going live → MANAGE front-and-centre (Ali's pick)
 }
 function cancelArm(){ ARM=null; armSave(); renderArm(); }
@@ -1872,16 +1907,24 @@ function exitArm(){
 function finishTrade(tag){
   const tr=window._pendingTrade; if(!tr) return;
   tr.tag=tag||'';
-  const t=loadTrades(); t.push(tr);
-  try{ localStorage.setItem('trades', JSON.stringify(t.slice(-500))); }catch(e){}
+  // DOUBLE-LOG FIX (expert, 22 Jul): when T212 is connected the 5s poll auto-logs the real close
+  // from the broker's own SELL fill (shared fillIds → dedupe). A manual row written here has a
+  // different timestamp and no fillId, so t212RowExists can't dedupe it and the trade counts twice
+  // in balance + floor. When connected, skip the persisted write + its sync; let T212 own the log.
+  const _t212On=(typeof t212Token==='function')&&!!t212Token();
+  if(!_t212On){
+    const t=loadTrades(); t.push(tr);
+    try{ localStorage.setItem('trades', JSON.stringify(t.slice(-500))); }catch(e){}
+  }
   $('chipsBox').style.display='none'; window._pendingTrade=null;
-  if(tr.netGBP<0 && tr.mode!=='hold'){ COOL=Date.now()+5*60*1000; }
+  if(tr.netGBP<0 && tr.mode!=='hold'){ COOL=Date.now()+15*60*1000; }
   ARM=null; armSave();
   $('avg').value=''; $('shares').value=''; $('exit').value='';
   try{ savePosition(); }catch(e){}
-  calc(); renderDayLog(); renderPlan(); if(typeof syncJournal==='function') syncJournal();
+  calc(); renderDayLog(); renderPlan(); if(!_t212On && typeof syncJournal==='function') syncJournal();
   renderArm();
-  tost('Logged: '+(tr.netGBP>=0?'+':'−')+'£'+fmt(Math.abs(tr.netGBP))+(tag?' · '+tag:''), 30);
+  if(_t212On) tost('Logged automatically from Trading 212', 30);
+  else tost('Logged: '+(tr.netGBP>=0?'+':'−')+'£'+fmt(Math.abs(tr.netGBP))+(tag?' · '+tag:''), 30);
 }
 
 // QUICK vs HOLD (Ali, 19 Jul): a scalp and a trade he sits on for days are different animals.
@@ -2089,10 +2132,13 @@ function renderInTrade(){
     // escalation fires on level CHANGE only (alarm fatigue kills alarms); GET OUT repeats
     // until acknowledged — he's in T212 by now and only the pocket buzz reaches him there
     if(adv.level>(o._advL||0)){
+      // OVERNIGHT MUTE (expert, 22 Jul): mirror t212SafetyTick's `if(!etSession()) return`. A QUICK
+      // trade left open overnight must not buzz the phone off a frozen close. Keep the in-app tost/
+      // visual always; suppress ONLY the ntfy push when the market is fully closed (pre/AH still push).
       if(adv.level===2){ tost('Thesis broken — holding is choosing to lose',[60]);
-        push('THESIS BROKEN — '+o.sym, 'Holding is choosing to lose'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Decide your out.'); }
+        if(etSession()) push('THESIS BROKEN — '+o.sym, 'Holding is choosing to lose'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Decide your out.'); }
       if(adv.level===3){ tost('GET OUT — sell at market on T212',[100,60,100,60,100]);
-        push('🛑 GET OUT — '+o.sym, 'Ride-it-down in progress'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Sell at market, reassess flat.','urgent'); }
+        if(etSession()) push('🛑 GET OUT — '+o.sym, 'Ride-it-down in progress'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Sell at market, reassess flat.','urgent'); }
     }
     if(adv.level===3 && !o._ackGo){ if(!o._gb3||Date.now()-o._gb3>10000){ o._gb3=Date.now(); if(navigator.vibrate) navigator.vibrate([100,60,100]); } }
     // hysteresis: only a REAL recovery (back to caution/neutral) re-arms the GET OUT alarm —
@@ -3230,6 +3276,7 @@ function t212Register(sym,tk,avg,qty,item,kind){
     t212CaptureEntry(sym,avg,qty,tk);            // fire-and-forget forensics snapshot (fetches candles once)
     tost('T212 ✓ bought '+t212Qty(qty)+' '+sym+' @ $'+fmt(avg,avg<1?3:2)+' — registered');
     if(navigator.vibrate) navigator.vibrate(30);
+    coolStrikeAdvisory(sym);                        // advisory-only: cooldown / two-losses-today nudge (T212 is read-only — can't block the buy)
     T212_SEL=sym;
     try{ switchTab('manage'); updateTabDot(); }catch(e){}   // the active trade lives on MANAGE — bring it to him
   } else {
@@ -3276,7 +3323,7 @@ async function t212Close(sym,tk,prev,newQty,item){
     try{ localStorage.setItem('trades',JSON.stringify(t.slice(-500))); }catch(e){}
   }
   t212ClearArm(sym);
-  if(realized<0){ try{ COOL=Date.now()+5*60*1000; }catch(e){} }   // loss cooldown on red, like a real QUICK trade
+  if(realized<0){ try{ COOL=Date.now()+15*60*1000; }catch(e){} }   // loss cooldown on red (15 min, Ali's rule), like a real QUICK trade
   t212ApplyCloseLocal(sym,newQty,item);
   if(newQty<=1e-9){ const es=t212Load(T212_ENTRY_KEY,'{}')||{}; delete es[sym]; t212SaveRaw(T212_ENTRY_KEY,es); delete T212_OPEN[sym]; }
   try{ calc(); renderDayLog(); renderPlan(); renderForensics(); if(typeof syncJournal==='function') syncJournal(); }catch(e){}
