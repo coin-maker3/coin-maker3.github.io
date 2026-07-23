@@ -1574,6 +1574,22 @@ function rthFractionElapsed(){ const p=etParts(); const m=(+p.hour)*60+(+p.minut
 let PLAN=null; try{ PLAN=JSON.parse(localStorage.getItem('plan_v1')||'null'); }catch(e){}
 if(!PLAN){ PLAN={start:new Date().toISOString().slice(0,10), eq0:200};
   try{ localStorage.setItem('plan_v1',JSON.stringify(PLAN)); }catch(e){} }
+// ?setbal=N — re-baseline the ledger to the real T212 cash figure (Ali: "zero my app to 306").
+// The old journal is archived on-device (trades_archive_<ts>) and the Firebase mirror keeps
+// full history anyway (sync never shrinks) — the app just starts counting from N, day 1.
+try{
+  const _sb=new URLSearchParams(location.search).get('setbal');
+  const _sbn=parseFloat(_sb);
+  if(_sb!=null && isFinite(_sbn) && _sbn>0){
+    const _old=localStorage.getItem('trades');
+    if(_old && _old!=='[]') localStorage.setItem('trades_archive_'+Date.now(), _old);
+    localStorage.removeItem('trades');
+    PLAN={start:new Date().toISOString().slice(0,10), eq0:Math.round(_sbn*100)/100};
+    localStorage.setItem('plan_v1',JSON.stringify(PLAN));
+    history.replaceState(null,'',location.pathname);
+    setTimeout(function(){ try{ const _t=$('toast'); _t.textContent='Balance re-based to £'+PLAN.eq0.toFixed(2)+' · old journal archived'; _t.classList.add('show'); setTimeout(function(){_t.classList.remove('show');},2600); }catch(e){} },800);
+  }
+}catch(e){}
 let _planState='';
 function renderPlan(){
   const el=$('planLine'); if(!el) return;
