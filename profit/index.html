@@ -396,6 +396,60 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 
+
+/* ---------- v26 T212 read-only auto-journal + OPEN POSITION auto-pop ---------- */
+#t212Row{display:flex;align-items:center;gap:8px;flex:none;min-height:22px;flex-wrap:wrap}
+.t212ctl{display:inline-flex;align-items:center;gap:6px;background:var(--surface-1);
+  border:1px solid var(--border-hair);color:var(--text-mid);border-radius:999px;
+  font-family:var(--font-ui);font-size:10px;font-weight:700;letter-spacing:.08em;
+  padding:3px 10px;cursor:pointer;flex:none}
+.t212dot{width:7px;height:7px;border-radius:50%;background:var(--stale);flex:none}
+.t212dot.polling{background:var(--pos);box-shadow:0 0 6px rgba(52,211,153,.5)}
+.t212dot.dormant{background:var(--text-low)}
+.t212dot.authfail{background:var(--neg-hard);box-shadow:0 0 6px rgba(239,68,68,.5)}
+.t212conn{display:flex;gap:6px;align-items:center;flex:1;min-width:160px}
+.t212conn input{min-height:36px;font-size:14px}
+.t212conn .btn{min-height:36px;font-size:12px;min-width:70px}
+.t212disc{background:none;border:1px solid var(--border-hair);color:var(--text-low);
+  border-radius:999px;font-family:var(--font-ui);font-size:10px;font-weight:700;
+  letter-spacing:.06em;padding:3px 10px;cursor:pointer;flex:none}
+.t212note{font-size:10.5px;color:var(--warn);flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+/* OPEN POSITION panel — the auto-pop on FIND (never a takeover) */
+#openPos{background:var(--surface-1);border:1px solid var(--pos-border);border-radius:14px;
+  padding:9px 12px;flex:none;display:flex;flex-direction:column;gap:8px}
+#openPos .ophead{font-size:13px;color:var(--text-mid);font-family:var(--font-num);
+  font-variant-numeric:tabular-nums;line-height:1.45;overflow:hidden;text-overflow:ellipsis}
+#openPos .ophead .opsym{color:var(--text-hi);font-weight:700;font-family:var(--font-ui)}
+#openPos .ophead b{font-family:var(--font-num)}
+#openPos .ophead .oplbl{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--pos);
+  font-family:var(--font-ui);text-transform:uppercase;display:block;margin-bottom:1px}
+#openPos .ophead .sub{color:var(--text-low);font-size:11px}
+.opcards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* author display rules beat the UA [hidden] rule — restore hiding (same fix as .pl[hidden]) */
+#openPos[hidden],.t212conn[hidden],#t212Legacy[hidden],#forensics[hidden]{display:none}
+
+/* quiet legacy row (pre-cockpit dead positions) */
+#t212Legacy{flex:none}
+.t212leg{width:100%;text-align:left;background:none;border:1px solid var(--border-hair);
+  color:var(--text-low);border-radius:10px;padding:6px 10px;font-family:var(--font-ui);
+  font-size:11px;font-weight:600;letter-spacing:.02em;cursor:pointer}
+.t212leglist{font-size:11px;color:var(--text-low);font-family:var(--font-num);
+  padding:6px 10px 2px;line-height:1.6;word-break:break-word}
+
+/* FORENSICS block (entry dissection) */
+#forensics{background:var(--surface-1);border:1px solid var(--border-hair);border-radius:12px;
+  padding:8px 10px;flex:none}
+#forensics .fhead{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-low);font-family:var(--font-ui);margin-bottom:5px}
+#forensics .frow{display:flex;flex-wrap:wrap;gap:6px}
+#forensics .ftag{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;
+  background:var(--warn-dim);border:1px solid var(--warn-border);color:var(--warn);
+  font-family:var(--font-ui);white-space:nowrap}
+#forensics .ftag .famt{font-family:var(--font-num);font-weight:700;margin-left:4px}
+#forensics .ftrades{font-size:10.5px;color:var(--text-low);margin-top:5px;line-height:1.7;font-family:var(--font-num)}
+#forensics .ftrades .fx{color:var(--warn);font-weight:700;letter-spacing:.06em}
 </style>
 </head>
 <body>
@@ -405,6 +459,16 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   <!-- SCAN rail: clock · session · countdown │ market temp + movers — always anchored -->
   <div id="mktLine" class="mono">
     <span class="mlabel">SCAN</span><span id="railClock" class="mono"></span><span class="railsep"></span><span id="railMkt">—</span>
+  </div>
+  <!-- T212 read-only connect + status dot (dormant with no token; zero requests) -->
+  <div id="t212Row">
+    <button id="t212Ctl" class="t212ctl" title="Trading 212 read-only auto-journal"><span id="t212Dot" class="t212dot dormant"></span><span id="t212Lbl">T212</span></button>
+    <div id="t212Connect" class="t212conn" hidden>
+      <input id="t212Token" type="password" autocapitalize="off" autocomplete="off" placeholder="cockpit passphrase">
+      <button class="btn" id="t212Save">Connect</button>
+    </div>
+    <button id="t212Disc" class="t212disc" hidden>Disconnect</button>
+    <span id="t212Note" class="t212note"></span>
   </div>
   <!-- price block: price + status + verdict = one instrument -->
   <div class="hero">
@@ -418,6 +482,22 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
     </div>
     <div id="rwNote" hidden></div>
   </div>
+  <!-- OPEN POSITION — auto-pops from a T212 buy (entry + live P/L + SELL AT cards). Never a takeover. -->
+  <div id="openPos" hidden>
+    <div class="ophead" id="opHead"></div>
+    <div class="opcards">
+      <button class="tcard t5" id="opCard5">
+        <span class="pct">+5% NET</span>
+        <span class="price mono" id="op5">—</span>
+        <span class="prof"><div class="gbp mono" id="opg5">—</div><div class="usd mono" id="opu5"></div></span>
+      </button>
+      <button class="tcard t10" id="opCard10">
+        <span class="pct">+10% NET</span>
+        <span class="price mono" id="op10">—</span>
+        <span class="prof"><div class="gbp mono" id="opg10">—</div><div class="usd mono" id="opu10"></div></span>
+      </button>
+    </div>
+  </div>
   <!-- playbook: entry plan + the walls above it -->
   <div id="playbook" hidden>
     <div id="entryLine" class="mono" hidden></div>
@@ -427,6 +507,11 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   <div id="runnersPanel" hidden>
     <div class="rwhead"><span class="mlabel">RUNNERS</span><span class="rwsub">alerts live only while app open</span></div>
     <div id="rwRows"></div>
+  </div>
+  <!-- quiet legacy row: pre-cockpit T212 positions, never auto-registered or logged -->
+  <div id="t212Legacy" hidden>
+    <button class="t212leg" id="t212LegHead">legacy: 0 positions (pre-cockpit)</button>
+    <div class="t212leglist" id="t212LegList" hidden></div>
   </div>
   <!-- the tape: 60 minutes of 1m candles + VWAP/EMA9/HOD — RHYTHM made visible -->
   <div id="tapeChart" class="off"><span class="clabel" id="tapeLabel">1-MIN CANDLES · LAST 60 MIN</span><canvas id="tapeCv"></canvas></div>
@@ -480,6 +565,12 @@ body.incoach #dayLog,body.incoach #planLine{display:none}
   <div class="daylog mono" id="dayLog" hidden></div>
   <div id="planLine" class="mono simline" hidden></div>
   <div id="sweepLine" class="mono simline" hidden></div>
+  <!-- FORENSICS — entry dissection (per-tag count + £, today's tagged rows) -->
+  <div id="forensics" hidden>
+    <div class="fhead">FORENSICS — entry dissection</div>
+    <div class="frow" id="fRow"></div>
+    <div class="ftrades" id="fTrades"></div>
+  </div>
   <div id="sweepBar" hidden><span id="sweepTxt"></span><button class="btn" id="sweepDone">DONE — withdrawn</button></div>
   <div class="entry">
     <input id="exit" class="mono" type="number" inputmode="decimal" step="any" min="0" placeholder="exit price $ — blank = live">
@@ -712,7 +803,7 @@ function startPolling(sym){
   pollTimer = setInterval(async () => {
     // hidden-tab polling stays OFF — except mid-QUICK-trade: he's in T212 executing, and the
     // advisor must keep computing so the ntfy push can still reach his notification tray
-    if (document.hidden && !(ARM && ARM.state==='in' && ARM.mode!=='hold')) return;
+    if (document.hidden && !(ARM && ARM.state==='in' && ARM.mode!=='hold') && !t212KeepAwake()) return;
     if (Date.now() - lastTickAt < 5000) return;        // stream healthy: don't double-write (no kill/restart flapping)
     if (_pollBusy) return;                             // a slow/halted fetch must never let 3s polls stack into a pile-up
     _pollBusy = true;
@@ -1032,7 +1123,7 @@ document.addEventListener('visibilitychange', () => {
 setInterval(() => { if (!document.hidden && liveSym) { try { runGauge(liveSym); } catch(e){} } }, 5*60*1000);
 setInterval(() => {
   if (!liveSym || !lastUpdateAt) return;
-  if (document.hidden && !(ARM && ARM.state==='in' && ARM.mode!=='hold')) return;   // watchdog stays awake mid-trade
+  if (document.hidden && !(ARM && ARM.state==='in' && ARM.mode!=='hold') && !t212KeepAwake()) return;   // watchdog stays awake mid-trade
   const age = (Date.now() - lastUpdateAt) / 1000;
   if (age <= 10) return;
   const halt = age > 30;
@@ -1180,9 +1271,10 @@ $('dayLog').addEventListener('click', () => {
   const t = loadTrades();
   if (!t.length) return;
   const NL = String.fromCharCode(10);
-  const csv = 'date,symbol,entry,exit,shares,net_gbp,session,mode,held_sec,peak_pct,tag,declared' + NL + t.map(x =>
+  const _cq = s => String(s==null?'':s).replace(/[,\r\n]/g,';');
+  const csv = 'date,symbol,entry,exit,shares,net_gbp,session,mode,held_sec,peak_pct,tag,declared,fx,ctx_play' + NL + t.map(x =>
     [x.d, x.sym, x.entry, x.exit, x.sh, x.netGBP.toFixed(2), x.sess||'', x.mode||'', x.heldSec!=null?x.heldSec:'',
-     x.peakPct!=null?x.peakPct:'', x.tag||'', x.decl?'Y':''].join(',')).join(NL);
+     x.peakPct!=null?x.peakPct:'', x.tag||'', x.decl?'Y':'', _cq((x.fx||[]).join('|')), _cq(x.ctx&&x.ctx.playState)].join(',')).join(NL);
   (navigator.clipboard ? navigator.clipboard.writeText(csv) : Promise.reject()).then(() => {
     const toast = $('toast'); toast.textContent = 'Trade log copied (CSV)';
     toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1600);
@@ -2039,7 +2131,7 @@ renderArm();
 // Clears the journal, the plan, positions and any armed state, then reloads clean at £200.
 if (location.search.indexOf('reset') >= 0) {
   if (confirm('Reset the cockpit? This deletes ALL logged trades and starts the plan again at £200. It cannot be undone from here.')) {
-    ['trades','plan_v1','arm_v1','positions_v1','decl_v1','profit_state_v3','mkt_v1','runner_v1','runner_day_v1']
+    ['trades','plan_v1','arm_v1','positions_v1','decl_v1','profit_state_v3','mkt_v1','runner_v1','runner_day_v1','t212_token_v1','t212_base_v1','t212_seen_v1','t212_last_recon_v1','t212_entry_v1']
       .forEach(k => { try { localStorage.removeItem(k); } catch(e){} });
     Object.keys(localStorage).forEach(k => {
       if (k.indexOf('gauge_') === 0 || k.indexOf('sau_') === 0) { try { localStorage.removeItem(k); } catch(e){} }
@@ -2930,6 +3022,571 @@ try{ window._rw={qualify:runnerQualify, health:runnerHealth, tick:runnerTick, ch
   refresh:runnerDailyRefresh, analyze:rwAnalyze, frac:rwFrac, stop:rwStop, shares:rwShares,
   load:rwLoad, render:renderRunners, open:s=>{ _rwOpen=s; renderRunners(); }}; }catch(e){}
 
+
+// ================================================================================
+// v26 T212 READ-ONLY AUTO-JOURNAL + TRADE FORENSICS + AUTO-POP SELL CARDS
+// Read-only: relay GETs only, never a write/order call. No secrets in code — the
+// cockpit passphrase lives ONLY in localStorage (t212_token_v1). Feature dormant
+// (zero requests) with no token. Detects T212 buys → auto-pops the +5%/+10% SELL AT
+// cards on FIND (never the full-screen takeover); detects closes → auto-logs the
+// realized £ straight from T212's own realisedProfitLoss (never recomputed).
+// ================================================================================
+const T212_RELAY='https://t212-relay.band7lab.workers.dev';
+const T212_TOKEN_KEY='t212_token_v1', T212_BASE_KEY='t212_base_v1',
+      T212_SEEN_KEY='t212_seen_v1', T212_RECON_KEY='t212_last_recon_v1',
+      T212_ENTRY_KEY='t212_entry_v1';
+let T212_STATE='dormant';               // dormant | polling | authfail
+let T212_OPEN={};                       // sym -> live open-position record (RAM)
+let _t212Poll=null, _t212Busy=false, _t212Backoff=0, _t212LastPoll=0;
+let _t212ReconDone=false, _t212AuthToasted=false;
+const _t212NonUsToasted={};
+
+function t212Token(){ try{ return localStorage.getItem(T212_TOKEN_KEY)||''; }catch(e){ return ''; } }
+function t212Load(k,def){ try{ return JSON.parse(localStorage.getItem(k)||def); }catch(e){ try{ return JSON.parse(def); }catch(e2){ return null; } } }
+function t212SaveRaw(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function t212Sym(tk){ return String(tk||'').replace(/_US_EQ$/,''); }
+function t212Qty(q){ q=+q; if(!isFinite(q)) return '?';
+  return (Math.abs(q-Math.round(q))<1e-9)? String(Math.round(q)) : String(+q.toFixed(4)).replace(/0+$/,'').replace(/\.$/,''); }
+function t212KeepAwake(){ try{ return !!(Object.keys(T212_OPEN).length && T212_OPEN[liveSym]); }catch(e){ return false; } }
+
+// ---- relay GET (read-only). Throws typed objects so the caller can react precisely. ----
+async function t212Get(path, ms){
+  const tok=t212Token(); if(!tok) throw {t212:'notoken'};
+  const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(), ms||8000);
+  let r;
+  try{ r=await fetch(T212_RELAY+path,{headers:{'x-cockpit-token':tok},signal:ctl.signal}); }
+  finally{ clearTimeout(tm); }
+  if(r.status===401) throw {t212:'auth'};
+  if(r.status===429) throw {t212:'rate', reset:r.headers.get('x-ratelimit-reset')};
+  if(!r.ok) throw {t212:'http', status:r.status};
+  return await r.json();
+}
+
+// ---- poll scheduler: 5s while visible AND in a session, else 60s; stop with no token ----
+function t212Interval(){ return (!document.hidden && (typeof etSession==='function') && etSession()!=null) ? 5000 : 60000; }
+function t212Tick(){
+  if(!t212Token()){ t212Stop(); T212_STATE='dormant'; t212RenderDot(); return; }
+  if(T212_STATE==='authfail') return;
+  const wait=Math.max(t212Interval(), _t212Backoff||0);
+  if(Date.now()-_t212LastPoll < wait) return;
+  if(_t212Busy) return;
+  _t212LastPoll=Date.now();
+  t212PollOnce();
+}
+function t212Start(){
+  if(!t212Token()) return;
+  if(_t212Poll) clearInterval(_t212Poll);
+  T212_STATE='polling'; _t212LastPoll=0; _t212Backoff=0;
+  t212RenderDot();
+  _t212Poll=setInterval(t212Tick,1000);
+  t212Tick();                                   // immediate first poll
+}
+function t212Stop(){ if(_t212Poll){ clearInterval(_t212Poll); _t212Poll=null; } }
+async function t212PollOnce(){
+  if(_t212Busy || !t212Token()) return;
+  _t212Busy=true;
+  try{
+    const data=await t212Get('/api/v0/equity/positions');
+    _t212Backoff=0;
+    if(T212_STATE!=='polling'){ T212_STATE='polling'; t212RenderDot(); }
+    const items=Array.isArray(data)?data:(data&&Array.isArray(data.items)?data.items:[]);
+    await t212Handle(items);
+  }catch(err){ t212OnError(err); }
+  finally{ _t212Busy=false; }
+}
+function t212OnError(err){
+  if(err&&err.t212==='auth'){
+    T212_STATE='authfail'; t212RenderDot();
+    if(!_t212AuthToasted){ _t212AuthToasted=true; tost('T212: passphrase rejected'); }
+    return;                                     // dormant until re-entered (connect flow re-arms)
+  }
+  if(err&&err.t212==='rate'){
+    let backoff=15000; const reset=err.reset!=null?+err.reset:NaN;
+    if(isFinite(reset)){ const now=Date.now();
+      backoff = reset>1e12 ? Math.max(1000,reset-now)          // epoch ms
+              : reset>1e9  ? Math.max(1000,reset*1000-now)     // epoch s
+              :              Math.max(1000,reset*1000);        // seconds-from-now
+    }
+    _t212Backoff=Math.min(backoff,120000); return;
+  }
+  _t212Backoff=Math.min((_t212Backoff||5000)*2,60000);        // network/other: gentle backoff
+}
+
+// ---- the diff loop: baseline → NEW / ADD / partial-close / full-close ----
+function t212ItemPL(item){ try{ const v=item&&item.walletImpact&&item.walletImpact.unrealizedProfitLoss;
+  return (v!=null&&isFinite(v))?v:null; }catch(e){ return null; } }
+async function t212Handle(positions){
+  const items=(positions||[]).filter(p=>p&&p.instrument&&p.instrument.ticker&&isFinite(p.quantity));
+  let base=t212Load(T212_BASE_KEY,'null');
+  // BASELINE: first successful read — every current ticker is legacy (pre-cockpit), never tracked
+  if(base==null){
+    base=items.map(p=>p.instrument.ticker);
+    t212SaveRaw(T212_BASE_KEY,base);
+    t212SaveRaw(T212_SEEN_KEY,{});
+    t212RenderLegacy(); t212RenderOpen();
+    return;
+  }
+  const baseSet=new Set(base);
+  const seen=t212Load(T212_SEEN_KEY,'{}')||{};
+  const curNonLegacy={};
+  for(const p of items){
+    const tk=p.instrument.ticker;
+    if(baseSet.has(tk)) continue;                             // legacy — ignored entirely
+    if(!/_US_EQ$/.test(tk)){                                  // non-US: say so once, then ignore
+      if(!_t212NonUsToasted[tk]){ _t212NonUsToasted[tk]=1;
+        tost('T212: '+t212Sym(tk.replace(/_[A-Z0-9]+_EQ$/,''))+' not US — not tracked'); }
+      continue;
+    }
+    curNonLegacy[tk]=p;
+  }
+  // NEW + ADD + partial close
+  for(const tk in curNonLegacy){
+    const p=curNonLegacy[tk], sym=t212Sym(tk);
+    const qty=p.quantity, avg=p.averagePricePaid, prev=seen[tk];
+    if(!prev){ t212Register(sym,tk,avg,qty,p,'new'); }
+    else if(qty>prev.qty+1e-9){ t212Register(sym,tk,avg,qty,p,'add'); }
+    else if(qty<prev.qty-1e-9){ await t212Close(sym,tk,prev,qty,p); }
+  }
+  // FULL close: was tracked, now gone
+  for(const tk in seen){
+    if(!curNonLegacy[tk] && !baseSet.has(tk)){ await t212Close(t212Sym(tk),tk,seen[tk],0,null); }
+  }
+  // refresh snapshot + the live OPEN map (preserve peak/_advL/registeredAt/structBreak)
+  const newSeen={}, prevOpen=T212_OPEN, nextOpen={};
+  for(const tk in curNonLegacy){
+    const p=curNonLegacy[tk], sym=t212Sym(tk);
+    newSeen[tk]={qty:p.quantity, avg:p.averagePricePaid};
+    const prior=prevOpen[sym]||{};
+    const es=(t212Load(T212_ENTRY_KEY,'{}')||{})[sym];
+    nextOpen[sym]={ sym, tk, avg:p.averagePricePaid, shares:p.quantity,
+      fillPx:p.averagePricePaid, sh:p.quantity,
+      registeredAt:(es&&es.at)||prior.registeredAt||Date.now(),
+      peak:Math.max(prior.peak||p.averagePricePaid, p.currentPrice||0),
+      structBreak:prior.structBreak, _advL:prior._advL||0,
+      curPrice:p.currentPrice, plGBP:t212ItemPL(p) };
+  }
+  t212SaveRaw(T212_SEEN_KEY,newSeen);
+  T212_OPEN=nextOpen;
+  t212RenderLegacy(); t212RenderOpen();
+}
+
+// register a NEW buy (auto-pop the cards) or ADD (T212 recomputes the avg — never averaged locally)
+function t212Register(sym,tk,avg,qty,item,kind){
+  const pos=loadPositions();
+  pos[sym]={avg:String(avg), shares:String(qty)};
+  try{ localStorage.setItem('positions_v1',JSON.stringify(pos)); }catch(e){}
+  // load the symbol so a live price flows (advisory P/L + the safety net), if not already live
+  if(liveSym!==sym){
+    try{ $('ticker').value=sym; saveState(); getPrice(); }catch(e){}
+  } else { $('avg').value=avg; $('shares').value=qty; calc(); }
+  if(kind==='new'){
+    const es=t212Load(T212_ENTRY_KEY,'{}')||{};
+    if(!es[sym]) es[sym]={ entryPx:avg, shares:qty, at:Date.now(), tk, ctx:null };
+    else { es[sym].entryPx=avg; es[sym].shares=qty; }
+    t212SaveRaw(T212_ENTRY_KEY,es);
+    t212CaptureEntry(sym,avg,qty,tk);            // fire-and-forget forensics snapshot (fetches candles once)
+    tost('T212 ✓ bought '+t212Qty(qty)+' '+sym+' @ $'+fmt(avg,avg<1?3:2)+' — registered');
+    if(navigator.vibrate) navigator.vibrate(30);
+  } else {
+    tost('T212 ✓ added '+sym+' — new avg $'+fmt(avg,avg<1?3:2));
+  }
+  t212RenderOpen();
+}
+
+// a closing event → GET history/orders, sum realisedProfitLoss (already £, net of FX + fees)
+async function t212Close(sym,tk,prev,newQty,item){
+  const closedQty=+(prev.qty-newQty);
+  if(!(closedQty>1e-9)) return;
+  let fills=[];
+  try{ fills=await t212FetchSells(tk); }catch(e){ fills=[]; }
+  const t=loadTrades();
+  const existing=t212FillIdSet(t);
+  const fresh=fills.filter(f=>!existing.has(f.id)).sort((a,b)=>b.ts-a.ts);   // newest first
+  const use=[]; let acc=0;
+  for(const f of fresh){ if(acc>=closedQty-1e-6) break; use.push(f); acc+=(f.qty||0); }
+  if(!use.length){
+    // degrade honestly: never push a guessed number into the journal (advisory-only rule)
+    console.warn('T212: '+sym+' close detected but no fresh SELL fill available — not logging a guessed number');
+    tost('T212: '+sym+' closed — log its fill manually if needed');
+    t212ClearArm(sym); t212ApplyCloseLocal(sym,newQty,item);
+    if(newQty<=1e-9){ delete T212_OPEN[sym]; } t212RenderOpen(); return;
+  }
+  const realized=use.reduce((a,f)=>a+(f.realised||0),0);
+  const tq=use.reduce((a,f)=>a+(f.qty||0),0);
+  const exitPx= tq>0 ? use.reduce((a,f)=>a+f.price*(f.qty||0),0)/tq : use[0].price;
+  const ordered=use.slice().sort((a,b)=>a.ts-b.ts);
+  const lastF=ordered[ordered.length-1];
+  const fillTs=lastF.ts||Date.now();
+  const entrySnap=(t212Load(T212_ENTRY_KEY,'{}')||{})[sym]||null;
+  const heldSec=entrySnap&&entrySnap.at ? Math.round((fillTs-entrySnap.at)/1000) : null;
+  const closePct=(prev.avg>0)?((exitPx-prev.avg)/prev.avg*100):null;
+  const closeCtx=t212Ctx(sym, exitPx);
+  const row={ d:lastF.filledAt||new Date(fillTs).toISOString(), sym, entry:prev.avg, exit:+exitPx,
+    sh:+(+tq.toFixed(6)), netGBP:+realized.toFixed(2), tday:etDayOf(fillTs), sess:etSession()||'',
+    mode:'t212', auto:1, oid:lastF.oid, filledAt:lastF.filledAt, fillIds:use.map(f=>f.id),
+    heldSec:heldSec, ctx:closeCtx,
+    fx:t212Grade(entrySnap,{ctx:closeCtx, netGBP:realized, exitPx, heldSec, closePct}) };
+  if(!t212RowExists(t,row)){
+    t.push(row);
+    try{ localStorage.setItem('trades',JSON.stringify(t.slice(-500))); }catch(e){}
+  }
+  t212ClearArm(sym);
+  if(realized<0){ try{ COOL=Date.now()+5*60*1000; }catch(e){} }   // loss cooldown on red, like a real QUICK trade
+  t212ApplyCloseLocal(sym,newQty,item);
+  if(newQty<=1e-9){ const es=t212Load(T212_ENTRY_KEY,'{}')||{}; delete es[sym]; t212SaveRaw(T212_ENTRY_KEY,es); delete T212_OPEN[sym]; }
+  try{ calc(); renderDayLog(); renderPlan(); renderForensics(); if(typeof syncJournal==='function') syncJournal(); }catch(e){}
+  t212RenderOpen();
+  tost('T212 ✓ '+sym+' closed '+(realized>=0?'+':'−')+'£'+fmt(Math.abs(realized))+' — logged');
+  if(navigator.vibrate) navigator.vibrate(realized>=0?30:[60,40,60]);
+}
+function t212ApplyCloseLocal(sym,newQty,item){
+  const pos=loadPositions();
+  if(newQty>1e-9){ const avg=item?item.averagePricePaid:(pos[sym]&&pos[sym].avg); pos[sym]={avg:String(avg), shares:String(newQty)}; }
+  else delete pos[sym];
+  try{ localStorage.setItem('positions_v1',JSON.stringify(pos)); }catch(e){}
+  if(liveSym===sym){ if(newQty>1e-9){ $('shares').value=newQty; } else { $('avg').value=''; $('shares').value=''; } try{ calc(); }catch(e){} }
+}
+function t212ClearArm(sym){ try{ if(ARM && ARM.sym===sym){ ARM=null; armSave(); renderArm(); } }catch(e){} }
+
+// ---- history/orders: SELL fills for one ticker (dedupe on order.id + filledAt) ----
+function t212FillsFrom(items){
+  const out=[], seen=new Set();
+  for(const it of (items||[])){
+    const o=it.order||{}, f=it.fill; if(!f) continue;
+    if(!(o.status==='FILLED'||o.status==='PARTIALLY_FILLED')) continue;
+    if(o.side!=='SELL') continue;
+    const filledAt=f.filledAt||o.createdAt;
+    const ts=filledAt?Date.parse(filledAt):0;
+    const id=(o.id!=null?o.id:'')+'@'+(filledAt||'');
+    if(seen.has(id)) continue; seen.add(id);
+    const wi=f.walletImpact||{};
+    out.push({ id, oid:o.id, tk:o.ticker, price:f.price,
+      qty:(f.quantity!=null?f.quantity:o.filledQuantity), filledAt, ts,
+      realised:(wi.realisedProfitLoss!=null&&isFinite(wi.realisedProfitLoss))?wi.realisedProfitLoss:0 });
+  }
+  return out;
+}
+async function t212FetchSells(tk, limit){
+  const out=[]; const seen=new Set();
+  let path='/api/v0/equity/history/orders?ticker='+encodeURIComponent(tk)+'&limit='+(limit||20);
+  let pages=0;
+  while(path && pages<3){
+    pages++;
+    let j; try{ j=await t212Get(path,8000); }catch(e){ break; }
+    const fills=t212FillsFrom(j&&j.items);
+    for(const f of fills){ if(!seen.has(f.id)){ seen.add(f.id); out.push(f); } }
+    const np=j&&j.nextPagePath;
+    path = np ? np : null;                                     // paginate verbatim if present
+  }
+  out.sort((a,b)=>a.ts-b.ts);
+  return out;
+}
+// RECONCILE-ON-OPEN: one history sweep for closes missed while the tab was shut
+async function t212SweepAllSells(since){
+  const out=[]; const seen=new Set();
+  let path='/api/v0/equity/history/orders?limit=50'; let pages=0;
+  while(path && pages<3){
+    pages++;
+    let j; try{ j=await t212Get(path,8000); }catch(e){ break; }
+    const fills=t212FillsFrom(j&&j.items);
+    let oldest=Infinity;
+    for(const f of fills){ oldest=Math.min(oldest, f.ts||Infinity);
+      if(seen.has(f.id)) continue; seen.add(f.id);
+      if(since && f.ts && f.ts<=since) continue;
+      out.push(f); }
+    const np=j&&j.nextPagePath;
+    path = (np && (!since || oldest>since)) ? np : null;       // stop once we're past the floor
+  }
+  out.sort((a,b)=>a.ts-b.ts);
+  return out;
+}
+function t212FillIdSet(t){ const s=new Set(); (t||[]).forEach(x=>{ if(Array.isArray(x.fillIds)) x.fillIds.forEach(id=>s.add(id)); }); return s; }
+function t212RowExists(t,row){
+  const ids=Array.isArray(row.fillIds)?row.fillIds:[];
+  return (t||[]).some(x=>{
+    if(ids.length && Array.isArray(x.fillIds) && x.fillIds.some(id=>ids.indexOf(id)>=0)) return true;
+    if(x.oid!=null && row.oid!=null && x.filledAt && row.filledAt) return x.oid===row.oid && x.filledAt===row.filledAt;
+    return tradeKey(x)===tradeKey(row);
+  });
+}
+async function t212Reconcile(){
+  if(!t212Token() || _t212ReconDone) return;
+  _t212ReconDone=true;
+  try{
+    let base=t212Load(T212_BASE_KEY,'null');
+    if(base==null){                                           // need a baseline before we can judge legacy
+      try{ const pos=await t212Get('/api/v0/equity/positions');
+        await t212Handle(Array.isArray(pos)?pos:(pos&&pos.items?pos.items:[]));
+        base=t212Load(T212_BASE_KEY,'null'); }catch(e){ return; }
+    }
+    const reconRaw=(function(){ try{ return localStorage.getItem(T212_RECON_KEY); }catch(e){ return null; } })();
+    if(reconRaw==null){                                       // FIRST connect: floor = now, never back-log ancient history
+      try{ localStorage.setItem(T212_RECON_KEY,String(Date.now())); }catch(e){} return;
+    }
+    const since=+reconRaw||0;
+    const fills=await t212SweepAllSells(since);
+    const baseSet=new Set(base||[]);
+    const t=loadTrades(); const existing=t212FillIdSet(t);
+    let added=0, maxTs=since;
+    for(const f of fills){
+      if(f.ts>maxTs) maxTs=f.ts;
+      if(existing.has(f.id)) continue;
+      if(baseSet.has(f.tk)) continue;                         // pre-cockpit legacy — never back-log
+      if(!/_US_EQ$/.test(f.tk||'')) continue;
+      const sym=t212Sym(f.tk);
+      const row={ d:f.filledAt||new Date(f.ts).toISOString(), sym, entry:null, exit:+f.price,
+        sh:+(f.qty||0), netGBP:+(f.realised||0).toFixed(2), tday:etDayOf(f.ts), sess:'',
+        mode:'t212r', auto:1, oid:f.oid, filledAt:f.filledAt, fillIds:[f.id], ctx:null, fx:[] };
+      if(!t212RowExists(t,row)){ t.push(row); existing.add(f.id); added++; }
+    }
+    if(added){ try{ localStorage.setItem('trades',JSON.stringify(t.slice(-500))); }catch(e){}
+      try{ calc(); renderDayLog(); renderPlan(); renderForensics(); if(typeof syncJournal==='function') syncJournal(); }catch(e){}
+      tost('T212: recovered '+added+' missed close'+(added===1?'':'s')); }
+    try{ localStorage.setItem(T212_RECON_KEY,String(maxTs)); }catch(e){}
+  }catch(e){}
+}
+
+// ================= FEATURE B — TRADE FORENSICS =================
+function candStats(res, px){
+  try{
+    if(!res||!res.indicators) return null;
+    const q=res.indicators.quote[0], ts=res.timestamp||[];
+    const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
+    if(cands.length<3) return null;
+    let pv=0,vv=0; cands.forEach(c=>{ if(c.v>0){ pv+=((c.h+c.l+c.c)/3)*c.v; vv+=c.v; } });
+    const vwap=vv?pv/vv:cands.reduce((a,c)=>a+(c.h+c.l+c.c)/3,0)/cands.length;
+    const ema9=emaCalc(cands.map(c=>c.c),9);
+    const hod=Math.max.apply(null,cands.map(c=>c.h));
+    const last=(px>0)?px:cands[cands.length-1].c;
+    return { vwap, ema9, hod, last,
+      pctFromVwap: vwap>0?((last-vwap)/vwap*100):null,
+      pctFromHod:  hod>0?((last-hod)/hod*100):null };
+  }catch(e){ return null; }
+}
+function minsSinceLastStopOut(){
+  try{ const t=loadTrades(); let last=0;
+    t.forEach(x=>{ if(x&&x.netGBP<0){ const ts=Date.parse(x.d)||0; if(ts>last) last=ts; } });
+    return last? Math.round((Date.now()-last)/60000) : null;
+  }catch(e){ return null; }
+}
+// context snapshot — only fields we can actually observe (spreadUnknown flagged honestly)
+function t212Ctx(sym, px){
+  const ctx={ ts:Date.now(), session:(typeof etSession==='function'&&etSession())||'closed', spreadUnknown:true,
+    mktTemp:null, gaugeVerdict:null, country:null, playState:null,
+    vwap:null, ema9:null, pctFromVwap:null, pctFromHod:null,
+    runnerPivot:null, pctFromPivot:null, runnerS2Ts:null,
+    armed:false, declared:false, onRunnerWatch:false, minsSinceLastStopOut:null };
+  try{ ctx.mktTemp=(typeof MKT!=='undefined'&&MKT)?MKT.temp:null; }catch(e){}
+  try{ const gc=(JSON.parse(localStorage.getItem(GCACHE_KEY)||'{}')[sym])||{}; ctx.country=(gc.country!==undefined?gc.country:null); }catch(e){}
+  try{ if(sym===liveSym){ const b=$('gBadge'); if(b){ const m=/(STRONG|MEDIUM|WEAK)/.exec(b.textContent||''); if(m) ctx.gaugeVerdict=m[1]; } } }catch(e){}
+  try{ if(sym===liveSym){ const ps=$('entryLine').querySelector('.pstate'); if(ps) ctx.playState=(ps.textContent||'').replace(/\s+as of.*$/i,'').trim(); } }catch(e){}
+  try{ const st=candStats((typeof CAND1M!=='undefined'&&CAND1M&&CAND1M.sym===sym)?CAND1M.res:null, px);
+    if(st){ ctx.vwap=st.vwap; ctx.ema9=st.ema9; ctx.pctFromVwap=st.pctFromVwap; ctx.pctFromHod=st.pctFromHod; } }catch(e){}
+  try{ const r=(typeof rwLoad==='function')?rwLoad()[sym]:null; if(r){ ctx.onRunnerWatch=true;
+    if(r.pivot>0){ ctx.runnerPivot=r.pivot; if(px>0) ctx.pctFromPivot=(px-r.pivot)/r.pivot*100; }
+    const today=etDayKey(); if(r.alerts&&r.alerts[today]&&r.alerts[today].s2) ctx.runnerS2Ts=r.alerts[today].s2; } }catch(e){}
+  try{ ctx.armed=!!(ARM&&ARM.sym===sym&&ARM.state); }catch(e){}
+  try{ const today=etDayKey(); ctx.declared=(typeof DECL!=='undefined'&&Array.isArray(DECL))&&DECL.some(d=>d&&d.sym===sym&&etDayOf(Date.parse(d.d))===today); }catch(e){}
+  ctx.minsSinceLastStopOut=minsSinceLastStopOut();
+  return ctx;
+}
+async function t212CaptureEntry(sym, avg, qty, tk){
+  const px=(sym===liveSym?parseFloat($('cur').value):0)||avg;
+  let ctx=t212Ctx(sym,px);
+  if(!(ctx.vwap>0)){                                          // symbol not loaded → fetch 1m candles ONCE
+    let res=null; try{ res=await fetchCandles(sym,'1m'); }catch(e){}
+    if(res){ const st=candStats(res,px); if(st){ ctx.vwap=st.vwap; ctx.ema9=st.ema9; ctx.pctFromVwap=st.pctFromVwap; ctx.pctFromHod=st.pctFromHod; } }
+  }
+  const es=t212Load(T212_ENTRY_KEY,'{}')||{};
+  es[sym]={ entryPx:avg, shares:qty, at:(es[sym]&&es[sym].at)||Date.now(), tk, ctx };
+  t212SaveRaw(T212_ENTRY_KEY,es);
+}
+// GRADE at close — only tags DERIVABLE from captured data. No evidence → no tag → "unrated".
+function t212Grade(entrySnap, close){
+  const fx=[]; if(!entrySnap||!entrySnap.ctx) return fx;
+  const c=entrySnap.ctx, entryPx=entrySnap.entryPx;
+  const ps=String(c.playState||'');
+  if((c.runnerPivot>0 && entryPx>c.runnerPivot*1.03) || /EXTENDED|UNCONFIRMED|NEW HIGHS/i.test(ps)) fx.push('CHASED');
+  if(/WAIT|BROKEN/i.test(ps)) fx.push('EARLY');
+  if(c.runnerS2Ts && c.ts && (c.ts-c.runnerS2Ts)>10*60000) fx.push('LATE');
+  if(c.armed===false && c.declared===false && c.onRunnerWatch===false) fx.push('IMPULSIVE');
+  if(c.minsSinceLastStopOut!=null && c.minsSinceLastStopOut<=15) fx.push('REVENGE');
+  if(close && close.heldSec!=null && close.closePct!=null){       // FROZE — only with peak/held evidence
+    const red=(entryPx<1)?-7:-4;
+    if(close.closePct<=red && close.heldSec>720) fx.push('FROZE');
+  }
+  return fx.filter((v,i)=>fx.indexOf(v)===i);
+}
+function renderForensics(){
+  const box=$('forensics'); if(!box) return;
+  try{
+    const t=loadTrades().filter(x=>x&&Array.isArray(x.fx));
+    const graded=t.filter(x=>x.mode==='t212'||x.mode==='t212r'||x.fx.length);
+    const agg={};
+    graded.forEach(x=>{ (x.fx||[]).forEach(tag=>{ if(!agg[tag]) agg[tag]={n:0,gbp:0}; agg[tag].n++; agg[tag].gbp+=(x.netGBP||0); }); });
+    const tags=Object.keys(agg);
+    if(!graded.length){ box.hidden=true; return; }
+    if(!tags.length){
+      $('fRow').innerHTML='<span class="ftag" style="background:none;border-color:var(--border-hair);color:var(--text-low)">unrated · '+graded.length+' trade'+(graded.length===1?'':'s')+' (no derivable evidence)</span>';
+      $('fTrades').innerHTML=''; box.hidden=false; return;
+    }
+    tags.sort((a,b)=>agg[a].gbp-agg[b].gbp);
+    $('fRow').innerHTML=tags.map(tag=>{ const a=agg[tag]; const s=a.gbp>=0?'+':'−';
+      return '<span class="ftag">'+tag+' '+a.n+'<span class="famt">'+s+'£'+fmt(Math.abs(a.gbp))+'</span></span>'; }).join('');
+    const today=etDayKey();
+    const todays=graded.filter(x=>tradeDay(x)===today);
+    $('fTrades').innerHTML=todays.length? todays.slice(-12).map(x=>{
+      const letters=(x.fx||[]).map(f=>f[0]).join('');
+      return x.sym+' '+(x.netGBP>=0?'+':'−')+'£'+fmt(Math.abs(x.netGBP||0))+(letters?' <span class="fx">'+letters+'</span>':' <span style="color:var(--text-low)">unrated</span>');
+    }).join(' · ') : '';
+    box.hidden=false;
+  }catch(e){ box.hidden=true; }
+}
+
+// ================= safety net — GET OUT / loss-advisor for a T212 open position =================
+// Reuses the SAME lossAdvice + push machinery, WITHOUT the full-screen takeover. Silent while
+// a manual ARM owns the coach (that path already handles it). Advisory only.
+async function t212AdvFetch(o){
+  if(!o) return;
+  if(ADV.sym===o.sym && Date.now()-ADV.at<30000) return;
+  if(Date.now()-ADV.tryAt<10000) return;
+  ADV.tryAt=Date.now();
+  try{
+    const res=await fetchCandles(o.sym,'1m'); if(!res||!res.indicators) return;
+    const q=res.indicators.quote[0], ts=res.timestamp||[];
+    const cands=[]; for(let i=0;i<ts.length;i++) if(q.close[i]!=null) cands.push({t:ts[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0});
+    if(cands.length<5) return;
+    const done=(Date.now()/1000-cands[cands.length-1].t)>=60?cands[cands.length-1]:cands[cands.length-2];
+    let pv=0,vv=0; cands.forEach(c=>{ if(c.v>0){ pv+=((c.h+c.l+c.c)/3)*c.v; vv+=c.v; } });
+    const vwap=vv?pv/vv:null, e9=emaCalc(cands.map(c=>c.c),9);
+    let health=null; try{ health=secondLegHealth(cands,vwap,done.c,e9); }catch(e){}
+    if(o.structBreak==null){
+      const fillT=o.registeredAt/1000;
+      const near=cands.filter(c=>Math.abs(c.t-fillT)<=180);
+      if(near.length) o.structBreak=Math.min.apply(null,near.map(c=>c.l));
+    }
+    ADV={sym:o.sym,at:Date.now(),tryAt:Date.now(),vwap:vwap,e9:e9,close:done.c,health:health};
+  }catch(e){}
+}
+function t212PrimaryOpen(){
+  const syms=Object.keys(T212_OPEN); if(!syms.length) return null;
+  if(T212_OPEN[liveSym]) return T212_OPEN[liveSym];
+  return syms.map(s=>T212_OPEN[s]).sort((a,b)=>(b.registeredAt||0)-(a.registeredAt||0))[0];
+}
+function t212SafetyTick(){
+  try{
+    if(ARM && ARM.state==='in') return;                       // manual coach owns the advisor/pushes
+    const o=t212PrimaryOpen(); if(!o) return;
+    if(liveSym!==o.sym) return;                                // need a live price to judge
+    const px=parseFloat($('cur').value); if(!(px>0)) return;
+    const held=Math.round((Date.now()-o.registeredAt)/1000);
+    const nowPct=(px-o.fillPx)/o.fillPx*100;
+    if(px>o.peak) o.peak=px;
+    const ext=(typeof etSession==='function')&&etSession()!=='RTH';
+    t212AdvFetch(o);                                           // self-throttled candle pull → ADV
+    if(!(nowPct<0)){ o._advL=0; return; }                     // GET OUT is a losing-side alarm
+    const adv=lossAdvice(o,px,nowPct,held,ext);
+    const pl=netNow(o.fillPx,px,o.sh);
+    if(adv.level>(o._advL||0)){
+      if(adv.level===2){ tost('Thesis broken — holding is choosing to lose',[60]);
+        push('THESIS BROKEN — '+o.sym,'Holding is choosing to lose'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Decide your out.'); }
+      if(adv.level===3){ tost('GET OUT — sell at market on T212',[100,60,100,60,100]);
+        push('🛑 GET OUT — '+o.sym,'Ride-it-down in progress'+(pl!=null?' −£'+fmt(Math.abs(pl)):'')+'. Sell at market, reassess flat.','urgent'); }
+    }
+    o._advL = adv.level<=1?0:adv.level;
+  }catch(e){}
+}
+
+// ================= UI: OPEN POSITION panel, legacy row, status dot, connect =================
+function t212RenderOpen(){
+  const box=$('openPos'); if(!box) return;
+  const syms=Object.keys(T212_OPEN);
+  if(!syms.length){ box.hidden=true; return; }
+  const o=t212PrimaryOpen(); if(!o){ box.hidden=true; return; }
+  const sym=o.sym, entry=o.avg, shares=o.shares;
+  const live=(liveSym===sym)?(parseFloat($('cur').value)||null):(o.curPrice||null);
+  let pl=null, pct=null;
+  if(live>0 && entry>0) pct=(live-entry)/entry*100;
+  if(liveSym===sym && live>0 && fxFresh()) pl=netNow(entry,live,shares);
+  else if(o.plGBP!=null) pl=o.plGBP;
+  else if(live>0 && fxFresh()) pl=netNow(entry,live,shares);
+  const plCls=(pl==null)?'':(pl>=0?'rok':'rbad');
+  const plTxt=(pl==null)?'£—':((pl>=0?'+':'−')+'£'+fmt(Math.abs(pl)));
+  $('opHead').innerHTML='<span class="oplbl">OPEN POSITION · T212</span>'
+    +'<span class="opsym">'+t212Qty(shares)+' '+sym+'</span> @ $'+fmt(entry,entry<1?3:2)
+    +(live>0?' · now $'+fmt(live,live<1?3:2):'')
+    +' · <b class="'+plCls+'">P/L '+plTxt+(pct!=null?' ('+(pct>=0?'+':'')+pct.toFixed(1)+'%)':'')+'</b>'
+    +(syms.length>1?' <span class="sub">+'+(syms.length-1)+' more open</span>':'');
+  fillCard('op5','opg5','opu5', entry, shares, 0.05);
+  fillCard('op10','opg10','opu10', entry, shares, 0.10);
+  box.hidden=false;
+}
+function t212RenderLegacy(){
+  const box=$('t212Legacy'); if(!box) return;
+  const base=t212Load(T212_BASE_KEY,'null');
+  if(!base||!base.length){ box.hidden=true; return; }
+  box.hidden=false;
+  $('t212LegHead').textContent='legacy: '+base.length+' position'+(base.length===1?'':'s')+' (pre-cockpit)';
+  $('t212LegList').textContent=base.map(tk=>t212Sym(tk.replace(/_[A-Z0-9]+_EQ$/,''))).join(' · ');
+}
+function t212RenderDot(){
+  const d=$('t212Dot'); if(d) d.className='t212dot '+(!t212Token()?'dormant':T212_STATE);
+  const disc=$('t212Disc'); if(disc) disc.hidden=!t212Token();
+  const note=$('t212Note'); if(note){
+    note.textContent = T212_STATE==='authfail' ? 'passphrase rejected — tap T212 to re-enter'
+      : (!t212Token()? '' : '');
+  }
+}
+function t212Connect(){
+  const v=($('t212Token').value||'').trim();
+  if(!v){ tost('Paste your cockpit passphrase'); return; }
+  try{ localStorage.setItem(T212_TOKEN_KEY,v); }catch(e){}
+  _t212AuthToasted=false; _t212ReconDone=false; T212_STATE='polling';
+  $('t212Connect').hidden=true; $('t212Token').value='';
+  t212RenderDot(); tost('T212 connected — polling read-only');
+  t212Start(); t212Reconcile();
+}
+function t212Disconnect(){
+  try{ localStorage.removeItem(T212_TOKEN_KEY); }catch(e){}
+  t212Stop(); T212_STATE='dormant'; T212_OPEN={};
+  t212RenderOpen(); t212RenderDot();
+  tost('T212 disconnected');
+}
+try{
+  $('t212Ctl').addEventListener('click',()=>{ const c=$('t212Connect');
+    if(t212Token()){ c.hidden=!c.hidden; }               // connected: tap reveals re-enter/disconnect
+    else { c.hidden=!c.hidden; }
+    if(!c.hidden){ $('t212Token').focus(); } });
+  $('t212Save').addEventListener('click', t212Connect);
+  $('t212Token').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); t212Connect(); } });
+  $('t212Disc').addEventListener('click', t212Disconnect);
+  $('t212LegHead').addEventListener('click',()=>{ const l=$('t212LegList'); if(l) l.hidden=!l.hidden; });
+  $('opCard5').addEventListener('click',()=>copyCard('op5'));
+  $('opCard10').addEventListener('click',()=>copyCard('op10'));
+}catch(e){}
+
+// live-tick hook: keep the OPEN POSITION P/L honest (throttled paint, not a fetch)
+(function(){ const _sp=setPrice; let _at=0;
+  setPrice=function(price,tag,asOf){ _sp(price,tag,asOf);
+    try{ if(Date.now()-_at>800){ _at=Date.now(); t212RenderOpen(); } }catch(e){} };
+})();
+
+// keep FORENSICS fresh after any log (manual LOG, finishTrade, or a T212 close)
+(function(){ const _rdl=renderDayLog; renderDayLog=function(){ _rdl.apply(this,arguments); try{ renderForensics(); }catch(e){} }; })();
+
+setInterval(()=>{ try{ t212SafetyTick(); }catch(e){} }, 3000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ try{ t212Tick(); }catch(e){} } });
+
+// boot: paint dormant UI; if a token exists, start polling + one reconcile sweep
+try{
+  t212RenderDot(); t212RenderLegacy(); t212RenderOpen(); renderForensics();
+  if(t212Token()){ T212_STATE='polling'; t212Start(); setTimeout(t212Reconcile,1500); }
+}catch(e){}
+// test hooks (same pattern as rateStock/_rw above)
+try{ window._t212={ handle:t212Handle, poll:t212PollOnce, reconcile:t212Reconcile,
+  fetchSells:t212FetchSells, grade:t212Grade, ctx:t212Ctx, renderOpen:t212RenderOpen,
+  open:()=>T212_OPEN, state:()=>T212_STATE, start:t212Start, stop:t212Stop,
+  safety:t212SafetyTick, forensics:renderForensics }; }catch(e){}
 </script>
 </body>
 </html>
