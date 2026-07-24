@@ -3600,7 +3600,20 @@ function t212SafetyTick(){
     if(px>o.peak) o.peak=px;
     const ext=(typeof etSession==='function')&&etSession()!=='RTH';
     t212AdvFetch(o);                                           // self-throttled candle pull → ADV
-    if(!(nowPct<0)){ o._advL=0; return; }                     // GET OUT is a losing-side alarm
+    if(nowPct>=0){                                            // PROFIT side: take-profit target pings + give-back (Ali: alert me to exit on profit)
+      const t5=limitFor(o.fillPx,0.05), t10=limitFor(o.fillPx,0.10), pl2=netNow(o.fillPx,px,o.sh);
+      if(!o._tp10 && px>=t10){ o._tp10=1; o._tp5=1;
+        tost('TAKE PROFIT +10% — sell into strength',[80,50,80]);
+        push('🎯 TAKE PROFIT +10% — '+o.sym, o.sym+' hit +10% (~$'+fmt(t10,t10<1?3:2)+')'+(pl2!=null?' · +£'+fmt(pl2):'')+'. Lock it in.'); }
+      else if(!o._tp5 && px>=t5){ o._tp5=1;
+        tost('TAKE PROFIT +5% — sell into strength',[80,50,80]);
+        push('🎯 TAKE PROFIT +5% — '+o.sym, o.sym+' hit +5% (~$'+fmt(t5,t5<1?3:2)+')'+(pl2!=null?' · +£'+fmt(pl2):'')+'. Your edge is 5-10% and out.'); }
+      const peakPct=(o.peak-o.fillPx)/o.fillPx*100;                // gave back a chunk of a real run → sell the reversal
+      if(peakPct>=5 && nowPct<=peakPct*0.6 && !o._gaveBack){ o._gaveBack=1;
+        tost('Giving back the gain — sell into strength',[80,50,80]);
+        push('TAKE IT — '+o.sym, 'Was +'+peakPct.toFixed(0)+'%, now +'+nowPct.toFixed(0)+'% — giving it back. Sell into strength.'); }
+      o._advL=0; return;
+    }
     const adv=lossAdvice(o,px,nowPct,held,ext);
     const pl=netNow(o.fillPx,px,o.sh);
     if(adv.level>(o._advL||0)){
