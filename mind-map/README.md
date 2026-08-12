@@ -39,6 +39,10 @@ In Claude Code:
 
 That's it. On your next session start, `.claude/mindmap.md` appears in your project and starts being maintained automatically.
 
+> Installing from the `coin-maker3.github.io` monorepo instead? Use
+> `/plugin marketplace add coin-maker3/coin-maker3.github.io` and then
+> `/plugin install mind-map@coin-maker3`.
+
 **Requirements:** Claude Code with plugin support, a POSIX shell, and `jq` *or* `python3` on PATH (nearly every dev machine has one; there's even a pure-shell fallback).
 
 ## Commands
