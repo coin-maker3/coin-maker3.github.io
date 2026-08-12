@@ -1,0 +1,16 @@
+{
+  "name": "coin-maker3",
+  "owner": {
+    "name": "coin-maker3",
+    "url": "https://github.com/coin-maker3"
+  },
+  "description": "Plugins by coin-maker3",
+  "plugins": [
+    {
+      "name": "mind-map",
+      "source": "./mind-map",
+      "description": "Short-term working memory for Claude Code that survives /clear: Active Focus, Graveyard, Pending Work — restored automatically at every session start.",
+      "version": "1.0.0"
+    }
+  ]
+}
