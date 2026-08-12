@@ -1,0 +1,21 @@
+{
+  "name": "mind-map",
+  "displayName": "Mind Map",
+  "version": "1.0.0",
+  "description": "Short-term working memory for Claude Code that survives /clear. Automatically maintains a small mind-map file (Active Focus, Graveyard, Pending Work) and restores it into context at every session start.",
+  "author": {
+    "name": "coin-maker3",
+    "url": "https://github.com/coin-maker3"
+  },
+  "license": "MIT",
+  "keywords": ["memory", "context", "mind-map", "session", "persistence", "clear"],
+  "hooks": "./hooks/hooks.json",
+  "userConfig": {
+    "nudge_turns": {
+      "type": "string",
+      "title": "Nudge interval (turns)",
+      "description": "How many turns the mind-map may go stale before Claude is asked to refresh it at the end of a turn. Default: 4.",
+      "required": false
+    }
+  }
+}
