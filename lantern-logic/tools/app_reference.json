@@ -1,0 +1,64 @@
+{
+ "generated_by": "Godot 4.6.1 headless running the app's Game.daily_index_for / daily_number_for / daily_share_text (scripts/autoload/game.gd) on 2026-10-05",
+ "note": "Puzzle contents are stored only as sha256(regions + ':' + solution) so future puzzles are not revealed.",
+ "share_example_seconds": 161,
+ "share_example_stars": 3,
+ "dates": [
+  {
+   "date": "2026-10-01",
+   "index": 0,
+   "number": 1,
+   "sha256": "4ada8e680035ea4b9642eee7b0802a456641214938111402af499d59878ca0f3",
+   "share": "Lantern Logic Daily #1 — 6×6 in 2:41 ✨✨✨"
+  },
+  {
+   "date": "2026-10-05",
+   "index": 4,
+   "number": 5,
+   "sha256": "3807ad2252f99f93f74e40825cfa5236f0b9a90dfa06faa7a17f262df0f5cbf5",
+   "share": "Lantern Logic Daily #5 — 9×9 in 2:41 ✨✨✨"
+  },
+  {
+   "date": "2026-10-06",
+   "index": 5,
+   "number": 6,
+   "sha256": "b472812be88e9c3a4203c77bec41fb3dc766927994eb07d4f7c01a002445ee45",
+   "share": "Lantern Logic Daily #6 — 6×6 in 2:41 ✨✨✨"
+  },
+  {
+   "date": "2026-12-25",
+   "index": 85,
+   "number": 86,
+   "sha256": "2f2540151fcb6ae359c365d7ce0c4c8013c55400fd27eeafabfdae902df86e21",
+   "share": "Lantern Logic Daily #86 — 9×9 in 2:41 ✨✨✨"
+  },
+  {
+   "date": "2027-02-28",
+   "index": 150,
+   "number": 151,
+   "sha256": "918061c8d2f38387b636d7095c04d9d1f701de4401548fed44e420f05c64f4da",
+   "share": "Lantern Logic Daily #151 — 8×8 in 2:41 ✨✨✨"
+  },
+  {
+   "date": "2028-02-29",
+   "index": 516,
+   "number": 517,
+   "sha256": "2b4857d34f87305cc01ecb9f259b0619126537906e58cc5ec7dc9a029934ea59",
+   "share": "Lantern Logic Daily #517 — 7×7 in 2:41 ✨✨✨"
+  },
+  {
+   "date": "2028-09-30",
+   "index": 0,
+   "number": 731,
+   "sha256": "4ada8e680035ea4b9642eee7b0802a456641214938111402af499d59878ca0f3",
+   "share": "Lantern Logic Daily #731 — 6×6 in 2:41 ✨✨✨"
+  },
+  {
+   "date": "2026-09-15",
+   "index": 0,
+   "number": 1,
+   "sha256": "4ada8e680035ea4b9642eee7b0802a456641214938111402af499d59878ca0f3",
+   "share": "Lantern Logic Daily #1 — 6×6 in 2:41 ✨✨✨"
+  }
+ ]
+}
