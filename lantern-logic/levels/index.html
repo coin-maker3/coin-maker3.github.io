@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lantern Logic — 600 free Queens-style puzzle levels</title>
+<meta name="description" content="Play all 600 Lantern Logic levels free in your browser: Queens-style logic puzzles from 5×5 to 11×11 with stars, hints and a short tutorial. No download, no ads.">
+<link rel="canonical" href="https://coin-maker3.github.io/lantern-logic/levels/">
+<meta name="theme-color" content="#261634">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/lantern-logic/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/lantern-logic/assets/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="/lantern-logic/assets/apple-touch-icon.png">
+<link rel="preload" href="/lantern-logic/assets/fraunces-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/lantern-logic/assets/site.css?v=2">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lantern Logic">
+<meta property="og:title" content="Lantern Logic — 600 free Queens-style puzzle levels">
+<meta property="og:description" content="Play all 600 Lantern Logic levels free in your browser: Queens-style logic puzzles from 5×5 to 11×11 with stars, hints and a short tutorial. No download, no ads.">
+<meta property="og:url" content="https://coin-maker3.github.io/lantern-logic/levels/">
+<meta property="og:image" content="https://coin-maker3.github.io/lantern-logic/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Lantern Logic: a coloured puzzle grid with glowing paper lanterns on a night sky">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lantern Logic — 600 free Queens-style puzzle levels">
+<meta name="twitter:description" content="Play all 600 Lantern Logic levels free in your browser: Queens-style logic puzzles from 5×5 to 11×11 with stars, hints and a short tutorial. No download, no ads.">
+<meta name="twitter:image" content="https://coin-maker3.github.io/lantern-logic/assets/og.png">
+<link rel="stylesheet" href="/lantern-logic/assets/levels.css?v=d45bf8f5">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","@id":"https://coin-maker3.github.io/lantern-logic/levels/#game","name":"Lantern Logic: Queens Puzzle — 600 levels","url":"https://coin-maker3.github.io/lantern-logic/levels/","description":"Play all 600 Lantern Logic levels free in your browser: Queens-style logic puzzles from 5×5 to 11×11 with stars, hints and a short tutorial. No download, no ads.","genre":["Puzzle","Logic puzzle"],"gamePlatform":["Web browser"],"applicationCategory":"Game","playMode":"SinglePlayer","inLanguage":"en","image":"https://coin-maker3.github.io/lantern-logic/assets/og.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-lantern" viewBox="0 0 40 40"><path d="M16.2 10a3.8 3.8 0 0 1 7.6 0" fill="none" stroke="#4a2814" stroke-width="1.8"/><rect x="14" y="8.8" width="12" height="3" rx="1" fill="#5a3219"/><rect x="14" y="28.2" width="12" height="3" rx="1" fill="#5a3219"/><ellipse cx="20" cy="20" rx="10.2" ry="9.4" style="fill:var(--body,#ffc45c)" stroke="#963f14" stroke-width="1.3"/><path d="M16.4 11.6c-2.6 5-2.6 11.8 0 16.8M23.6 11.6c2.6 5 2.6 11.8 0 16.8" fill="none" style="stroke:var(--rib,#db8232)" stroke-width="0.9"/><circle cx="20" cy="20" r="3.1" fill="#fff7d6"/></symbol>
+<symbol id="i-mark" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-restart" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.8-6.3L3.5 8.2"/><path d="M3.5 3.5v4.7h4.7"/></symbol>
+<symbol id="i-hint" viewBox="0 0 24 24"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1.1 1.2 1.1 2V16h5v-.2c0-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3.5"/><path d="M7.5 8L12 3.5 16.5 8"/><path d="M5 12.5V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6.5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9z"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 4.8v14.4L19 12z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+</svg>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+</svg>
+<header class="site-head">
+<a class="brand" href="/lantern-logic/"><svg aria-hidden="true" focusable="false"><use href="#i-lantern"/></svg>Lantern Logic</a>
+<nav class="nav" aria-label="Main"><a href="/lantern-logic/how-to-play/">Rules</a><a href="/lantern-logic/daily/" class="wide">Archive</a><a href="/lantern-logic/levels/" aria-current="page">Levels</a></nav>
+</header>
+<main id="main" class="campaign">
+<noscript><div class="noscript"><p>The levels need JavaScript to play.</p></div></noscript>
+<section class="view camp" id="view-select" hidden aria-labelledby="sel-title">
+<div class="camp-head">
+<div><h1 id="sel-title" tabindex="-1" data-focus>600 levels</h1><p class="puzzle-meta" id="total-stars">0 of 1800 stars</p></div>
+<a class="btn btn-primary" id="continue" href="#/level/1"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-play"/></svg><span id="continue-label">Start: level 1</span></a>
+</div>
+<a class="daily-card" id="daily-card" href="/lantern-logic/"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg><span class="daily-copy"><strong>Today's daily puzzle</strong><span id="daily-text">A new board every day</span></span><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-right"/></svg></a>
+<div class="pack-nav">
+<button class="btn btn-icon" type="button" id="pack-prev" aria-label="Previous pack"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-left"/></svg></button>
+<div class="pack-head"><h2 id="pack-title" tabindex="-1">Pack 1</h2><p class="puzzle-meta" id="pack-meta"></p></div>
+<button class="btn btn-icon" type="button" id="pack-next" aria-label="Next pack"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-right"/></svg></button>
+</div>
+<ol class="tiles" id="tiles" aria-labelledby="pack-title"></ol>
+<div class="camp-links"><a class="btn btn-ghost" href="#/tutorial"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hint"/></svg><span>How to play</span></a><a class="btn btn-ghost" href="#/settings"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-gear"/></svg><span>Settings</span></a></div>
+<h2 class="packs-title" id="packs-title">All packs</h2>
+<ol class="packs" id="packs" aria-labelledby="packs-title"></ol>
+<section class="prose camp-about" aria-labelledby="about-levels">
+<h2 id="about-levels">About the levels</h2>
+<p>The 600 levels come in 20 packs of 30. Boards grow from gentle 5×5 grids to tricky 11×11 ones; every fifth level is a breather and every tenth a harder bonus. Solving a level unlocks the next one.</p>
+<p>Solve without hints or mistakes for three stars; one hint and up to three mistakes still earn two. You get three free hints a day, shared with the <a href="/lantern-logic/">daily puzzle</a>, and every board has exactly one solution that you can reach without guessing. New to the rules? <a href="#/tutorial">Take the short tutorial</a> or read <a href="/lantern-logic/how-to-play/">how to play</a>.</p>
+<p>Your stars, best times and unfinished board stay in this browser. Nothing is sent anywhere.</p>
+</section>
+</section>
+<section class="play view" id="view-game" hidden aria-labelledby="level-title">
+<div class="play-head">
+<div><h1 id="level-title" tabindex="-1" data-focus>Level 1</h1><p class="puzzle-meta" id="level-meta"></p></div>
+<div class="timer" role="timer" aria-label="Time taken"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-clock"/></svg><span id="timer">0:00</span></div>
+</div>
+<div class="board-wrap"><div class="board" id="board" role="grid" aria-label="Puzzle board"></div></div>
+<div class="unavailable" id="locked" hidden><p><strong>This level is locked.</strong></p><p id="locked-text"></p><a class="btn btn-primary" id="locked-link" href="#/"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-play"/></svg><span id="locked-link-label">Play</span></a></div>
+<p class="status" id="status" role="status" aria-live="polite"></p>
+<div class="toolbar">
+<button class="btn" type="button" id="btn-undo" disabled><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-undo"/></svg><span>Undo</span></button>
+<button class="btn" type="button" id="btn-restart" disabled><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-restart"/></svg><span>Restart</span></button>
+<button class="btn" type="button" id="btn-hint" aria-label="Hint"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hint"/></svg><span>Hint <span class="count" id="hint-count">3</span></span></button>
+</div>
+<div class="toggles">
+<button class="switch" type="button" role="switch" id="opt-autox" aria-checked="true"><span class="track" aria-hidden="true"></span>Auto-cross</button>
+<button class="switch" type="button" role="switch" id="opt-patterns" aria-checked="false"><span class="track" aria-hidden="true"></span>Colour patterns</button>
+</div>
+<div class="win" id="win" hidden>
+<h2 id="win-title" tabindex="-1">Solved!</h2>
+<div class="win-stars" id="win-stars" role="img" aria-label="Stars"></div>
+<p class="win-time" id="win-time">0:00</p>
+<p class="win-detail" id="win-detail"></p>
+<p class="win-detail" id="win-last" hidden>You lit every lantern in all 600 levels. Amazing!</p>
+<p class="share-preview" id="share-preview"></p>
+<div class="win-actions">
+<button class="btn btn-primary" type="button" id="btn-next"><span>Next level</span><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-right"/></svg></button>
+<button class="btn" type="button" id="btn-share"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-share"/></svg><span>Share</span></button>
+<button class="btn btn-ghost" type="button" id="btn-levels"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span>Levels</span></button>
+<button class="btn btn-ghost" type="button" id="btn-again"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-restart"/></svg><span>Play again</span></button>
+</div>
+<p class="share-msg" id="share-msg" role="status" aria-live="polite"></p>
+</div>
+<dl class="stats">
+<div><dt>Your stars</dt><dd id="stat-stars">0 / 3</dd></div>
+<div><dt>Best time</dt><dd id="stat-best">–</dd></div>
+<div><dt>All stars</dt><dd id="stat-total">0</dd></div>
+<div><dt>Hints today</dt><dd id="stat-hints">3</dd></div>
+</dl>
+<nav class="pager" aria-label="Other levels"><a id="prev-level" href="#/"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-left"/></svg>Previous</a><a class="pager-mid" id="pack-link" href="#/"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg>All levels</a><a id="next-level" href="#/">Next<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-right"/></svg></a></nav>
+</section>
+<section class="play view tut" id="view-tutorial" hidden aria-labelledby="tut-title">
+<div class="play-head"><div><h1 id="tut-title" tabindex="-1" data-focus>How to play</h1><p class="tut-text" id="tut-text" aria-live="polite"></p></div></div>
+<div class="board-wrap"><div class="board" id="tut-board" role="grid" aria-label="Tutorial board"></div></div>
+<p class="status" id="tut-status" role="status" aria-live="polite"></p>
+<div class="toolbar">
+<button class="btn btn-ghost" type="button" id="tut-skip"><span>Skip</span></button>
+<button class="btn btn-primary" type="button" id="tut-next" disabled><span>Next</span><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-right"/></svg></button>
+</div>
+</section>
+<section class="view settings" id="view-settings" hidden aria-labelledby="set-title">
+<h1 id="set-title" tabindex="-1" data-focus>Settings</h1>
+<div class="set-list">
+<div class="set-row"><button class="switch" type="button" role="switch" id="set-autox" aria-checked="false" aria-describedby="d-autox"><span class="track" aria-hidden="true"></span>Auto-cross</button><p id="d-autox">Placing a lantern crosses out every cell it rules out. Removing it takes back only its own crosses.</p></div>
+<div class="set-row"><button class="switch" type="button" role="switch" id="set-patterns" aria-checked="false" aria-describedby="d-pat"><span class="track" aria-hidden="true"></span>Colour patterns</button><p id="d-pat">Adds a small shape to each colour region, so the board never relies on colour alone.</p></div>
+<div class="set-row"><button class="switch" type="button" role="switch" id="set-motion" aria-checked="false" aria-describedby="d-motion"><span class="track" aria-hidden="true"></span>Reduce motion</button><p id="d-motion">Turns off the win animation and other movement. It is always off when your device asks for reduced motion.</p></div>
+</div>
+<p class="status" id="settings-status" role="status" aria-live="polite"></p>
+<h2>Progress</h2>
+<p class="soon">Your progress is saved in this browser.</p>
+<div class="reset">
+<button class="btn" type="button" id="btn-reset"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-restart"/></svg><span>Reset level progress</span></button>
+<div class="reset-confirm" id="reset-confirm" hidden>
+<p>Clear the stars, best times and tutorial for all 600 levels? Daily puzzle results are kept. This cannot be undone.</p>
+<div class="row-btns"><button class="btn" type="button" id="reset-cancel">Cancel</button><button class="btn btn-danger" type="button" id="reset-ok">Reset</button></div>
+</div>
+</div>
+<p><a class="btn btn-ghost" href="#/"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-left"/></svg><span>Back to levels</span></a></p>
+</section>
+</main>
+<script type="application/json" id="ll-config">{"count":600,"sizes":"55555555556666666667666666666766666666676666677777777767777788888888898888888889888888888988888888898888888889888888888988888888898888888889888888888988888888899999899999999989999999998999999999899999999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a999999999a99999aaaaaaaaa9aaaaaaaaa9aaaaaaaaa9aaaaaaaaa9aaaaaaaaa9aaaaaaaaa9aaaaaaaaa9aaaaaaaaa9aaaabaaaa9aaaabaaaa9aaaabaaaa9aaaabaaaa9aaaabaaaa9aaaabaaaa9aaaabaaaa9bbbbbbbbb9bbbbbbbbb9bbbbbbbbb9bbbbbbbbb9bbbbbbbbb9bbbbbbbbb9bbbbbbbbb9bbbbb","kinds":"nnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnbnnnnennnnb","data":"/lantern-logic/levels/data/","v":"d45bf8f5","site":true,"shareUrl":"https://coin-maker3.github.io/lantern-logic/levels/"}</script>
+<footer class="site-foot">
+<div class="inner">
+<nav aria-label="Footer">
+<a href="/lantern-logic/">Today's puzzle</a><a href="/lantern-logic/daily/">Puzzle archive</a><a href="/lantern-logic/levels/">600 levels</a><a href="/lantern-logic/how-to-play/">How to play</a><a href="/lantern-logic/play/">App version (38 MB)</a><a href="/lantern-logic/privacy/">Privacy</a>
+</nav>
+<p>Lantern Logic: Queens Puzzle. Free, no ads, no tracking. Coming soon on Google Play.</p>
+<p>Fonts: Fraunces (SIL Open Font License), self-hosted.</p>
+</div>
+</footer>
+<script src="/lantern-logic/assets/puzzle.js?v=d45bf8f5" defer></script>
+<script src="/lantern-logic/assets/board.js?v=d45bf8f5" defer></script>
+<script src="/lantern-logic/assets/levels.js?v=d45bf8f5" defer></script>
+</body>
+</html>
