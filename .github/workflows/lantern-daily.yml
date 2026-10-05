@@ -1,0 +1,63 @@
+# Publishes the next Lantern Logic daily puzzle (data file, archive page,
+# sitemap entry). See lantern-logic/NOTES.md. Needs the repository secret
+# LANTERN_DAILY_KEY (decrypts lantern-logic/tools/daily.enc).
+name: Lantern Logic daily
+
+on:
+  schedule:
+    - cron: "5 0 * * *"   # 00:05 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: lantern-daily
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build today's pages and data
+        env:
+          LANTERN_DAILY_KEY: ${{ secrets.LANTERN_DAILY_KEY }}
+        run: |
+          if [ -z "$LANTERN_DAILY_KEY" ]; then
+            echo "::error::Repository secret LANTERN_DAILY_KEY is not set; see lantern-logic/NOTES.md"
+            exit 1
+          fi
+          python3 lantern-logic/tools/build.py
+          python3 lantern-logic/tools/test_daily.py
+
+      - name: Commit and push
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898208+github-actions[bot]@users.noreply.github.com"
+          git add -A lantern-logic sitemap.xml robots.txt
+          if git diff --cached --quiet; then
+            echo "Nothing new to publish."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          num=$(python3 -c "import datetime as d; print((d.datetime.now(d.timezone.utc).date() - d.date(2026, 10, 1)).days + 1)")
+          git commit -m "Lantern Logic daily #${num}"
+          ok=0
+          for i in 1 2 3; do
+            if git push; then ok=1; break; fi
+            git pull --rebase
+          done
+          [ "$ok" = 1 ] || { echo "::error::push failed"; exit 1; }
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Request a Pages build
+        if: steps.commit.outputs.pushed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
