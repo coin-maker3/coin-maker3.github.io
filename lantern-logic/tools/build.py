@@ -46,7 +46,7 @@ URL = ORIGIN + BASE
 EPOCH = dt.date(2026, 10, 1)
 DAILY_COUNT = 730
 STATIC_LASTMOD = "2026-10-05"   # bump when how-to-play / privacy / play change
-ASSET_VERSION = "1"             # bump to bust caches of css/js
+ASSET_VERSION = "2"             # bump to bust caches of css/js
 OPENSSL = ["openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-iter", "200000", "-md", "sha256"]
 
 MONTHS = ["January", "February", "March", "April", "May", "June", "July",
@@ -178,7 +178,7 @@ def head(title, desc, path, extra="", og_type="website", jsonld=None, noindex=Fa
 
 
 def site_header(current):
-    links = [("how-to-play/", "Rules", "rules", ""), ("daily/", "Archive", "archive", ""), ("play/", "Full game", "play", "wide")]
+    links = [("how-to-play/", "Rules", "rules", ""), ("daily/", "Archive", "archive", "wide"), ("levels/", "Levels", "levels", "")]
     nav = "".join('<a href="%s%s"%s%s>%s</a>' % (BASE, href, ' class="%s"' % cls if cls else "",
                                                  ' aria-current="page"' if key == current else "", label)
                   for href, label, key, cls in links)
@@ -200,7 +200,7 @@ def site_footer(scripts=True):
     return """<footer class="site-foot">
 <div class="inner">
 <nav aria-label="Footer">
-<a href="{b}">Today's puzzle</a><a href="{b}daily/">Puzzle archive</a><a href="{b}how-to-play/">How to play</a><a href="{b}play/">Full game in the browser</a><a href="{b}privacy/">Privacy</a>
+<a href="{b}">Today's puzzle</a><a href="{b}daily/">Puzzle archive</a><a href="{b}levels/">600 levels</a><a href="{b}how-to-play/">How to play</a><a href="{b}play/">App version (38 MB)</a><a href="{b}privacy/">Privacy</a>
 </nav>
 <p>Lantern Logic: Queens Puzzle. Free, no ads, no tracking. Coming soon on Google Play.</p>
 <p>Fonts: Fraunces (SIL Open Font License), self-hosted.</p>
@@ -226,7 +226,7 @@ def game_section(rec, mode, prev_link="", next_link=""):
 <div class="timer" role="timer" aria-label="Time taken">{clock}<span id="timer">0:00</span></div>
 </div>
 <div class="board-wrap"><div class="board" id="board" role="grid" aria-label="Puzzle board, {n} by {n}" style="--n:{n}"></div></div>
-<noscript><div class="noscript"><p>The puzzle board needs JavaScript. You can still read <a href="{b}how-to-play/">how to play</a> or try the <a href="{b}play/">full game</a>.</p></div></noscript>
+<noscript><div class="noscript"><p>The puzzle board needs JavaScript. You can still read <a href="{b}how-to-play/">how to play</a>.</p></div></noscript>
 <div class="unavailable" id="unavailable" hidden><p><strong>Today's puzzle isn't published yet.</strong></p><p>New puzzles appear just after midnight UTC. Check the date on your device, or play the latest one.</p><a class="btn btn-primary" id="unavailable-link" href="{b}">Play the latest puzzle</a></div>
 <p class="status" id="status" role="status" aria-live="polite"></p>
 <div class="toolbar">
@@ -330,8 +330,8 @@ def page_home(puzzles, today_num):
 </div>
 <section class="app-card" style="margin-top:48px" aria-labelledby="full">
 <h2 id="full">Want more than one a day?</h2>
-<p class="soon">The full game has 600 hand-checked levels from gentle 5×5 boards to tricky 11×11 ones, plus the daily calendar and streaks. It runs offline and has no ads.</p>
-<div class="row-btns"><a class="btn btn-primary" href="{b}play/">{play}<span>Play the full game</span></a><span class="soon">Browser version, about a 38 MB download.</span></div>
+<p class="soon">Play all 600 hand-checked levels free in your browser, from gentle 5×5 boards to tricky 11×11 ones, with stars, hints and the same rules as the app. It opens in a moment and has no ads.</p>
+<div class="row-btns"><a class="btn btn-primary" href="{b}levels/">{play}<span>Play the full game</span></a><span class="soon">Prefer the app build? <a href="{b}play/">Play the app version</a> (about a 38 MB download).</span></div>
 <p class="soon">Coming soon on Google Play.</p>
 </section>
 <section class="faq" style="margin-top:48px" aria-labelledby="faq">
@@ -493,14 +493,15 @@ def page_privacy():
 <h1>Privacy policy</h1>
 <div class="prose">
 <p><em>Last updated: 5 October 2026</em></p>
-<p>This policy covers both the Lantern Logic website (this site, including the daily puzzle and the full game in the browser) and the Android app <strong>Lantern Logic: Queens Puzzle</strong>.</p>
+<p>This policy covers both the Lantern Logic website (this site, including the daily puzzle, the 600 levels and the app version in the browser) and the Android app <strong>Lantern Logic: Queens Puzzle</strong>.</p>
 <h2>What we collect</h2>
 <p><strong>Nothing.</strong> Neither the website nor the app collects, transmits, sells or shares any personal data or usage data. There are no accounts, no analytics, no tracking, no advertising and no third-party scripts, fonts or embeds.</p>
 <h2>The website</h2>
 <ul>
 <li><strong>No cookies.</strong> The site sets no cookies of any kind.</li>
 <li><strong>Local storage only.</strong> To remember your streak, best times, an unfinished board, today's remaining hints and your settings (auto-cross, colour patterns), the page saves a small record in your browser's local storage. It never leaves your device and is never sent to us. Clear it at any time by clearing this site's data in your browser. In private browsing, it disappears when you close the window.</li>
-<li><strong>The full game in the browser</strong> stores its progress in your browser's storage in the same way.</li>
+<li><strong>The 600 levels</strong> keep their progress in the same local record: stars and best times per level, an unfinished level, whether you finished the tutorial, and the same three daily hints as the daily puzzle.</li>
+<li><strong>The app version in the browser</strong> stores its progress in your browser's storage in the same way.</li>
 <li><strong>Hosting.</strong> The site is hosted on GitHub Pages. Like any web host, GitHub may record technical data such as IP addresses in server logs for security and operation; see GitHub's own privacy statement. We have no access to those logs and add nothing to them.</li>
 </ul>
 <h2>The app</h2>
@@ -510,6 +511,7 @@ def page_privacy():
 <p>When you press <strong>Share</strong> after a daily puzzle, a short text such as “Lantern Logic Daily #12 — 7×7 in 2:41 ✨✨✨” (plus a link to the puzzle on the website) is passed to your device's share sheet or copied to your clipboard. Nothing is sent anywhere unless you choose to paste or share it.</p>
 <h2>Advertising</h2>
 <p>Neither the website nor the current app shows ads. If that ever changes, this policy and the store listing will be updated first.</p>
+<p>Lantern Logic may also be offered on third-party web game portals. A copy played on a portal runs inside that portal's page, which may show ads and keep your progress in your portal account; the portal's own privacy policy applies there. The website you are reading has no ads and no portal code.</p>
 <h2>Children</h2>
 <p>Lantern Logic is suitable for all ages and collects no data from anyone, including children.</p>
 <h2>Changes and contact</h2>
@@ -536,7 +538,8 @@ def merge_sitemap(today_num):
     entries = [(URL, today, "daily", "1.0"),
                (URL + "how-to-play/", STATIC_LASTMOD, "monthly", "0.8"),
                (URL + "daily/", today, "daily", "0.7"),
-               (URL + "play/", STATIC_LASTMOD, "monthly", "0.6"),
+               (URL + "levels/", STATIC_LASTMOD, "weekly", "0.9"),
+               (URL + "play/", STATIC_LASTMOD, "monthly", "0.5"),
                (URL + "privacy/", STATIC_LASTMOD, "yearly", "0.3")]
     for num in range(today_num, 0, -1):
         entries.append((URL + "daily/%d/" % num, date_for(num).isoformat(), "yearly", "0.5"))
