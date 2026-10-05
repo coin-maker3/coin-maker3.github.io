@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /cart-to-rocket/
 
 Sitemap: https://coin-maker3.github.io/sitemap.xml
