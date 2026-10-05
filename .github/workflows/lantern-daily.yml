@@ -61,3 +61,28 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || true
+
+      # IndexNow (Bing, Yandex, Seznam, Naver): ask for the new pages to be crawled.
+      # The key file sits at the site root, as the protocol requires.
+      - name: Tell search engines (IndexNow)
+        if: steps.commit.outputs.pushed == 'true'
+        continue-on-error: true
+        env:
+          INDEXNOW_KEY: f903074f6fe9d19b7d233fc6a1f40dd3
+        run: |
+          sleep 90   # let GitHub Pages publish the new pages first
+          num=$(python3 -c "import datetime as d; print((d.datetime.now(d.timezone.utc).date() - d.date(2026, 10, 1)).days + 1)")
+          python3 - "$num" <<'PY'
+          import json, os, sys, urllib.request
+          base = "https://coin-maker3.github.io"
+          key = os.environ["INDEXNOW_KEY"]
+          body = {"host": "coin-maker3.github.io", "key": key, "keyLocation": f"{base}/{key}.txt",
+                  "urlList": [f"{base}/lantern-logic/", f"{base}/lantern-logic/daily/",
+                              f"{base}/lantern-logic/daily/{sys.argv[1]}/"]}
+          req = urllib.request.Request("https://api.indexnow.org/indexnow", data=json.dumps(body).encode(),
+                                       headers={"Content-Type": "application/json; charset=utf-8"})
+          try:
+              print("IndexNow HTTP", urllib.request.urlopen(req, timeout=30).status)
+          except Exception as e:
+              print("IndexNow failed:", e)
+          PY
