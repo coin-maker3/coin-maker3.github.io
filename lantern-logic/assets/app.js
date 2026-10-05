@@ -28,8 +28,15 @@
     data = raw ? JSON.parse(raw) : {};
     if (!data || typeof data !== 'object') data = {};
   } catch (e) { data = {}; }
+  // The levels page shares this record: re-read it and write back only the
+  // keys this page owns, so another open tab's progress is never overwritten.
+  var OWN = ['settings', 'hints', 'days', 'results', 'progress'];
   function save() {
-    try { window.localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* memory only */ }
+    try {
+      var fresh = JSON.parse(window.localStorage.getItem(KEY) || '{}') || {};
+      OWN.forEach(function (k) { if (k in data) fresh[k] = data[k]; });
+      window.localStorage.setItem(KEY, JSON.stringify(fresh));
+    } catch (e) { /* memory only */ }
   }
   function bucket(name) {
     if (!data[name] || typeof data[name] !== 'object') data[name] = {};
