@@ -81,6 +81,20 @@ h2{font-size:1.25rem;font-weight:700}
 .row button{flex:1;border-radius:12px;padding:13px;font-family:var(--display);font-weight:700;cursor:pointer;border:1px solid var(--line);background:var(--panel)}
 .row button.pri{background:var(--cyan);color:var(--cyan-ink);border-color:transparent}
 .hint{color:var(--ink-2);font-size:.85rem;margin-top:10px}
+
+.pic{display:block;width:100%;max-height:44vh;object-fit:contain;border-radius:12px;background:#000;margin:4px 0 12px}
+.weak{margin-top:22px}
+.weak h2{margin-bottom:8px}
+.wd{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.wd div{display:flex;gap:8px;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.88rem}
+.wd b{font-family:var(--display);font-variant-numeric:tabular-nums}
+.wd b.g{color:var(--good)}.wd b.a{color:var(--amber)}.wd b.b{color:var(--bad)}
+.wq{display:flex;flex-direction:column;gap:8px}
+.wq div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.wq div b{display:block;font-family:var(--display);margin-bottom:2px}
+.coach{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--panel-2);font-size:.95rem}
+.copy{margin-top:10px;width:100%;background:transparent;border:1px dashed var(--line);border-radius:12px;padding:12px;font-family:var(--display);font-weight:600;cursor:pointer;color:var(--ink-2)}
+.copy:hover{border-color:var(--cyan);color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.card{animation:none}.deck,.prog i{transition:none}}
 </style>
 </head>
@@ -95,6 +109,7 @@ h2{font-size:1.25rem;font-weight:700}
   </div>
   <div class="stat"><div><b id="sAnswered">0</b><span>answered</span></div><div><b id="sAcc">–</b><span>accuracy</span></div><div><b id="sBestStreak">0</b><span>best streak</span></div></div>
   <div class="decks" id="decks"></div>
+  <div class="weak" id="weak"></div>
   <p class="foot">Quiz-slide diagnoses are my reads of the images, not the course key. Full notes: <a href="guide/">the reading version</a>.</p>
 </section>
 
@@ -115,7 +130,9 @@ h2{font-size:1.25rem;font-weight:700}
   <div class="score" id="rScore">0<small> / 10</small></div>
   <div class="verdict" id="rVerdict"></div>
   <div class="missed" id="rMissed"></div>
+  <div class="coach" id="rCoach"></div>
   <div class="row"><button id="again" class="pri">Play again</button><button id="homeBtn">Decks</button></div>
+  <button class="copy" id="copyBtn" type="button">Copy report for Claude</button><p class="hint" id="copyHint" hidden>Copied. Paste it into the chat and I will adjust the decks.</p>
 </section>
 
 </div>
@@ -149,30 +166,33 @@ drugs:[
  {q:"What must every patient be told before you change anything?",o:["The cost of the drugs","The thrombotic risk of stopping and the bleeding risk of continuing","That the doctor decides","That biopsies are never taken on anticoagulants"],c:1,w:"A strong recommendation in the guideline: explain both risks, every time."}
 ],
 spot:[
- {q:"Dozens of small smooth sessile polyps across the gastric body. Long-term PPI.",o:["Fundic gland polyps","Hyperplastic polyps","Adenomas","Linitis plastica"],c:0,w:"Fundic gland polyps from PPI use. Biopsy one or two; do not clear them. Innumerable in a young patient: think FAP."},
- {q:"Salmon-pink tongues extending above the gastro-oesophageal junction, incidental.",o:["Barrett's oesophagus","Candidiasis","Reflux oesophagitis","Inlet patch"],c:0,w:"Barrett's. Report Prague C and M from the top of the gastric folds, Seattle biopsies, surveillance by length."},
- {q:"Longstanding heartburn. Mucosal breaks in the distal oesophagus.",o:["Eosinophilic oesophagitis","Reflux oesophagitis, grade it LA A to D","Varices","Achalasia"],c:1,w:"LA classification. PPI 8 weeks. LA C or D gets a repeat scope after healing to look for Barrett's underneath."},
- {q:"Young man, food bolus. After clearing it: concentric rings and furrows.",o:["Schatzki ring","Eosinophilic oesophagitis","Peptic stricture","Carcinoma"],c:1,w:"EoE. Six biopsies, proximal and distal. Always biopsy after a bolus."},
- {q:"Pain on swallowing. White adherent plaques.",o:["Oesophageal candidiasis","Barrett's","Glycogenic acanthosis","Leukoplakia"],c:0,w:"Candida. Odynophagia means mucosal disease. Fluconazole; ask why: inhalers, immunosuppression, diabetes."},
- {q:"Weight loss and dyspepsia. Irregular ulcerated lesion at the cardia on retroflexion.",o:["Hiatus hernia","Gastric cancer at the cardia","Cameron erosions","Fundal varices"],c:1,w:"Cardia tumour, seen only in retroflexion. Six to eight edge biopsies, staging CT, MDT."},
- {q:"Ulcer with a raised pigmented protuberance, no active bleeding.",o:["Forrest Ia","Forrest IIa, visible vessel","Forrest IIc","Forrest III"],c:1,w:"Non-bleeding visible vessel: high rebleed risk, dual endoscopic therapy, high-dose PPI."},
- {q:"Adherent clot on an ulcer base. What first?",o:["Leave it alone","Wash and irrigate to reveal what is beneath, then treat","Inject adrenaline only","Biopsy the clot"],c:1,w:"Clear the view, classify with Forrest, treat with two modalities. Adrenaline alone is never enough."},
- {q:"Progressive dysphagia to solids then liquids, weight loss. Friable mass narrowing the lumen.",o:["Oesophageal carcinoma","Achalasia","Peptic stricture","Web"],c:0,w:"Malignancy until proven otherwise. Distance from incisors and length, multiple biopsies, CT then PET and EUS."},
- {q:"Bluish tortuous columns in the distal oesophagus.",o:["Biopsy to confirm","Varices: grade, look for red signs, never biopsy","Dilate","Argon plasma coagulation"],c:1,w:"Never biopsy a bluish submucosal bump. Banding programme or beta-blocker; terlipressin and antibiotics if bleeding."},
- {q:"Dysphagia and heartburn. Smooth short narrowing at the GOJ.",o:["Peptic stricture","Carcinoma","Achalasia","EoE"],c:0,w:"Smooth and short is benign. Biopsy, dilate, long-term PPI. Irregular or long: think cancer."},
- {q:"Smooth gastric bulge with normal overlying mucosa. CT shows a wall mass.",o:["Standard biopsies","Submucosal tumour, likely GIST: EUS with FNA","Polypectomy","Nothing, reassure"],c:1,w:"Normal mucosa over a lump is submucosal. Standard biopsies miss it; EUS tells you the wall layer and size."},
- {q:"Non-progressive dysphagia for years. Thin membrane, small central lumen.",o:["Web or benign stricture: dilate","Carcinoma","Varices","Candida"],c:0,w:"Fixed benign narrowing. Dilate. An upper web: check ferritin (Plummer-Vinson)."},
- {q:"Intermittent meat bolus in an otherwise well patient. Thin ring at the squamocolumnar junction.",o:["Schatzki ring","Carcinoma","EoE","Zenker's"],c:0,w:"Schatzki ring, symptomatic under about 13 mm. One large-diameter dilatation, PPI."},
- {q:"Lumpy smooth swellings in the fundus on retroflexion.",o:["Biopsy them","Fundal varices: do not biopsy, look for portal hypertension","Fundic gland polyps","Remove with a snare"],c:1,w:"Gastric varices. Check for liver disease or splenic vein thrombosis before you reach for forceps."},
- {q:"Iron deficiency anaemia. Scalloped, flattened duodenal folds.",o:["Normal variant","Coeliac disease","Crohn's","Giardia"],c:1,w:"Coeliac. Four D2 biopsies plus one or two from the bulb, on a gluten-containing diet, tTG-IgA."},
+ {img:"p02",q:"Dozens of small smooth sessile polyps across the gastric body. Long-term PPI.",o:["Fundic gland polyps","Hyperplastic polyps","Adenomas","Linitis plastica"],c:0,w:"Fundic gland polyps from PPI use. Biopsy one or two; do not clear them. Innumerable in a young patient: think FAP."},
+ {img:"p03",q:"Salmon-pink tongues extending above the gastro-oesophageal junction, incidental.",o:["Barrett's oesophagus","Candidiasis","Reflux oesophagitis","Inlet patch"],c:0,w:"Barrett's. Report Prague C and M from the top of the gastric folds, Seattle biopsies, surveillance by length."},
+ {img:"p04",q:"Longstanding heartburn. Mucosal breaks in the distal oesophagus.",o:["Eosinophilic oesophagitis","Reflux oesophagitis, grade it LA A to D","Varices","Achalasia"],c:1,w:"LA classification. PPI 8 weeks. LA C or D gets a repeat scope after healing to look for Barrett's underneath."},
+ {img:"p05",q:"Young man, food bolus. After clearing it: concentric rings and furrows.",o:["Schatzki ring","Eosinophilic oesophagitis","Peptic stricture","Carcinoma"],c:1,w:"EoE. Six biopsies, proximal and distal. Always biopsy after a bolus."},
+ {img:"p06",q:"Pain on swallowing. White adherent plaques.",o:["Oesophageal candidiasis","Barrett's","Glycogenic acanthosis","Leukoplakia"],c:0,w:"Candida. Odynophagia means mucosal disease. Fluconazole; ask why: inhalers, immunosuppression, diabetes."},
+ {img:"p07",q:"Weight loss and dyspepsia. Irregular ulcerated lesion at the cardia on retroflexion.",o:["Hiatus hernia","Gastric cancer at the cardia","Cameron erosions","Fundal varices"],c:1,w:"Cardia tumour, seen only in retroflexion. Six to eight edge biopsies, staging CT, MDT."},
+ {img:"p18",q:"Ulcer with a raised pigmented protuberance, no active bleeding.",o:["Forrest Ia","Forrest IIa, visible vessel","Forrest IIc","Forrest III"],c:1,w:"Non-bleeding visible vessel: high rebleed risk, dual endoscopic therapy, high-dose PPI."},
+ {img:"p08",q:"Adherent clot on an ulcer base. What first?",o:["Leave it alone","Wash and irrigate to reveal what is beneath, then treat","Inject adrenaline only","Biopsy the clot"],c:1,w:"Clear the view, classify with Forrest, treat with two modalities. Adrenaline alone is never enough."},
+ {img:"p10",q:"Progressive dysphagia to solids then liquids, weight loss. Friable mass narrowing the lumen.",o:["Oesophageal carcinoma","Achalasia","Peptic stricture","Web"],c:0,w:"Malignancy until proven otherwise. Distance from incisors and length, multiple biopsies, CT then PET and EUS."},
+ {img:"p11",q:"Bluish tortuous columns in the distal oesophagus.",o:["Biopsy to confirm","Varices: grade, look for red signs, never biopsy","Dilate","Argon plasma coagulation"],c:1,w:"Never biopsy a bluish submucosal bump. Banding programme or beta-blocker; terlipressin and antibiotics if bleeding."},
+ {img:"p12",q:"Dysphagia and heartburn. Smooth short narrowing at the GOJ.",o:["Peptic stricture","Carcinoma","Achalasia","EoE"],c:0,w:"Smooth and short is benign. Biopsy, dilate, long-term PPI. Irregular or long: think cancer."},
+ {img:"p13",q:"Smooth gastric bulge with normal overlying mucosa. CT shows a wall mass.",o:["Standard biopsies","Submucosal tumour, likely GIST: EUS with FNA","Polypectomy","Nothing, reassure"],c:1,w:"Normal mucosa over a lump is submucosal. Standard biopsies miss it; EUS tells you the wall layer and size."},
+ {img:"p14",q:"Non-progressive dysphagia for years. Thin membrane, small central lumen.",o:["Web or benign stricture: dilate","Carcinoma","Varices","Candida"],c:0,w:"Fixed benign narrowing. Dilate. An upper web: check ferritin (Plummer-Vinson)."},
+ {img:"p15",q:"Intermittent meat bolus in an otherwise well patient. Thin ring at the squamocolumnar junction.",o:["Schatzki ring","Carcinoma","EoE","Zenker's"],c:0,w:"Schatzki ring, symptomatic under about 13 mm. One large-diameter dilatation, PPI."},
+ {img:"p16",q:"Lumpy smooth swellings in the fundus on retroflexion.",o:["Biopsy them","Fundal varices: do not biopsy, look for portal hypertension","Fundic gland polyps","Remove with a snare"],c:1,w:"Gastric varices. Check for liver disease or splenic vein thrombosis before you reach for forceps."},
+ {img:"p17",q:"Iron deficiency anaemia. Scalloped, flattened duodenal folds.",o:["Normal variant","Coeliac disease","Crohn's","Giardia"],c:1,w:"Coeliac. Four D2 biopsies plus one or two from the bulb, on a gluten-containing diet, tTG-IgA."},
  {q:"OGD for iron deficiency anaemia. Duodenum looks normal.",o:["No biopsies needed","Take D2 biopsies anyway","Biopsy the antrum only","Refer for capsule"],c:1,w:"Always biopsy D2 in IDA. Coeliac can look normal."},
  {q:"Nocturnal epigastric pain relieved by food.",o:["Gastric ulcer","Duodenal ulcer pattern","Pancreatitis","Reflux"],c:1,w:"Classic duodenal ulcer story. Test and treat H. pylori."},
- {q:"Dyspepsia. Erythema and small antral erosions.",o:["Erosive gastritis: H. pylori biopsies, stop NSAIDs, PPI","Gastric cancer","GAVE","Menetrier's"],c:0,w:"Erosive gastritis. Under-55s without alarm features should have had test-and-treat first."},
- {q:"Multiple red stripes radiating to the pylorus in the antrum.",o:["Portal hypertensive gastropathy","GAVE (watermelon stomach)","Erosive gastritis","Dieulafoy"],c:1,w:"GAVE is antral stripes or spots. PHG is a fundus and body mosaic. GAVE causes chronic iron deficiency; APC treats it."},
+ {img:"p19",q:"Dyspepsia. Erythema and small antral erosions.",o:["Erosive gastritis: H. pylori biopsies, stop NSAIDs, PPI","Gastric cancer","GAVE","Menetrier's"],c:0,w:"Erosive gastritis. Under-55s without alarm features should have had test-and-treat first."},
+ {img:"p20",q:"Multiple red stripes radiating to the pylorus in the antrum.",o:["Portal hypertensive gastropathy","GAVE (watermelon stomach)","Erosive gastritis","Dieulafoy"],c:1,w:"GAVE is antral stripes or spots. PHG is a fundus and body mosaic. GAVE causes chronic iron deficiency; APC treats it."},
  {q:"Snake-skin mosaic pattern in the fundus and body of a cirrhotic.",o:["GAVE","Portal hypertensive gastropathy","Candidiasis","Gastric varices"],c:1,w:"PHG. Mosaic, proximal stomach. Treat the portal pressure, not the mucosa."},
- {q:"Large lobulated ulcerated gastric mass. What goes in the report?",o:["Just the diagnosis","Site, size, shape, whether it bleeds, biopsies taken","The patient's age","Nothing until histology"],c:1,w:"The report drives staging and the MDT. Describe it fully and biopsy generously."},
- {q:"Small antral nodule with a central dimple on the greater curve.",o:["GIST","Pancreatic rest (ectopic pancreas)","Carcinoid","Lipoma"],c:1,w:"The central umbilication is the opening of a rudimentary duct. Benign, incidental, leave it."},
- {q:"Heavy smoker and drinker. Subtle flat patch in the mid-oesophagus. Best next step?",o:["Ignore","Lugol's iodine or NBI, target the unstained area","Dilate","Random biopsies only"],c:1,w:"Lugol's stains normal squamous mucosa; dysplasia stays unstained. Target biopsies there."},
+ {img:"p21",q:"Large lobulated ulcerated gastric mass. What goes in the report?",o:["Just the diagnosis","Site, size, shape, whether it bleeds, biopsies taken","The patient's age","Nothing until histology"],c:1,w:"The report drives staging and the MDT. Describe it fully and biopsy generously."},
+ {img:"p23",q:"Small antral nodule with a central dimple on the greater curve.",o:["GIST","Pancreatic rest (ectopic pancreas)","Carcinoid","Lipoma"],c:1,w:"The central umbilication is the opening of a rudimentary duct. Benign, incidental, leave it."},
+ {img:"p24",q:"Heavy smoker and drinker. Subtle flat patch in the mid-oesophagus. Best next step?",o:["Ignore","Lugol's iodine or NBI, target the unstained area","Dilate","Random biopsies only"],c:1,w:"Lugol's stains normal squamous mucosa; dysplasia stays unstained. Target biopsies there."},
+ {img:"p09",q:"Confluent ulceration with slough in the distal oesophagus.",o:["Severe erosive oesophagitis, LA C or D","Barrett's","Candida","Achalasia"],c:0,w:"Biopsy anything irregular or heaped up; high-dose PPI 8 weeks; repeat scope after healing to look underneath."},
+ {img:"p22",q:"Same gastric lesion under narrow-band imaging. What does NBI add?",o:["Nothing, it is cosmetic","Surface and vessel pattern to characterise it and target biopsies","It replaces biopsy","It measures depth of invasion"],c:1,w:"Irregular surface and vessel pattern supports neoplasia. Biopsy the most abnormal area."},
+ {img:"p25",q:"Same oesophagus after Lugol's iodine. The pale unstained patch is?",o:["Normal mucosa","Squamous dysplasia or early cancer: target biopsies there","Candida","Barrett's"],c:1,w:"Lugol's stains normal squamous mucosa brown; dysplasia stays unstained. Refer for endoscopic resection if confirmed."},
  {q:"Which view hides cardia cancers, hiatus hernias and fundal varices?",o:["The forward view","The retroflexed view","D2","The antrum"],c:1,w:"Retroflex every time you are in the stomach."}
 ],
 consent:[
@@ -245,10 +265,11 @@ var $=function(s){return document.querySelector(s)};
 function store(k,v){try{localStorage.setItem("ugi2_"+k,JSON.stringify(v))}catch(e){}}
 function load(k,d){try{var v=localStorage.getItem("ugi2_"+k);return v?JSON.parse(v):d}catch(e){return d}}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
-function shuffleOpts(it){var idx=it.o.map(function(_,k){return k});idx=shuffle(idx);return{q:it.q,scene:it.scene,o:idx.map(function(k){return it.o[k]}),c:idx.indexOf(it.c),w:it.w,deck:it.deck}}
+function shuffleOpts(it){var idx=it.o.map(function(_,k){return k});idx=shuffle(idx);return{q:it.q,img:it.img,scene:it.scene,deck:it.deck,o:idx.map(function(k){return it.o[k]}),c:idx.indexOf(it.c),w:it.w}}
 function show(id){document.querySelectorAll(".screen").forEach(function(s){s.classList.toggle("on",s.id===id)});window.scrollTo(0,0)}
 // ---------- home ----------
 function renderHome(){
+  renderWeak();
   var tot=load("tot",{a:0,r:0,bs:0});
   $("#sAnswered").textContent=tot.a;$("#sAcc").textContent=tot.a?Math.round(100*tot.r/tot.a)+"%":"–";$("#sBestStreak").textContent=tot.bs;
   var host=$("#decks");host.innerHTML="";
@@ -264,8 +285,8 @@ function start(d){
   S.deck=d;S.i=0;S.right=0;S.streak=0;S.missed=[];S.locked=false;
   var pool;
   if(d.id==="rapid"){pool=[];Object.keys(BANK).forEach(function(k){BANK[k].forEach(function(it){var c=Object.assign({},it);c.deck=k;pool.push(c)})});S.items=shuffle(pool).map(shuffleOpts)}
-  else if(d.ordered){S.items=BANK[d.id].map(shuffleOpts)}
-  else{S.items=shuffle(BANK[d.id]).slice(0,d.n).map(shuffleOpts)}
+  else if(d.ordered){S.items=BANK[d.id].map(function(it){var c=Object.assign({},it);c.deck=d.id;return shuffleOpts(c)})}
+  else{S.items=shuffle(BANK[d.id]).slice(0,d.n).map(function(it){var c=Object.assign({},it);c.deck=d.id;return shuffleOpts(c)})}
   $("#timer").hidden=!d.timed;$("#streak").hidden=!!d.timed;
   if(d.timed){S.left=60;$("#timer").textContent="60";$("#timer").classList.remove("low");clearInterval(S.timer);S.timer=setInterval(tick,1000)}
   show("play");renderQ();
@@ -277,7 +298,7 @@ function renderQ(){
   $("#progFill").style.width=total?(100*S.i/total)+"%":(100*Math.min(1,(60-S.left)/60))+"%";
   var st=$("#streak");st.textContent=S.streak>1?S.streak+"×":S.streak;st.classList.toggle("off",S.streak<2);
   var label=S.deck.timed?deckName(it.deck):(S.deck.ordered?"Step "+(S.i+1)+" of "+total:(S.i+1)+" of "+total);
-  var h="<div class='tag'>"+label+"</div><div class='q'>"+esc(it.q)+"</div>"+(it.scene?"<p class='scene'>"+esc(it.scene)+"</p>":"")+"<div class='opts'>";
+  var h="<div class='tag'>"+label+"</div>"+(it.img?"<img class='pic' src='img/"+it.img+".jpg' alt='Endoscopy image for this case' loading='lazy'>":"")+"<div class='q'>"+esc(it.q)+"</div>"+(it.scene?"<p class='scene'>"+esc(it.scene)+"</p>":"")+"<div class='opts'>";
   it.o.forEach(function(o,k){h+="<button type='button' class='opt' data-k='"+k+"' id='opt"+k+"'>"+esc(o)+"</button>"});
   h+="</div><div id='why'></div>";
   var card=$("#card");card.innerHTML=h;card.style.animation="none";void card.offsetWidth;card.style.animation="";
@@ -290,6 +311,7 @@ function answer(k){
   var it=S.items[S.i];var ok=k===it.c;
   var tot=load("tot",{a:0,r:0,bs:0});tot.a++;if(ok){tot.r++;S.right++;S.streak++;if(S.streak>tot.bs)tot.bs=S.streak}else{S.streak=0;S.missed.push(it)}
   store("tot",tot);
+  var qs=load("qs",{});var key=(it.deck||S.deck.id)+"|"+it.q;var e=qs[key]||{a:0,r:0,w:it.w,o:it.o[it.c]};e.a++;if(ok)e.r++;qs[key]=e;store("qs",qs);
   document.querySelectorAll(".opt").forEach(function(b){b.disabled=true;var kk=+b.dataset.k;if(kk===it.c)b.classList.add("right");else if(kk===k)b.classList.add("wrong")});
   var st=$("#streak");st.textContent=S.streak>1?S.streak+"×":S.streak;st.classList.toggle("off",S.streak<2);
   var why=$("#why");why.innerHTML="<div class='why "+(ok?"good":"bad")+"'><b>"+(ok?"Right.":"Not this one.")+"</b> "+esc(it.w)+"</div><button type='button' class='next' id='nextBtn'>"+(S.i+1<S.items.length&&!S.deck.timed?"Next":(S.deck.timed?"Next":"See score"))+"</button>";
@@ -305,14 +327,42 @@ function finish(){
   var pct=n?sc/n:0;
   $("#rVerdict").textContent=S.deck.timed?(sc+" correct in 60 seconds. Best "+best+"."):(pct===1?"Clean round. That is the standard for tomorrow.":pct>=.8?"Strong. Fix the misses below and go again.":pct>=.6?"Getting there. Read the misses, then replay.":"Replay this deck tonight. The misses are the whole point.");
   var m=$("#rMissed");m.innerHTML="";S.missed.forEach(function(it){var d=document.createElement("div");d.innerHTML="<b>"+esc(it.q)+"</b>"+esc(it.o[it.c])+". "+esc(it.w);m.appendChild(d)});
+  var w=weakSpots();var worst=Object.keys(w.byDeck).filter(function(d){return w.byDeck[d].a>=5}).sort(function(a,b){return w.byDeck[a].r/w.byDeck[a].a-w.byDeck[b].r/w.byDeck[b].a})[0];$("#rCoach").textContent=worst?"Weakest deck so far: "+deckName(worst)+" at "+Math.round(100*w.byDeck[worst].r/w.byDeck[worst].a)+"%. Play that one next.":"Play two more decks and the trainer will tell you where you are weakest.";$("#copyHint").hidden=true;
   show("result");renderHome();
 }
+
+function weakSpots(){
+  var qs=load("qs",{});var byDeck={};var rows=[];
+  Object.keys(qs).forEach(function(k){var e=qs[k];var d=k.split("|")[0];byDeck[d]=byDeck[d]||{a:0,r:0};byDeck[d].a+=e.a;byDeck[d].r+=e.r;if(e.a-e.r>0)rows.push({k:k,d:d,q:k.slice(d.length+1),e:e})});
+  rows.sort(function(x,y){return ((y.e.a-y.e.r)/y.e.a)-((x.e.a-x.e.r)/x.e.a)||(y.e.a-y.e.r)-(x.e.a-x.e.r)});
+  return{byDeck:byDeck,rows:rows};
+}
+function renderWeak(){
+  var w=weakSpots();var host=$("#weak");if(!host)return;
+  var decks=Object.keys(w.byDeck).filter(function(d){return w.byDeck[d].a>=3}).map(function(d){return{d:d,p:Math.round(100*w.byDeck[d].r/w.byDeck[d].a),a:w.byDeck[d].a}}).sort(function(x,y){return x.p-y.p});
+  if(!decks.length&&!w.rows.length){host.innerHTML="";return}
+  var h="<h2>Your weak spots</h2>";
+  if(decks.length){h+="<div class='wd'>";decks.forEach(function(x){h+="<div><span>"+esc(deckName(x.d))+"</span><b class='"+(x.p>=80?"g":x.p>=60?"a":"b")+"'>"+x.p+"%</b></div>"});h+="</div>"}
+  if(w.rows.length){h+="<div class='wq'>";w.rows.slice(0,5).forEach(function(r){h+="<div><b>"+esc(r.q)+"</b>"+esc(r.e.o)+". "+esc(r.e.w)+"</div>"});h+="</div>"}
+  host.innerHTML=h;
+}
+function report(){
+  var w=weakSpots();var tot=load("tot",{a:0,r:0,bs:0});
+  var lines=["UGI Trainer report "+new Date().toISOString().slice(0,16).replace("T"," "),"Overall: "+tot.r+"/"+tot.a+" correct, best streak "+tot.bs];
+  if(S.deck)lines.push("Last round: "+S.deck.name+" "+S.right+"/"+(S.deck.timed?S.i:S.items.length));
+  Object.keys(w.byDeck).forEach(function(d){lines.push("- "+deckName(d)+": "+w.byDeck[d].r+"/"+w.byDeck[d].a)});
+  if(w.rows.length){lines.push("Most missed:");w.rows.slice(0,10).forEach(function(r){lines.push("- ["+deckName(r.d)+"] "+r.q+" (missed "+(r.e.a-r.e.r)+" of "+r.e.a+")")})}
+  if(S.missed.length){lines.push("Missed this round:");S.missed.forEach(function(it){lines.push("- "+it.q)})}
+  return lines.join("\n");
+}
+function fallbackCopy(t){var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 $("#quit").addEventListener("click",function(){clearInterval(S.timer);renderHome();show("home")});
 $("#quit2").addEventListener("click",function(){renderHome();show("home")});
 $("#homeBtn").addEventListener("click",function(){renderHome();show("home")});
 $("#again").addEventListener("click",function(){start(S.deck)});
 renderHome();
+$("#copyBtn").addEventListener("click",function(){var t=report();var done=function(){$("#copyHint").hidden=false};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,function(){fallbackCopy(t);done()})}else{fallbackCopy(t);done()}});
 })();
 </script>
 </body>
