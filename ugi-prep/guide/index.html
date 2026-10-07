@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<style>html{color-scheme:light dark}body{margin:0;font:14px system-ui;background:#f6f4ef}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Leicester UGI Course Prep</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;700&family=Public+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: one reading column with a sticky chip nav; sections are the course's own sessions, in the order the day runs. */
+:root{--bg:#f6f4ef;--panel:#ffffff;--ink:#1d2430;--muted:#5d6675;--line:#d9d4c8;--accent:#0f6e8c;--accent-ink:#ffffff;--soft:#e3eff3;--warn:#8a4b0f;--warn-bg:#fbefdf;--good:#1f6b3a;--good-bg:#e4f2e8;--display:"Bitter",Georgia,serif;--body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#161a20;--panel:#1f242c;--ink:#e8e6e0;--muted:#a3a9b3;--line:#363d48;--accent:#5fb6d1;--accent-ink:#0e1c22;--soft:#22323a;--warn:#f0b36b;--warn-bg:#3a2a16;--good:#8fd3a5;--good-bg:#1d3326;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161a20;--panel:#1f242c;--ink:#e8e6e0;--muted:#a3a9b3;--line:#363d48;--accent:#5fb6d1;--accent-ink:#0e1c22;--soft:#22323a;--warn:#f0b36b;--warn-bg:#3a2a16;--good:#8fd3a5;--good-bg:#1d3326;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-block:24px 64px;padding-inline:16px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:2rem;font-weight:700}
+h2{font-size:1.35rem;font-weight:700;margin-top:8px}
+h3{font-size:1.05rem;font-weight:700;margin-top:18px;margin-bottom:6px}
+p{margin:8px 0;max-width:68ch}
+.eyebrow{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:grid;gap:10px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:.9rem}
+.meta b{color:var(--ink)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:10px;z-index:5;border-bottom:1px solid var(--line);margin-bottom:10px}
+nav .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px}
+nav a{flex:0 0 auto;font-size:.82rem;font-weight:600;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:5px 11px;text-decoration:none;background:var(--panel);white-space:nowrap}
+nav a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{padding-block:22px 10px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.lead{color:var(--muted);max-width:68ch}
+ul,ol{margin:6px 0 10px;padding-left:22px;max-width:70ch}
+li{margin:4px 0}
+li::marker{color:var(--accent)}
+.rule{background:var(--soft);border-left:4px solid var(--accent);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;max-width:70ch}
+.rule b{font-family:var(--display)}
+.warn{background:var(--warn-bg);border-left:4px solid var(--warn);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;max-width:70ch}
+.ok{background:var(--good-bg);border-left:4px solid var(--good);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;max-width:70ch}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:10px 0}
+.tbl{overflow-x:auto}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td b{font-weight:600}
+.case{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0;max-width:72ch}
+.case .q{font-weight:600}
+.case .a{margin-top:6px}
+details{margin:8px 0}
+summary{cursor:pointer;font-weight:600;color:var(--accent);list-style:none;display:inline-flex;align-items:center;gap:8px}
+summary::before{content:"+";display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:.9rem;font-weight:700}
+details[open] summary::before{content:"–"}
+details>div{margin:8px 0 4px 28px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:10px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.card .t{font-family:var(--display);font-weight:700;margin-bottom:4px}
+.card p{font-size:.92rem;margin:4px 0}
+.check{list-style:none;padding:0;margin:10px 0}
+.check li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line)}
+.check input{width:20px;height:20px;margin-top:2px;accent-color:var(--accent);flex:0 0 auto}
+.check label{cursor:pointer}
+.flash{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:12px 0}
+.fc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.fc .fq{font-weight:600}
+.fc button{margin-top:8px;font:inherit;font-size:.85rem;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:8px;padding:5px 10px;cursor:pointer}
+.fc .fa{margin-top:8px;font-size:.93rem;color:var(--ink)}
+.small{font-size:.85rem;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){details>div{animation:fade .18s ease-out}@keyframes fade{from{opacity:.4}to{opacity:1}}}
+@media (max-width:480px){h1{font-size:1.6rem}body{font-size:15.5px}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">JAG Basic Skills in Upper GI Endoscopy · University Hospitals of Leicester</div>
+  <h1>Leicester UGI Course Prep</h1>
+  <p class="lead">Built from the twelve files the course sent you. Read sections 1 to 4 tonight, run the flashcards on the train, and use the handling section on the model tomorrow.</p>
+  <div class="meta">
+    <span><b>Thu 8 and Fri 9 October 2026</b></span>
+    <span>Registration <b>08:30</b>, Clinical Education Centre</span>
+    <span>Endoscopy Unit, <b>Leicester General Hospital</b>, Gwendolen Road, LE5 4PW</span>
+    <span>Pay and display · site buggy 07432 629 730</span>
+  </div>
+</header>
+
+<nav aria-label="Sections"><div class="chips">
+  <a href="#day">The two days</a><a href="#indic">Indications</a><a href="#consent">Consent</a><a href="#drugs">Blood thinners</a><a href="#abx">Antibiotics</a><a href="#sed">Sedation</a><a href="#scope">Scope handling</a><a href="#design">Design and cleaning</a><a href="#unit">Unit and GRS</a><a href="#quiz">Quiz cases</a><a href="#dops">DOPS and ENTS</a><a href="#flash">Flashcards</a><a href="#bring">Checklist</a>
+</div></nav>
+
+<section id="day">
+  <div class="eyebrow">1 · Shape of the course</div>
+  <h2>What the two days look like</h2>
+  <p class="lead">The programme they sent is last October's Glenfield one, so treat the times as indicative. The structure will be the same.</p>
+  <div class="cards">
+    <div class="card"><div class="t">Day 1 morning</div><p>Welcome and objectives. Indications and basics. A recap of the course reading. Coffee. Then the <b>quiz with case discussion</b>, which is Dr Kadri's 25 image slides.</p></div>
+    <div class="card"><div class="t">Day 1 afternoon</div><p>Scope handling on models in two teams. Endoscope design and function. Cleaning and disinfection. Then <b>hands-on in pairs with two trainers</b> until about 16:30, and the groundwork for day 2 DOPS including ENTS.</p></div>
+    <div class="card"><div class="t">Day 2</div><p>Hands-on training all morning. After lunch: the <b>DOPS and accreditation process</b>, unit management, then a skills review and discussion. Close about 16:45.</p></div>
+  </div>
+  <div class="rule"><b>How to stand out.</b> Faculty remember three things: the candidate who answered the drug cases correctly with the guideline name, the candidate who handled the scope calmly and talked through what they were doing, and the candidate who asked about DOPS and JETS before anyone else. Aim to be all three.</div>
+  <p><b>Course objectives, in their words.</b> By the end you should be able to: list indications; describe diagnostic and therapeutic principles; obtain consent with a structured approach; explain patient preparation, throat spray versus sedation; identify who needs antibiotic prophylaxis; recognise patients at risk of complications and of bleeding, and plan anticoagulation around endoscopy; administer and monitor sedation safely; describe scope design and decontamination; explain accessories and diathermy; demonstrate intubation, manipulation and mucosal visualisation; and understand unit management.</p>
+</section>
+
+<section id="indic">
+  <div class="eyebrow">2 · Dr Robinson's slide</div>
+  <h2>Indications for OGD</h2>
+  <h3>Definite</h3>
+  <ol>
+    <li>Age over 55 with recent onset dyspepsia (under one year) lasting more than 4 weeks.</li>
+    <li>Dyspepsia with alarm symptoms: chronic GI bleeding, unintentional weight loss, progressive dysphagia, persistent vomiting, iron deficiency anaemia, epigastric mass. For anaemia the slide insists on both <b>MCV under 80 fl and a low ferritin</b> before you call it iron deficiency.</li>
+    <li>Suspicious radiology: barium meal, CT, ultrasound.</li>
+    <li>Haematemesis or melaena.</li>
+  </ol>
+  <h3>Possible</h3>
+  <ul><li>Confirming serology-positive coeliac disease with D2 biopsies.</li><li>Barrett's surveillance.</li></ul>
+  <h3>Not indicated</h3>
+  <ul><li>Under 55, no alarm features, and no adequate trial of acid suppression or no non-invasive H. pylori test yet.</li><li>Epigastric mass without dyspeptic symptoms. Image it first with ultrasound or CT.</li></ul>
+  <div class="rule"><b>Answer to have ready.</b> "Under 55 without alarm features gets test-and-treat for H. pylori or a PPI trial first. Over 55 with new dyspepsia, or anyone with an alarm feature, gets a scope." That one sentence covers most of what they will ask.</div>
+</section>
+
+<section id="consent">
+  <div class="eyebrow">3 · The consent talk</div>
+  <h2>Consent and endoscopy</h2>
+  <p>Their framing: consent is giving permission and keeping the right to withdraw it. It is a continuous process and much more than a signed form.</p>
+  <h3>Valid consent needs three things</h3>
+  <ul>
+    <li><b>Capacity.</b> Understands and retains the information, can weigh it and decide. Mental illness does not remove capacity. An irrational decision does not remove capacity.</li>
+    <li><b>Voluntariness.</b> Without coercion. Their example: a patient who has taken bowel prep, is in a backless gown and is sitting on the edge of the trolley. Is that free to say no? Information given on arrival or in the room is weaker than information given in advance, so re-check acceptance of the risks.</li>
+    <li><b>Information.</b> Nature of the procedure, the reason, the benefits, the risks, the alternatives including doing nothing, and the sedation or anaesthetic. Seriousness matters more than frequency: a serious complication affecting more than 1 in 1,000 must be mentioned.</li>
+  </ul>
+  <h3>Traps they listed</h3>
+  <ul>
+    <li>"I haven't got my glasses." "My hearing aid is outside." Fix it before you talk.</li>
+    <li>Translators: an independent one, not a friend, for anything that matters.</li>
+    <li>Consent under sedation is not consent. Take it before the first drug.</li>
+    <li>Adults without capacity and no proxy: best-interests decision. The Mental Health Act does not authorise treatment of physical conditions. A sectioned patient still needs consent or a best-interests process.</li>
+    <li><b>Never ask relatives to sign for an adult.</b></li>
+  </ul>
+  <h3>Their three scenarios, with the answers to give</h3>
+  <div class="case"><div class="q">A 45-year-old accountant with epigastric pain and night-time heartburn suggestive of reflux.</div><div class="a">Capacity and voluntariness are not in doubt. The question is whether the procedure is indicated at all: under 55, no alarm features, so ask about the PPI trial and H. pylori test first. If he comes to endoscopy, give written information in advance, go through risks including perforation, bleeding, the sedation risks and the throat spray alternative, and record his choice. He can withdraw at any point, including on the trolley.</div></div>
+  <div class="case"><div class="q">A confused 75-year-old woman after a stroke who keeps pulling out NG tubes, referred for a PEG.</div><div class="a">Capacity assessment first, for this decision, today. If she lacks capacity: no proxy can consent for her, so it is a best-interests decision involving the team, the family's view of what she would have wanted, and any advance decision or lasting power of attorney. PEG in post-stroke dysphagia is a value judgement about prognosis, not a reflex. Document the process.</div></div>
+  <div class="case"><div class="q">A 43-year-old man with alcoholic liver disease, fresh haematemesis, struggling during an attempted OGD.</div><div class="a">An emergency, so consent is proportionate but still real: explain what you are doing and why in plain words, check he agrees, and stop if he withdraws. If he cannot cooperate safely, the answer is not more force; it is to stop, resuscitate, give terlipressin and antibiotics, and consider airway protection with anaesthetic support before a second attempt.</div></div>
+</section>
+
+<section id="drugs">
+  <div class="eyebrow">4 · The main reading: BSG and ESGE 2021 guideline</div>
+  <h2>Antiplatelets and anticoagulants</h2>
+  <p class="lead">This is the session where you can be visibly better prepared than the room. The whole guideline reduces to one grid: how risky is the procedure, and how risky is stopping the drug.</p>
+  <div class="rule"><b>First, always:</b> tell the patient the thrombotic risk of stopping and the bleeding risk of continuing. That advice is itself a strong recommendation in the guideline.</div>
+  <h3>Procedure risk</h3>
+  <div class="tbl"><table>
+    <tr><th>Low risk</th><th>High risk</th></tr>
+    <tr><td>Diagnostic OGD, with or without biopsies. Diagnostic colonoscopy or flexi sig with biopsies. ERCP without sphincterotomy, EUS without FNA, enteroscopy without polypectomy, biliary or pancreatic stenting.</td><td>Polypectomy and EMR or ESD. Dilatation of strictures. Variceal therapy. PEG. ERCP with sphincterotomy, ampullectomy. EUS with FNA. Oesophageal, enteral or colonic stenting.</td></tr>
+  </table></div>
+  <h3>The rules, drug by drug</h3>
+  <div class="tbl"><table>
+    <tr><th>Drug</th><th>Low-risk procedure</th><th>High-risk procedure, low thrombotic risk</th><th>High-risk procedure, high thrombotic risk</th></tr>
+    <tr><td><b>Aspirin</b></td><td>Continue</td><td>Continue (the only exception in the guideline is ampullectomy, and ESD is discussed case by case)</td><td>Continue</td></tr>
+    <tr><td><b>Clopidogrel, prasugrel, ticagrelor</b> (P2Y12)</td><td>Continue, including as dual therapy</td><td>Stop <b>7 days</b> before. If on dual therapy, continue the aspirin</td><td>Continue aspirin and <b>liaise with an interventional cardiologist</b>. Coronary stents: drug-eluting within 12 months, bare metal within 1 month, are the high-risk group</td></tr>
+    <tr><td><b>Warfarin</b></td><td>Continue. Check the INR is not above the therapeutic range in the week before</td><td>Stop <b>5 days</b> before. INR <b>under 1.5</b> on the day. Restart the same evening</td><td>Stop and <b>bridge with LMWH</b>. High risk means a mechanical mitral valve, a prosthetic valve plus AF, AF with mitral stenosis, VTE within 3 months, or a thrombophilia</td></tr>
+    <tr><td><b>DOACs</b> (apixaban, rivaroxaban, edoxaban, dabigatran)</td><td><b>Omit the morning dose</b> on the day</td><td>Last dose <b>at least 48 hours</b> before. Dabigatran with creatinine clearance 30 to 50: 72 hours. No bridging. Restart 2 to 3 days after if haemostasis is secure</td><td>Same timing; there is no bridging for DOACs, so time the gap tightly and discuss if the indication is recent VTE</td></tr>
+  </table></div>
+  <h3>Their three cases, answered</h3>
+  <div class="case"><div class="q">Case 1. 68-year-old man with IBD on aspirin after a TIA. Referred for flexible sigmoidoscopy and a biopsy series.</div><div class="a"><b>Go ahead and take the biopsies.</b> Aspirin is continued for all endoscopic procedures. The slide's own evidence: a case-control study of more than 20,000 colonoscopies with polypectomy showed no increase in haemorrhage on aspirin. Take as many biopsies as the series needs.</div></div>
+  <div class="case"><div class="q">Case 2. 71-year-old woman, bloating and diarrhoea, weakly positive coeliac serology, previous CVA with full recovery, on clopidogrel and an ACE inhibitor. Referred for D2 biopsies.</div><div class="a"><b>Do not stop the clopidogrel. Biopsy anyway.</b> Diagnostic OGD with biopsies is a low-risk procedure and P2Y12 inhibitors are continued. The older slide's "stop 7 days in low-risk conditions" refers to therapeutic procedures; for diagnostic work with multiple biopsies it says safe. Take four biopsies from D2 and one or two from the bulb, on a gluten-containing diet.</div></div>
+  <div class="case"><div class="q">Case 3. 65-year-old man with weight loss, nausea and epigastric pain. AF on warfarin, INR 2.4.</div><div class="a"><b>Continue the warfarin, go ahead, and biopsy any ulcer.</b> Diagnostic OGD with biopsy is low risk, and 2.4 is within range. Do not start heparin. If a finding needed a high-risk therapy (for example dilating a stricture), that would be a planned second procedure: stop warfarin 5 days before, INR under 1.5, and for plain AF without the high-risk features, no bridging.</div></div>
+  <h3>Acute upper GI bleeding on these drugs</h3>
+  <ul>
+    <li>Haemodynamically unstable on warfarin: reverse with prothrombin complex concentrate plus vitamin K; do not wait for the INR to fall before scoping.</li>
+    <li>Dabigatran can be reversed with idarucizumab; the factor Xa drugs with andexanet where available. Most DOAC bleeds settle with time and endoscopic therapy.</li>
+    <li>Aspirin for secondary prevention is continued or restarted within days. Anticoagulation is usually restarted within 7 days once haemostasis is secure, because the thrombotic risk of staying off it is real.</li>
+  </ul>
+  <div class="warn"><b>The classic trap.</b> The quiz loves the patient on dual antiplatelets with a recent drug-eluting stent. Stopping both before an elective procedure risks stent thrombosis. The answer is defer if elective; if not, keep the aspirin and talk to cardiology about the P2Y12 drug.</div>
+</section>
+
+<section id="abx">
+  <div class="eyebrow">5 · BSG 2009 antibiotic guideline</div>
+  <h2>Antibiotic prophylaxis</h2>
+  <p>The headline is a negative: <b>prophylaxis against infective endocarditis is no longer recommended</b> for any diagnostic or therapeutic endoscopy, prosthetic valves included. Bacteraemia is common after dilatation and sclerotherapy, endocarditis is extremely rare, and there is no evidence prophylaxis prevents it. If a cardiac-risk patient develops a fever after endoscopy, think of endocarditis and take cultures.</p>
+  <h3>Where antibiotics are still given</h3>
+  <ul>
+    <li><b>PEG insertion.</b> A single IV dose before the procedure (co-amoxiclav or cefuroxime; teicoplanin if MRSA-colonised or penicillin-allergic) reduces peristomal infection.</li>
+    <li><b>Cirrhosis with any GI bleed.</b> Antibiotics for every patient, because they reduce infection, rebleeding and death.</li>
+    <li><b>ERCP where drainage may be incomplete</b> (hilar strictures, sclerosing cholangitis, pseudocysts) and in biliary complications after transplant.</li>
+    <li><b>EUS-guided FNA of pancreatic cystic lesions.</b></li>
+    <li><b>Severe neutropenia</b> or profound immunosuppression undergoing a high-risk procedure: consider it.</li>
+  </ul>
+  <p class="small">Not routinely for dilatation, variceal sclerotherapy or banding in a non-bleeding patient, or diagnostic procedures of any kind.</p>
+</section>
+
+<section id="sed">
+  <div class="eyebrow">6 · Patient preparation</div>
+  <h2>Throat spray, sedation and monitoring</h2>
+  <div class="cards">
+    <div class="card"><div class="t">Fasting</div><p>Solids 6 hours. Clear fluids 2 hours. Diabetics early on the list. Gastroparesis or achalasia: longer, and consider the airway risk.</p></div>
+    <div class="card"><div class="t">Throat spray alone</div><p>Lidocaine 10% spray to the oropharynx. Patient stays awake, fully in control, drives home. Trade-off: more gagging, more retching during intubation. Nil by mouth until the throat sensation returns, about an hour.</p></div>
+    <div class="card"><div class="t">Conscious sedation</div><p>Midazolam titrated in 1 to 2 mg steps to a drowsy but rousable patient who obeys commands. Keep the total modest, and much lower in the elderly and frail. If combining with an opioid, give the fentanyl first and reduce the midazolam. Cannot drive for 24 hours and needs an escort.</p></div>
+    <div class="card"><div class="t">Monitoring</div><p>Pulse oximetry throughout, supplemental oxygen via nasal cannula for sedated patients, a dedicated nurse watching the patient rather than the screen. Record the doses and the observations. Recovery until awake with stable observations.</p></div>
+    <div class="card"><div class="t">Reversal</div><p>Flumazenil for midazolam, naloxone for opioids. Every use of a reversal agent is recorded and audited; the unit's GRS measures it. Needing reversal is a sedation-dose error, not a routine step.</p></div>
+    <div class="card"><div class="t">Who is high risk</div><p>Elderly, frail, cardiorespiratory disease, obstructive sleep apnoea, chronic opioid or benzodiazepine use, hepatic impairment, and anyone with a likely difficult airway. Lower doses, slower titration, anaesthetic help for the sickest.</p></div>
+  </div>
+  <div class="rule"><b>If they ask "spray or sedation?"</b> Offer the choice with honest pros and cons; many straightforward diagnostic OGDs are done with spray alone, and the patient's preference and comorbidity decide.</div>
+</section>
+
+<section id="scope">
+  <div class="eyebrow">7 · The model and the hands-on sessions</div>
+  <h2>Scope handling and a complete examination</h2>
+  <h3>Holding the scope</h3>
+  <ul>
+    <li><b>Left hand</b> holds the control body. Thumb on the large wheel: up and down. Thumb also reaches the small wheel: left and right. Index and middle fingers on the two valves: the upper valve is suction, the lower is air and water (cover it for air, press it for water). Lock the small wheel when you need both hands.</li>
+    <li><b>Right hand</b> holds the shaft about 20 to 30 cm from the mouth, close to the bite guard, and does the pushing, pulling and torque. Most steering is torque plus the big wheel, not the small wheel.</li>
+    <li>Keep the shaft straight between you and the patient. Loops in the shaft steal your torque.</li>
+  </ul>
+  <h3>Intubation</h3>
+  <ol>
+    <li>Patient in left lateral, chin slightly down towards the chest, bite guard in, a nurse holding it.</li>
+    <li>Scope tip over the tongue in the midline, following the curve of the tongue down. Keep the lumen in view. The epiglottis and the vocal cords appear; the cords are a landmark, not a target.</li>
+    <li>Pass behind the arytenoids, usually to the left of the midline, to the cricopharyngeus. Ask the patient to swallow and advance with gentle pressure as it relaxes. If it does not open, wait and ask for another swallow. <b>Never push blind and never push hard.</b></li>
+    <li>Into the oesophagus with a little air. Say what you see as you go.</li>
+  </ol>
+  <h3>The route and the landmarks</h3>
+  <div class="tbl"><table>
+    <tr><th>Landmark</th><th>Distance from the incisors (typical adult)</th><th>What to do</th></tr>
+    <tr><td>Cricopharyngeus</td><td class="num">15 to 18 cm</td><td>The one place you wait for a swallow</td></tr>
+    <tr><td>Oesophagus</td><td class="num">18 to 40 cm</td><td>Insufflate gently, keep the lumen central, look at the mucosa on the way down and again on the way out</td></tr>
+    <tr><td>Z-line and gastro-oesophageal junction</td><td class="num">about 38 to 40 cm</td><td>Measure Barrett's from the top of the gastric folds, Prague C and M</td></tr>
+    <tr><td>Stomach: fundus, body, incisura, antrum</td><td></td><td>Suction the pool, insufflate, follow the greater curve with gentle torque. The lesser curve and the incisura need the retroflexed view</td></tr>
+    <tr><td>Pylorus</td><td></td><td>Centre it, wait for it to open, slight push. Do not fight it</td></tr>
+    <tr><td>D1 then D2</td><td></td><td>Into the bulb; then the corkscrew: right torque, up on the big wheel, withdraw slightly, and the scope drops into D2 ("paradoxical" advance)</td></tr>
+  </table></div>
+  <h3>The J manoeuvre (retroflexion)</h3>
+  <p>In the body of the stomach, with a good lumen, turn the big wheel fully up, add a little left, and withdraw gently. The scope shaft appears coming through the cardia. Rotate to see the whole cardia and fundus. Straighten the tip before you withdraw out of the stomach. Cardia cancers, fundal varices and hiatus hernias are all retroflexion findings.</p>
+  <h3>The photo set assessors expect</h3>
+  <p>A complete OGD is documented with a standard set of images, and the DOPS marks visualisation and documentation. Take them in this order on the way out, each clean and in focus:</p>
+  <ol>
+    <li>Upper oesophagus</li><li>2 cm above the GOJ</li><li>Z-line</li><li>Cardia and fundus in retroflexion</li><li>Gastric body</li><li>Incisura in retroflexion</li><li>Antrum</li><li>Duodenal bulb</li><li>D2</li>
+  </ol>
+  <div class="rule"><b>On the model and the patient, narrate.</b> "Cricopharyngeus, waiting for a swallow. In the oesophagus, Z-line at 39. Pool suctioned, following the greater curve. Pylorus, waiting for it to open. Bulb, now the corkscrew into D2. Withdrawing: D2, bulb, antrum, incisura on retroflexion, cardia, body, Z-line, oesophagus, done." Trainers hear control, and so do you.</div>
+  <h3>Biopsies and basic therapeutics</h3>
+  <ul>
+    <li>Forceps through the working channel, open, press the mucosa, close, pull. Edge of an ulcer, not the base. Six to eight from a suspicious lesion, four from D2 plus one or two from the bulb for coeliac, a Sydney-protocol set for H. pylori if your unit uses it.</li>
+    <li>Diathermy basics: cutting current is a continuous waveform and cuts cleanly with little coagulation; coagulation current is pulsed and seals vessels with more thermal spread; blend sits between. Safety: the return pad on a well-perfused muscle, no metal contact, know the pacemaker and ICD rules, keep the tip away from the lens, keep the lumen insufflated so you are not burning the wall you cannot see.</li>
+  </ul>
+</section>
+
+<section id="design">
+  <div class="eyebrow">8 · Dr Kadri's session</div>
+  <h2>Endoscope design and decontamination</h2>
+  <ul>
+    <li><b>Parts:</b> light guide connector, umbilical cord, control body with the two wheels and two valves, insertion tube with the bending section and the distal tip. The tip carries the objective lens, two light guides, the air and water nozzle, and the working channel opening.</li>
+    <li><b>Channels:</b> air and water share a channel to the nozzle; suction and the instrument share the working channel. That is why the suction valve clears the view and why a forceps in the channel blocks suction.</li>
+    <li><b>Image:</b> a charge-coupled device at the tip sends the picture to the processor; the light comes from a xenon or LED source through fibre bundles.</li>
+    <li><b>Decontamination:</b> bedside pre-clean immediately after the case (wipe the insertion tube, flush the channels, suck detergent through), then leak test, then manual cleaning with brushes through every channel, then automated endoscope reprocessing with high-level disinfection, rinse, dry, and storage in a drying cabinet with a traceability record linking scope, patient and washer cycle. Single-use accessories are single use. Reusable accessories go through sterilisation, not just disinfection.</li>
+    <li><b>Why it matters:</b> cross-infection outbreaks have been traced to inadequate channel brushing and wet storage. The unit audits reprocessing as part of GRS.</li>
+  </ul>
+</section>
+
+<section id="unit">
+  <div class="eyebrow">9 · Day 2 afternoon</div>
+  <h2>Unit management and the GRS</h2>
+  <p>The Global Rating Scale from JAG measures how well a unit delivers patient-centred care in four domains: <b>patient experience, clinical quality, workforce, training</b>. Each item is graded by maturity:</p>
+  <div class="tbl"><table>
+    <tr><th>Level</th><th>Meaning</th></tr>
+    <tr><td>D</td><td>Nationally agreed standards are published in the department</td></tr>
+    <tr><td>C</td><td>There are processes to monitor the standards</td></tr>
+    <tr><td>B</td><td>Action is agreed when performance falls below the standards</td></tr>
+    <tr><td>A</td><td>The action taken is reviewed to make sure it worked</td></tr>
+  </table></div>
+  <p>Lines of management are a medical or surgical lead, a nursing lead, and a users' group that brings leads, stakeholders, managers and accountants together. BSG quality and safety indicators the slide listed: a reporting system with image capture, agreed antibiotic, anticoagulation and sedation policies, supervised trainees, operator-specific audit, appropriate monitoring and resuscitation equipment, adverse-event monitoring, audit of reversal agents and 30-day mortality.</p>
+  <p>Operational topics: list composition (urgents, inpatients, soons, therapeutics, training), cancellation rules, vetting of referrals, full versus partial booking, servicing and stock, same-sex recovery, information and reports, staffing numbers and rotas, and governance through the users' group: waiting-list targets including 2-week-wait, complications audit, patient satisfaction, protocols and training needs.</p>
+  <div class="rule"><b>Something only you can say in that session.</b> You built the live rota and on-call tool your department uses, and you ran the 2-week-wait triage audit. When unit management comes up, one sentence about either makes you memorable.</div>
+</section>
+
+<section id="quiz">
+  <div class="eyebrow">10 · Day 1, after coffee</div>
+  <h2>The quiz cases</h2>
+  <p class="lead">Dr Kadri's 25 image slides, by prompt. The answers below are the working diagnoses I reached from the images; they are not the course key, so hold the ones marked "likely" loosely. The full image version with answers hidden is at <a href="https://claude.ai/artifact/WMGvVrEgqye5CFP4kDVZXN">Leicester UGI Quiz</a>.</p>
+  <div class="tbl"><table>
+    <tr><th>Prompt</th><th>Working answer</th><th>The line to say</th></tr>
+    <tr><td>What are these?</td><td>Fundic gland polyps</td><td>Long-term PPI effect; biopsy one or two, do not clear them; FAP if innumerable in a young patient</td></tr>
+    <tr><td>Incidental finding, what to do?</td><td>Barrett's oesophagus</td><td>Prague C and M from the top of the gastric folds; Seattle biopsies; surveillance by length</td></tr>
+    <tr><td>Longstanding heartburn</td><td>Reflux oesophagitis</td><td>LA grade A to D; 8 weeks PPI; LA C or D gets a repeat scope to exclude Barrett's underneath</td></tr>
+    <tr><td>Food bolus obstruction</td><td>Eosinophilic oesophagitis</td><td>Rings, furrows, exudates; 6 biopsies proximal and distal after clearing the bolus</td></tr>
+    <tr><td>Pain on swallowing</td><td>Oesophageal candidiasis</td><td>Odynophagia means mucosal disease; fluconazole; ask why (inhalers, immunosuppression, diabetes)</td></tr>
+    <tr><td>Weight loss and dyspepsia</td><td>Ulcerated cardia tumour</td><td>Seen on retroflexion; 6 to 8 edge biopsies; staging CT; MDT</td></tr>
+    <tr><td>What do you do next?</td><td>Bleeding lesion with clot</td><td>Wash, suction, Forrest classify; dual therapy, never adrenaline alone</td></tr>
+    <tr><td>Diagnosis and management</td><td>Severe erosive oesophagitis, LA C or D</td><td>Biopsy anything irregular; high-dose PPI; repeat scope after healing</td></tr>
+    <tr><td>Progressive dysphagia</td><td>Oesophageal carcinoma</td><td>Distance from incisors and length; multiple biopsies; CT then PET and EUS if potentially curable</td></tr>
+    <tr><td>Diagnosis and management?</td><td>Oesophageal varices</td><td>Grade and red signs; never biopsy; banding, terlipressin, antibiotics if bleeding; beta-blocker or banding programme if not</td></tr>
+    <tr><td>Dysphagia and heartburn</td><td>Peptic stricture</td><td>Smooth and short is benign; biopsy; dilate; long-term PPI</td></tr>
+    <tr><td>What is it and what next?</td><td>Submucosal tumour, likely GIST</td><td>Normal mucosa over a bulge; EUS with FNA; size decides</td></tr>
+    <tr><td>Non-progressive dysphagia</td><td>Web or benign stricture</td><td>Dilate; upper web: check ferritin</td></tr>
+    <tr><td>Intermittent food bolus</td><td>Schatzki ring</td><td>Symptomatic under about 13 mm; one large dilatation; PPI</td></tr>
+    <tr><td>Incidental finding</td><td>Fundal varices</td><td>Lumpy fundus on retroflexion; do not biopsy; look for portal hypertension or splenic vein thrombosis</td></tr>
+    <tr><td>Iron deficiency anaemia</td><td>Coeliac disease</td><td>Scalloped folds; D2 biopsies at every OGD for IDA even if normal-looking; tTG on gluten</td></tr>
+    <tr><td>Nocturnal epigastric pain</td><td>Ulcer with visible vessel, Forrest IIa</td><td>Dual endoscopic therapy; high-dose PPI; H. pylori test and treat</td></tr>
+    <tr><td>Dyspepsia</td><td>Erosive gastritis</td><td>H. pylori biopsies; stop NSAIDs; PPI; under-55s should have had test-and-treat first</td></tr>
+    <tr><td>Untitled slides</td><td>GAVE; polypoid gastric cancer with NBI view; pancreatic rest; early squamous neoplasia on white light then Lugol's</td><td>GAVE is antral red stripes, PHG is a fundal mosaic; umbilicated antral nodule is ectopic pancreas; Lugol's leaves dysplasia unstained</td></tr>
+  </table></div>
+  <div class="ok"><b>Scoring well in the room.</b> Say the finding, the classification, the next step, and the one trap. "Barrett's, Prague C2 M4, Seattle protocol biopsies, measure from the gastric folds not the Z-line." Four beats, every case.</div>
+</section>
+
+<section id="dops">
+  <div class="eyebrow">11 · Day 2 afternoon and JETS</div>
+  <h2>DOPS, ENTS and what assessors look for</h2>
+  <p>JAG certification runs on formative DOPS entered on JETS after supervised procedures, then summative DOPS when you are near competence. The course gives you your first ones. Knowing the form before they explain it is the single easiest way to look ahead of the group.</p>
+  <div class="cards">
+    <div class="card"><div class="t">Pre-procedure</div><p>Indication checked, consent taken properly, safety checklist, drugs and allergies, anticoagulants reviewed, equipment checked.</p></div>
+    <div class="card"><div class="t">Insertion</div><p>Safe intubation, keeping a luminal view, scope manipulation with torque and wheels, managing patient comfort and the airway.</p></div>
+    <div class="card"><div class="t">During the procedure</div><p>Complete mucosal visualisation including retroflexion and D2, lesion recognition, appropriate biopsies, photo documentation.</p></div>
+    <div class="card"><div class="t">After</div><p>An accurate report, a plan, instructions to the patient and to the referrer, histology follow-up.</p></div>
+    <div class="card"><div class="t">ENTS</div><p>Endoscopic non-technical skills: situation awareness, decision making, communication and teamwork, leadership. Talking to the patient and the nurse through the case scores here.</p></div>
+    <div class="card"><div class="t">Scoring</div><p>Each item is rated by how much supervision was needed. The aim across training is consistent "no supervision required" ratings before summative sign-off.</p></div>
+  </div>
+  <h3>Questions worth asking on the day</h3>
+  <ul>
+    <li>"Will the course DOPS be entered on JETS, and who is my course trainer on the form?"</li>
+    <li>"What are the current JAG requirements for OGD certification: numbers, DOPS, the KPI thresholds for D2 intubation and retroflexion?"</li>
+    <li>"How do you run your training lists, and what would you want a trainee to have done before the first supervised patient?"</li>
+  </ul>
+  <div class="rule"><b>Behaviour that gets you remembered.</b> Introduce yourself to the nurse and the model patient every time. Say your plan before you pick up the scope. Ask for feedback after each go and write it down in front of them. Thank the trainers by name.</div>
+</section>
+
+<section id="flash">
+  <div class="eyebrow">12 · Ten minutes before you walk in</div>
+  <h2>Flashcards</h2>
+  <p class="small">Tap to reveal. These are the questions a faculty member is most likely to fire at the room.</p>
+  <div class="flash" id="flashcards"></div>
+</section>
+
+<section id="bring">
+  <div class="eyebrow">13 · Tonight and tomorrow morning</div>
+  <h2>Checklist</h2>
+  <ul class="check" id="checklist">
+    <li><input type="checkbox" id="c1"><label for="c1">Read sections 2, 3, 4 and 5 once tonight, then the quiz table</label></li>
+    <li><input type="checkbox" id="c2"><label for="c2">Run the image quiz once with answers hidden</label></li>
+    <li><input type="checkbox" id="c3"><label for="c3">Know your JETS login and have your GMC number ready for the DOPS forms</label></li>
+    <li><input type="checkbox" id="c4"><label for="c4">Bring: ID badge, course receipt, a notebook, the halal lunch is pre-requested</label></li>
+    <li><input type="checkbox" id="c5"><label for="c5">Leave by 07:15: Gwendolen Road LE5 4PW, pay and display, registration 08:30 at the Clinical Education Centre</label></li>
+    <li><input type="checkbox" id="c6"><label for="c6">Flashcards on arrival, before coffee</label></li>
+    <li><input type="checkbox" id="c7"><label for="c7">Day 2: ask about JETS and certification before the DOPS session, not after</label></li>
+  </ul>
+  <p class="small">Sources: the pre-course pack from UHL Clinical Education (Objectives, Indications, Consent, Endoscopy Unit Management, Anticoagulant and Antiplatelet cases, Scope Handling, Upper GI Quiz), BSG and ESGE guideline on endoscopy in patients on antiplatelet or anticoagulant therapy (Gut 2021), BSG guideline on antibiotic prophylaxis in GI endoscopy (Gut 2009), and the October 2025 programme.</p>
+</section>
+</div>
+
+<script>
+(function(){
+  var cards=[
+    ["Diagnostic OGD with biopsies on clopidogrel after a stroke?","Continue it. Low-risk procedure, P2Y12 continued. BSG/ESGE 2021."],
+    ["Warfarin, AF, diagnostic OGD?","Continue. Check the INR has not been above range in the week before."],
+    ["Warfarin before a high-risk procedure, low thrombotic risk?","Stop 5 days before, INR under 1.5, restart the same evening, no bridging."],
+    ["Who needs LMWH bridging?","Mechanical mitral valve, prosthetic valve plus AF, AF with mitral stenosis, VTE within 3 months, thrombophilia."],
+    ["Apixaban, high-risk procedure, normal kidneys?","Last dose at least 48 hours before. Dabigatran with CrCl 30 to 50: 72 hours. Never bridge a DOAC."],
+    ["DOAC, low-risk procedure?","Omit the morning dose on the day."],
+    ["Drug-eluting stent 3 months ago on dual antiplatelets, elective high-risk procedure?","Defer. If it cannot wait, continue aspirin and discuss the P2Y12 drug with an interventional cardiologist."],
+    ["Aspirin before any endoscopy?","Continue. The guideline's only exception is ampullectomy."],
+    ["Endocarditis prophylaxis for a prosthetic valve at OGD?","No. Not recommended for any endoscopy since the 2009 BSG guideline."],
+    ["Which patients get antibiotics?","PEG insertion, every cirrhotic with a GI bleed, ERCP with likely incomplete drainage, EUS-FNA of pancreatic cysts, severe neutropenia for high-risk procedures."],
+    ["Three elements of valid consent?","Capacity, voluntariness, information. It is a continuous process; re-check on the trolley."],
+    ["Which complications must you mention?","Serious ones affecting more than 1 in 1,000. Seriousness outweighs frequency."],
+    ["Definite indications for OGD?","Over 55 with new dyspepsia over 4 weeks; any alarm feature; suspicious imaging; haematemesis or melaena."],
+    ["Under 55, dyspepsia, no alarm features, no treatment yet?","Not indicated. H. pylori test-and-treat or a PPI trial first."],
+    ["Iron deficiency anaemia for OGD: what must you biopsy?","D2, four biopsies plus one or two from the bulb, even if it looks normal. Confirm IDA: MCV under 80 and low ferritin."],
+    ["Food bolus in a young man: after you clear it?","Biopsy for eosinophilic oesophagitis: six biopsies, proximal and distal."],
+    ["Bluish bump in the distal oesophagus?","Varix. Never biopsy."],
+    ["Ulcer with a visible vessel?","Forrest IIa. Dual endoscopic therapy, never adrenaline alone, high-dose PPI."],
+    ["How do you measure Barrett's?","From the top of the gastric folds, Prague C and M in centimetres."],
+    ["GAVE versus portal hypertensive gastropathy?","GAVE: antral red stripes or spots. PHG: fundus and body mosaic."],
+    ["The corkscrew into D2?","From the bulb: right torque, big wheel up, slight withdrawal, and the tip drops into D2."],
+    ["The retroflexion manoeuvre?","In the body with a good lumen: big wheel fully up, a touch of left, withdraw gently, rotate to see the whole cardia."],
+    ["Which valve is which?","Upper valve suction. Lower valve air when covered, water when pressed."],
+    ["Standard photo set?","Upper oesophagus, 2 cm above GOJ, Z-line, cardia and fundus retroflexed, body, incisura retroflexed, antrum, bulb, D2."],
+    ["Four GRS domains?","Patient experience, clinical quality, workforce, training. Levels D to A, from standards published to actions reviewed."],
+    ["Diathermy: cut versus coag?","Cut: continuous waveform, clean cut, little coagulation. Coag: pulsed, seals vessels, more thermal spread."],
+    ["Fasting before OGD?","Solids 6 hours, clear fluids 2 hours."],
+    ["Midazolam in a frail 82-year-old?","Small increments, low total, oxygen and oximetry, slow titration. Needing flumazenil is a dose error and is audited."],
+    ["ENTS stands for?","Endoscopic non-technical skills: situation awareness, decision making, communication and teamwork, leadership."],
+    ["Patient sectioned under the Mental Health Act needs an OGD?","The Act does not cover physical treatment. Capacity assessment, consent if able, best interests if not."]
+  ];
+  var host=document.getElementById("flashcards");
+  cards.forEach(function(c,i){
+    var d=document.createElement("div");d.className="fc";
+    var q=document.createElement("div");q.className="fq";q.textContent=c[0];
+    var b=document.createElement("button");b.type="button";b.textContent="Show answer";b.id="fcb"+i;
+    var a=document.createElement("div");a.className="fa";a.textContent=c[1];a.hidden=true;
+    b.addEventListener("click",function(){a.hidden=!a.hidden;b.textContent=a.hidden?"Show answer":"Hide answer";});
+    d.appendChild(q);d.appendChild(b);d.appendChild(a);host.appendChild(d);
+  });
+  var boxes=document.querySelectorAll("#checklist input");
+  boxes.forEach(function(cb){
+    try{cb.checked=localStorage.getItem("ugi_"+cb.id)==="1";}catch(e){}
+    cb.addEventListener("change",function(){try{localStorage.setItem("ugi_"+cb.id,cb.checked?"1":"0");}catch(e){}});
+  });
+})();
+</script>
+
+</body>
+</html>
