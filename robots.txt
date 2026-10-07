@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 
 Sitemap: https://coin-maker3.github.io/sitemap.xml
+User-agent: *
+Disallow: /ugi-prep/
